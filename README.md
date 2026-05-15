@@ -6,7 +6,11 @@ A collection of agent skills.
 
 - [build-presentation](./skills/build-presentation/SKILL.md)
 
-## Usage
+## Installation
 
-To use these skills, link the skill directory to your agent's skills folder (e.g., `~/.agents/skills/`).
+You can install any skill from this repository using:
+
+```bash
+npx skills@latest add ken-guru/skills/<skill-name>
+```
 
