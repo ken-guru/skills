@@ -20,7 +20,7 @@
 
 ## Narrative structures
 
-Infer the most fitting structure from the topic and occasion. Present the inferred choice in the defaults summary.
+Infer the most fitting structure from the topic and occasion. Present the inferred choice in the defaults confirmation.
 
 ### Technical topic (tool, technology, system)
 > problem → løsning → demonstrasjon → implikasjoner
