@@ -1,42 +1,68 @@
 ---
 name: build-presentation
-description: Scaffold and generate a complete Marp presentation from a topic or rough agenda. Interactively builds AGENDA.md, scaffolds the full project structure, generates PRESENTASJON.md and PRESENTASJON.html. Defaults to Norwegian (bokmål). Use when user wants to build a presentation, create slides, or mentions "presentasjon", "slides", "marp", "bygg presentasjon", "lag presentasjon".
+description: Orchestrates the full presentation-building workflow. Detects project state and guides the user through discover-presentation → structure-agenda → generate-slides. Use when user wants to build a presentation, create slides, or mentions "presentasjon", "slides", "marp", "bygg presentasjon", "lag presentasjon".
 ---
 
-# Build Presentation
+# Build Presentation (Orchestrator)
 
-Builds a complete Marp presentation interactively. **Language defaults to Norwegian (bokmål)** unless otherwise specified.
+Coordinates the full presentation pipeline. Detects what has already been done and guides the user to the next step.
 
-## Startup checks
+## Startup
 
-1. **Prerequisites** — run `which marp`. If not found, abort:
-   > ❌ `marp-cli` er ikke installert. Kjør: `npm install -g @marp-team/marp-cli`
+Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
 
-2. **Existing project** — if `AGENDA.md` exists, ask the user:
-   - **Fortsett** — refine the agenda (go to Phase 2)
-   - **Regenerer** — regenerate slides from the existing agenda (go to Phase 3)
-   - **Start på nytt** — discard and begin fresh (go to Phase 1)
+## State detection
 
-## Phases
+Read the project folder to determine current state per [../shared/state-schema.md](../shared/state-schema.md):
 
-Run in order. Full instructions in [PHASES.md](PHASES.md).
+| State | Condition |
+|-------|-----------|
+| Nothing started | `PROJECT.json` missing |
+| Discovery done | `PROJECT.json` exists, `phases.discovery.status == "done"` |
+| Structure done | `AGENDA.md` exists, `phases.structure.status == "done"` |
+| Generation done | `PRESENTASJON.html` exists, `phases.generation.status == "done"` |
 
-| Phase | Goal |
-|-------|------|
-| 1. Discovery | Gather topic, audience, duration, occasion, language, folder preferences |
-| 2. Agenda refinement | Build and iterate `AGENDA.md` with glossary, image placeholders, sources |
-| 3. Generation | Scaffold project, generate slides, validate, build `PRESENTASJON.html` |
+## User guidance (based on state)
 
-## Content rules (soft defaults — warn but defer to user)
+### Nothing started
+> "Det ser ut til at dette er et nytt prosjekt. Vil du starte med å samle krav? (discover-presentation)"
 
-- Max 5–6 bullet points per slide; split if exceeded
-- No code blocks in slides
-- No progressive reveal syntax
-- Images: `<img class="img-right">` beside text; never `![bg ...]`
-- Videos: dedicated blank slide only; only when explicitly requested
-- Presenter notes: always generated in bullet format (2–3 sentences each)
-- Paginate: always on
+→ Call `discover-presentation`, then continue.
 
-See [QUALITY.md](QUALITY.md) for the validation pass run before final output.
-See [SCAFFOLD.md](SCAFFOLD.md) for project structure and all file templates.
-See [DEFAULTS.md](DEFAULTS.md) for default assumptions and narrative structure templates.
+### Discovery done, no agenda
+> "Discovery er fullført. Vil du bygge agendaen nå? (structure-agenda)"
+
+Options:
+- **Ja** — call `structure-agenda`
+- **Redo discovery** — call `discover-presentation` again (warn: existing agenda will need revision)
+
+### Structure done, no slides
+> "Agendaen er godkjent. Vil du generere presentasjonen nå? (generate-slides)"
+
+Estimated token cost: **~high** (fetches sources, writes all slides)
+
+Options:
+- **Ja** — call `generate-slides`
+- **Fortsett å redigere agenda** — call `structure-agenda` again
+
+### Generation done
+> "Presentasjonen er fullført ✅"
+
+Options:
+- **Regenerer** — re-run `generate-slides` from existing agenda
+- **Revider agenda** — go back to `structure-agenda`
+- **Start på nytt** — confirm, then wipe state and call `discover-presentation`
+
+## Sequential invocation
+
+When calling phase skills in sequence, pass the project folder path. Each skill reads `DISCOVERY.json` and `PROJECT.json` to find all paths and settings.
+
+## Token cost hints
+
+Display estimated effort before calling expensive operations:
+
+| Operation | Estimated cost |
+|-----------|---------------|
+| `discover-presentation` | Low — conversational only |
+| `structure-agenda` | Low-medium — iterative drafting |
+| `generate-slides` | High — source fetching + full slide generation |
