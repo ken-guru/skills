@@ -24,6 +24,8 @@ Wait for confirmation before continuing.
 
 Ask the questions in [QUESTIONS.md](QUESTIONS.md) conversationally. Extract structured data from free-form answers. Accept partial answers and fill the rest with defaults from [DEFAULTS.md](DEFAULTS.md).
 
+Complete the persona depth section before moving to Step 2. A persona is considered sufficient when at least 3 of the 4 depth dimensions (experience level, goal, concerns, takeaways) are known.
+
 ### Step 2: Confirm defaults
 
 Present a one-shot confirmation summary before writing any files:
@@ -33,6 +35,10 @@ Present a one-shot confirmation summary before writing any files:
 
 - Emne: [topic]
 - Målgruppe: [audience]
+  - Erfaringsnivå: [experience_level]
+  - Formål: [goal — implementere / forstå]
+  - Bekymringer: [top_concerns]
+  - Topp-3 takeaways: [top_takeaways]
 - Varighet: [duration]
 - Anledning: [occasion]
 - Språk: [language]

@@ -37,3 +37,39 @@ Run this validation pass after generating `PRESENTASJON.md` and before building 
 ✅ Riktig front matter
 ⚠️ X advarsler å gjennomgå (se over)
 ```
+
+---
+
+## Proofreading pass
+
+Run after all slides are generated, before building HTML.
+
+### Språk og grammatikk
+- [ ] Ingen åpenbare stavefeil i norsk tekst
+- [ ] Grammatisk kjønn konsistent (en/ei/et — følg Språkrådet bokmål)
+- [ ] Ingen blandingsspråk-setninger (norsk tekst med engelsk setningsstruktur)
+- [ ] Ingen kyrilliske tegn eller enkodingsfeil (søk: tegn utenfor Latin Extended)
+- [ ] Korrekt mellomrom rundt tegnsetting (ingen doble mellomrom, riktig kolon-bruk)
+
+### Terminologikonsistens
+- [ ] Alle termer matcher `## Begreper og definisjoner` i AGENDA.md
+- [ ] Ingen synonymer brukt om hverandre (f.eks. "agent" og "agenter" må brukes konsekvent)
+- [ ] Forkortelser forklart ved første bruk
+
+### Referanseintegritet
+- [ ] Alle `src`-stier i `<img>`-tagger finnes som oppføringer i IMAGE_SPEC.md
+- [ ] Alle `[Kilde](url)`-lenker i slides ble faktisk hentet (kryssjekk med Step 2-rapport)
+- [ ] Ingen interne lenker som peker på ikke-eksisterende ankere
+
+### Slide-antall
+- [ ] Faktisk slide-antall samsvarer med estimat i DISCOVERY.json (± 10 %)
+
+Report the proofreading result as part of the Step 8 summary:
+```
+📝 Korrekturlesing:
+✅ Ingen kyrilliske tegn eller enkodingsfeil
+✅ Terminologi konsistent med ordlisten
+⚠️ X potensielle grammatikkfeil (se slide [liste])
+✅ Bildereferanser validert mot IMAGE_SPEC.md
+✅ X slides — innenfor estimert antall ([estimate] ± 10 %)
+```

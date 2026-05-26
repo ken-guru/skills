@@ -39,7 +39,29 @@ Skip any URL marked `(IKKE BESØK)`.
 
 **Error handling:** Collect all failed fetches. Do not halt generation. Report failures at the end.
 
-### Step 3: Generate PRESENTASJON.md
+### Step 3: Generate IMAGE_SPEC.md
+
+Before writing any slides, produce `IMAGE_SPEC.md` — a structured specification for every image in the presentation.
+
+For each slide that requires a visual, write an entry:
+
+```markdown
+## Slide [N] — [Slide Title]
+- **Konsept:** [what the image must communicate]
+- **Stil:** [mood, colour scheme, rendering style — e.g. "dark background, neon accent, technical diagram"]
+- **Elementer:** [specific visual components — e.g. "file tree, threat arrow, padlock icon"]
+- **Filnavn:** `images/[descriptive-name].png`
+- **Prompt-forslag:** "[ready-to-use Midjourney / DALL-E prompt]"
+```
+
+Write the file to the project root (default: `IMAGE_SPEC.md`).
+
+Present a summary to the user:
+> "IMAGE_SPEC.md er generert med [X] bildespesifikasjoner. Du kan bruke disse direkte med Midjourney, DALL-E eller annet bildegenereringsverktøy. Vil du se gjennom dem før vi genererer slides?"
+
+Wait for the user to approve or adjust specs before proceeding.
+
+### Step 4: Generate PRESENTASJON.md
 
 - Read the full approved `AGENDA.md`
 - Read all `docs/sources/*.md` files for factual content
@@ -54,29 +76,30 @@ Skip any URL marked `(IKKE BESØK)`.
   - Paginate: always on
   - **Norwegian content:** Follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for spelling, grammar, and terminology
 
-### Step 4: Validate
+### Step 5: Validate and proofread
 
-Run all checks from [QUALITY.md](QUALITY.md). Auto-fix where possible; report remaining issues with slide numbers.
+Run all checks from [QUALITY.md](QUALITY.md) — both the auto-fix pass and the proofreading pass. Auto-fix where possible; report remaining issues with slide numbers.
 
-### Step 5: Build HTML
+### Step 6: Build HTML
 
 ```bash
 marp PRESENTASJON.md --html --allow-local-files -o PRESENTASJON.html
 ```
 
-### Step 6: Update state
+### Step 7: Update state
 
 Mark `phases.generation.status = "done"` in `PROJECT.json`.
 
-### Step 7: Report to user
+### Step 8: Report to user
 
 ```
 ✅ X lysbilde(r) generert
-🖼️  Bildefilholdere å erstatte: [filnavn liste]
+🖼️  Bildespesifikasjoner: IMAGE_SPEC.md ([X] bilder)
+📝 Korrekturlesing: [sammendrag fra QUALITY.md proofreading-pass]
 ⚠️  Kvalitetsadvarsler: [liste eller "ingen"]
 ❌  Kilder som feilet: [url liste eller "ingen"]
 ▶️  Neste steg:
-    1. Legg til bilder i images/-mappen
+    1. Generer bilder fra IMAGE_SPEC.md og legg dem i images/-mappen
     2. Åpne PRESENTASJON.html for forhåndsvisning
     3. Kjør `marp -s .` for live presentasjon
 ```
