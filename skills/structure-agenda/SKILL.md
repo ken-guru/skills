@@ -22,7 +22,7 @@ Read `DISCOVERY.json` to load topic, audience, duration, language, and occasion.
 ### Step 1: Propose agenda outline
 
 Based on the discovery data:
-1. Infer the best narrative structure from [../discover-presentation/DEFAULTS.md](../discover-presentation/DEFAULTS.md)
+1. Infer the best narrative structure from [DEFAULTS.md](DEFAULTS.md)
 2. Propose a full agenda outline with sections and slide topics
 3. Include a `## Begreper og definisjoner` section with all key domain terms defined
 4. For each slide topic: include an image placeholder and `[Kilde](url)` for source material where relevant
