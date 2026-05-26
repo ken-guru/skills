@@ -1,5 +1,29 @@
 # Agenda Iteration Rules
 
+## Feedback loop
+
+When the user provides feedback on an agenda draft, categorise each piece of input before acting on it:
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| **Innhold** | Missing topics, inaccurate facts, wrong scope | "Vi mangler en slide om autentisering" |
+| **Innramming** | Tone, emphasis, narrative angle | "Åpningen føles for teknisk — vi trenger mer kontekst" |
+| **Tempo** | Too long, too short, unbalanced sections | "Del 3 er dobbelt så lang som del 2" |
+
+For each feedback round:
+1. Categorise all input explicitly: `"Jeg tolker dette som innhold + tempo-endringer"`
+2. Apply changes
+3. Show a **diff summary** — not the full agenda, just what changed:
+   ```
+   Endringer fra v[N] → v[N+1]:
+   + Ny slide: "Autentisering med OAuth" (etter slide 12)
+   ~ Slide 3 omdøpt: "Introduksjon" → "Hvorfor dette er viktig nå"
+   - Fjernet: "Historie og bakgrunn"-seksjonen (3 slides)
+   ```
+4. Ask explicitly: "Er du nøyd nå, eller vil du gjøre flere justeringer?"
+
+Do not write `AGENDA.md` until the user answers "ja" or equivalent.
+
 ## Terminology discipline
 
 When the user uses vague or conflicting terms:
