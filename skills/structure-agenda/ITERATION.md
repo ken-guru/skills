@@ -7,6 +7,7 @@ When the user uses vague or conflicting terms:
 - Agree on a canonical term
 - Add it to `## Begreper og definisjoner` in the agenda draft
 - Use that term consistently in all slide topics and notes going forward
+- Ensure terminology aligns with [Språkrådet conventions](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for Norwegian (bokmål)
 
 When the user introduces domain-specific jargon or abbreviations:
 - Ask for a definition if not obvious from context
