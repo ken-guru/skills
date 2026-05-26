@@ -56,3 +56,15 @@ A skill that:
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
 
 **Glossary** (Begreper og definisjoner) — Canonical definitions of all domain-specific terms used in the presentation
+
+---
+
+## Norwegian language conventions
+
+For Norwegian (bokmål) presentations, all generated content must follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for:
+- Spelling (rettskriving)
+- Grammar (grammatikk)
+- Terminology consistency
+- Gender-neutral language where appropriate
+
+This applies to slide text, presenter notes, glossary definitions, and UI messaging.

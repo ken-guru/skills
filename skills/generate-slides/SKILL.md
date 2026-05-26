@@ -52,6 +52,7 @@ Skip any URL marked `(IKKE BESØK)`.
   - Videos: dedicated blank slide only, only when explicitly requested
   - Presenter notes: always generated in bullet format (2–3 sentences each)
   - Paginate: always on
+  - **Norwegian content:** Follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for spelling, grammar, and terminology
 
 ### Step 4: Validate
 

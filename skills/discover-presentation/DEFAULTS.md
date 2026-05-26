@@ -4,7 +4,7 @@
 
 | Aspect | Default |
 |---|---|
-| Language | Norwegian (bokmål) |
+| Language | Norwegian (bokmål) — follows [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) |
 | Duration | 45 minutes |
 | Audience | Mixed technical (developers + some management) |
 | Slide density | Max 5–6 bullet points; split if exceeded |
