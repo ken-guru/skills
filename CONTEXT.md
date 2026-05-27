@@ -59,12 +59,12 @@ A skill that:
 
 ---
 
-## Norwegian language conventions
+## Language conventions
 
-For Norwegian (bokmål) presentations, all generated content must follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for:
-- Spelling (rettskriving)
-- Grammar (grammatikk)
-- Terminology consistency
-- Gender-neutral language where appropriate
+All generated content must match the language specified in `DISCOVERY.json`. The agent must:
+- Detect the user's preferred language from their input and from the `language` field in `DISCOVERY.json`
+- Generate slides, presenter notes, glossary definitions, and all user-facing content in that language
+- Maintain consistent language throughout — do not mix languages in content
+- For Norwegian (bokmål) presentations, follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for spelling, grammar, and terminology
 
-This applies to slide text, presenter notes, glossary definitions, and UI messaging.
+This applies to slide text, presenter notes, glossary definitions, and all content output. The skill instructions themselves (and agent feedback during the workflow) are in English regardless of the presentation language.

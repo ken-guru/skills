@@ -1,6 +1,6 @@
 ---
 name: build-presentation
-description: Orchestrates the full presentation-building workflow. Detects project state and guides the user through discover-presentation → structure-agenda → generate-slides. Use when user wants to build a presentation, create slides, or mentions "presentasjon", "slides", "marp", "bygg presentasjon", "lag presentasjon".
+description: Orchestrates the full presentation-building workflow. Detects project state and guides the user through discover-presentation → structure-agenda → generate-slides. Use when user wants to build a presentation, create slides, or mentions "presentation", "slides", "marp", "presentasjon", "bygg presentasjon", "lag presentasjon".
 ---
 
 # Build Presentation (Orchestrator)
@@ -26,53 +26,53 @@ Read the project folder to determine current state per [../shared/state-schema.m
 ## User guidance (based on state)
 
 ### Nothing started
-> "Det ser ut til at dette er et nytt prosjekt. Vil du starte med å samle krav? (discover-presentation)"
+> "This looks like a new project. Would you like to start by gathering requirements? (discover-presentation)"
 
 → Call `discover-presentation`, then continue.
 
 **Discovery exit criteria** before proceeding:
-- [ ] `DISCOVERY.json` validert som JSON
-- [ ] Persona identifisert med minst 3 av 4 dybde-dimensjoner (erfaringsnivå, formål, bekymringer, takeaways)
-- [ ] Varighet og slide-antall estimert og bekreftet av bruker
-- [ ] Topp-3 takeaways dokumentert i `DISCOVERY.json`
+- [ ] `DISCOVERY.json` validated as JSON
+- [ ] Persona identified with at least 3 of 4 depth dimensions (experience level, goal, concerns, takeaways)
+- [ ] Duration and slide count estimated and confirmed by user
+- [ ] Top 3 takeaways documented in `DISCOVERY.json`
 
 ### Discovery done, no agenda
-> "Discovery er fullført. Vil du bygge agendaen nå? (structure-agenda)"
+> "Discovery is complete. Would you like to build the agenda now? (structure-agenda)"
 
 Options:
-- **Ja** — call `structure-agenda`
+- **Yes** — call `structure-agenda`
 - **Redo discovery** — call `discover-presentation` again (warn: existing agenda will need revision)
 
 **Agenda exit criteria** before proceeding to generation:
-- [ ] Bruker har valgt én av de 2–3 foreslåtte strukturene (eller en hybrid)
-- [ ] Alle slides har tittel og minst 3 innholdspunkter
-- [ ] `## Begreper og definisjoner`-seksjonen er utfylt
-- [ ] IMAGE_SPEC.md er generert og godkjent av bruker
-- [ ] Bruker har gitt eksplisitt "godkjent" eller tilsvarende
+- [ ] User has chosen one of the 2–3 proposed structures (or a hybrid)
+- [ ] All slides have a title and at least 3 content points
+- [ ] The Glossary section is populated
+- [ ] IMAGE_SPEC.md has been generated and approved by the user
+- [ ] User has given explicit "approved" or equivalent
 
 ### Structure done, no slides
-> "Agendaen er godkjent. Vil du generere presentasjonen nå? (generate-slides)"
+> "The agenda is approved. Would you like to generate the presentation now? (generate-slides)"
 
 Estimated token cost: **~high** (fetches sources, writes all slides)
 
 Options:
-- **Ja** — call `generate-slides`
-- **Fortsett å redigere agenda** — call `structure-agenda` again
+- **Yes** — call `generate-slides`
+- **Continue editing agenda** — call `structure-agenda` again
 
 ### Generation done, not proofread
-> "Presentasjonen er generert. Vil du kjøre korrekturlesing nå?"
+> "The presentation has been generated. Would you like to run a proofreading pass now?"
 
 Options:
-- **Ja** — run the proofreading pass from [../generate-slides/QUALITY.md](../generate-slides/QUALITY.md) against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
-- **Hopp over** — mark proofread as skipped (not recommended — warn the user)
+- **Yes** — run the proofreading pass from [../generate-slides/QUALITY.md](../generate-slides/QUALITY.md) against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
+- **Skip** — mark proofread as skipped (not recommended — warn the user)
 
 ### Proofread done
-> "Presentasjonen er fullført ✅"
+> "The presentation is complete ✅"
 
 Options:
-- **Regenerer** — re-run `generate-slides` from existing agenda
-- **Revider agenda** — go back to `structure-agenda`
-- **Start på nytt** — confirm, then wipe state and call `discover-presentation`
+- **Regenerate** — re-run `generate-slides` from existing agenda
+- **Revise agenda** — go back to `structure-agenda`
+- **Start over** — confirm, then wipe state and call `discover-presentation`
 
 ## Sequential invocation
 

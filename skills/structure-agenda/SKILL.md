@@ -12,7 +12,7 @@ Builds and refines `AGENDA.md` through collaborative iteration with the user.
 Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
 
 Check that `DISCOVERY.json` exists in the project folder. If not:
-> ❌ `DISCOVERY.json` ikke funnet. Kjør `discover-presentation` først.
+> ❌ `DISCOVERY.json` not found. Run `discover-presentation` first.
 Abort.
 
 Read `DISCOVERY.json` to load topic, audience, duration, language, and occasion.
@@ -30,18 +30,18 @@ For each alternative provide:
 
 Example format:
 ```
-A) **Problem → Løsning → Demo → Implikasjoner** (klassisk teknisk)
-   Starter med smerten publikum kjenner, bygger til aha-moment, slutter med "hva nå"
+A) **Problem → Solution → Demo → Implications** (classic technical)
+   Starts with the pain the audience knows, builds to the "aha" moment, ends with "what now"
 
-B) **Demo-first → Bakgrunn → Dypere konsepter → Neste steg** (show, don't tell)
-   Fanger oppmerksomhet umiddelbart — forklarer "hvorfor" etter "wow"
+B) **Demo-first → Background → Deeper concepts → Next steps** (show, don’t tell)
+   Captures attention immediately — explains "why" after "wow"
 
-C) **Fortelling → Konsepter → Øvelse → Takeaways** (workshop-stil)
-   Passer om publikum ønsker hands-on erfaring fremfor passiv lytting
+C) **Story → Concepts → Exercise → Takeaways** (workshop style)
+   Best when the audience wants hands-on experience rather than passive listening
 ```
 
 Ask the user:
-> "Hvilken struktur resonerer med deg, eller vil du kombinere elementer fra flere?"
+> "Which structure resonates with you, or would you like to combine elements from several?"
 
 Wait for the user's choice before drafting the full slide-level outline.
 
@@ -49,8 +49,8 @@ Wait for the user's choice before drafting the full slide-level outline.
 
 Using the chosen structure:
 1. Propose a full agenda outline with sections and slide topics
-2. Include a `## Begreper og definisjoner` section with all key domain terms defined
-3. For each slide topic: include an image placeholder and `[Kilde](url)` for source material where relevant
+2. Include a Glossary section (in the presentation language) with all key domain terms defined
+3. For each slide topic: include an image placeholder and `[Source](url)` for source material where relevant
 
 Present the draft agenda to the user before writing any files.
 
@@ -67,6 +67,6 @@ Mark `phases.structure.status = "done"` in `PROJECT.json`.
 ### Step 5: Report to user
 
 ```
-✅ Agenda godkjent og skrevet til [path]
-▶️  Neste steg: Kjør `generate-slides` for å generere presentasjonen
+✅ Agenda approved and written to [path]
+▶️  Next step: Run `generate-slides` to generate the presentation
 ```

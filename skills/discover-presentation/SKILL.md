@@ -13,8 +13,8 @@ Run validation checks per [../shared/validation.md](../shared/validation.md). Ab
 
 If `DISCOVERY.json` already exists in the project folder, warn the user:
 
-> ⚠️ Discovery er allerede gjennomført for dette prosjektet.
-> Vil du oppdatere kravene? Dette vil ikke slette `AGENDA.md`, men agendaen kan trenge revisjon etterpå.
+> ⚠️ Discovery has already been completed for this project.
+> Would you like to update the requirements? This will not delete `AGENDA.md`, but the agenda may need revision afterwards.
 
 Wait for confirmation before continuing.
 
@@ -24,6 +24,8 @@ Wait for confirmation before continuing.
 
 Ask the questions in [QUESTIONS.md](QUESTIONS.md) conversationally. Extract structured data from free-form answers. Accept partial answers and fill the rest with defaults from [DEFAULTS.md](DEFAULTS.md).
 
+**Language detection:** Infer the presentation language from how the user writes. If they write in Norwegian, default to Norwegian bokmål. If they write in English or another language, use that. The detected language is recorded in `DISCOVERY.json` and must be respected throughout all subsequent phases — all generated content (slides, presenter notes, glossary) must be in that language.
+
 Complete the persona depth section before moving to Step 2. A persona is considered sufficient when at least 3 of the 4 depth dimensions (experience level, goal, concerns, takeaways) are known.
 
 ### Step 2: Confirm defaults
@@ -31,21 +33,21 @@ Complete the persona depth section before moving to Step 2. A persona is conside
 Present a one-shot confirmation summary before writing any files:
 
 ```
-📋 Standardantagelser — korriger det som ikke stemmer:
+📋 Default assumptions — correct anything that doesn’t fit:
 
-- Emne: [topic]
-- Målgruppe: [audience]
-  - Erfaringsnivå: [experience_level]
-  - Formål: [goal — implementere / forstå]
-  - Bekymringer: [top_concerns]
-  - Topp-3 takeaways: [top_takeaways]
-- Varighet: [duration]
-- Anledning: [occasion]
-- Språk: [language]
-- Presentasjonsstil: [narrative structure from DEFAULTS.md]
-- Mørk modus: Ja (class: invert)
-- Sidenummerering: Ja
-- Maks kulepunkter per lysbilde: 5–6
+- Topic: [topic]
+- Audience: [audience]
+  - Experience level: [experience_level]
+  - Goal: [goal — implement / understand]
+  - Concerns: [top_concerns]
+  - Top 3 takeaways: [top_takeaways]
+- Duration: [duration]
+- Occasion: [occasion]
+- Language: [language]
+- Presentation style: [narrative structure from DEFAULTS.md]
+- Dark mode: Yes (class: invert)
+- Pagination: Yes
+- Max bullet points per slide: 5–6
 ```
 
 Also confirm file/folder naming:
@@ -60,7 +62,7 @@ Also confirm file/folder naming:
 | Sources | `docs/sources/` |
 | Themes | `themes/` |
 
-Ask: "Vil du bruke standardnavn, eller ønsker du å justere noen?"
+Ask: "Would you like to use the default names, or would you like to adjust any?"
 
 Wait for the user to approve or correct before proceeding to Step 3.
 
@@ -73,7 +75,7 @@ Mark `phases.discovery.status = "done"` in `PROJECT.json`.
 ### Step 4: Report to user
 
 ```
-✅ Discovery fullført
-📁 Prosjektmappe: [path]
-▶️  Neste steg: Kjør `structure-agenda` for å bygge agendaen
+✅ Discovery complete
+📁 Project folder: [path]
+▶️  Next step: Run `structure-agenda` to build the agenda
 ```

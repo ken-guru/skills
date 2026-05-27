@@ -7,15 +7,15 @@ All phase skills call this validation contract at startup before doing any work.
 Run the following checks in order:
 
 1. **marp CLI** — run `which marp`. If not found:
-   > ❌ `marp-cli` er ikke installert. Kjør: `npm install -g @marp-team/marp-cli`
+   > ❌ `marp-cli` is not installed. Run: `npm install -g @marp-team/marp-cli`
    Abort.
 
 2. **Project folder writable** — confirm the target project folder exists or can be created, and that the agent has write access. If not:
-   > ❌ Kan ikke skrive til mappen `<path>`. Sjekk tillatelser.
+   > ❌ Cannot write to folder `<path>`. Check permissions.
    Abort.
 
 3. **Node/npm available** — run `which node`. Only required if source fetching is needed (Phase 3). If not found, warn but do not abort:
-   > ⚠️ `node` ikke funnet — kildehenting kan feile.
+   > ⚠️ `node` not found — source fetching may fail.
 
 ## Return contract
 

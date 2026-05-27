@@ -309,26 +309,26 @@ section > p:has(video) {
 ## README.md template
 
 ````markdown
-# [Presentasjonstittel]
+# [Presentation Title]
 
-Marp-basert presentasjon generert med `build-presentation`-skill.
+Marp-based presentation generated with the `build-presentation` skill.
 
-## Forhåndsvisning
+## Preview
 
-Åpne `PRESENTASJON.html` i nettleseren for rask forhåndsvisning.
+Open `PRESENTASJON.html` in a browser for a quick preview.
 
-## Live presentasjon
+## Live presentation
 
 ```bash
 marp -s .
 ```
 
-Åpne deretter `http://localhost:8080/PRESENTASJON.md` i nettleseren.
+Then open `http://localhost:8080/PRESENTASJON.md` in your browser.
 
-## Eksport
+## Export
 
 ```bash
-# HTML (inkluderer lokale bilder)
+# HTML (includes local images)
 marp PRESENTASJON.md --html --allow-local-files -o PRESENTASJON.html
 
 # PDF
@@ -338,29 +338,29 @@ marp PRESENTASJON.md --pdf --allow-local-files -o PRESENTASJON.pdf
 marp PRESENTASJON.md --pptx --allow-local-files -o PRESENTASJON.pptx
 ```
 
-## Forutsetninger
+## Prerequisites
 
 - [marp-cli](https://github.com/marp-team/marp-cli): `npm install -g @marp-team/marp-cli`
-- [Marp for VS Code](https://marketplace.visualstudio.com/items?itemName=marp-team.marp-vscode) (valgfri, for forhåndsvisning i editor)
+- [Marp for VS Code](https://marketplace.visualstudio.com/items?itemName=marp-team.marp-vscode) (optional, for in-editor preview)
 
-## Mappestruktur
+## Folder structure
 
 ```
 .
-├── AGENDA.md               ← innholdsplan og begrepsordliste
-├── PRESENTASJON.md         ← genererte Marp-lysbilder
-├── PRESENTASJON.html       ← eksportert HTML
-├── images/                 ← legg til bildefiler her
-├── videos/                 ← legg til videofiler her (valgfri)
-├── themes/                 ← egendefinert Marp-tema
+├── AGENDA.md               ← content plan and glossary
+├── PRESENTASJON.md         ← generated Marp slides
+├── PRESENTASJON.html       ← exported HTML
+├── images/                 ← add image files here
+├── videos/                 ← add video files here (optional)
+├── themes/                 ← custom Marp theme
 └── docs/
-    └── sources/            ← hentede kildesammendrag
+    └── sources/            ← fetched source summaries
 ```
 
-## Bilder
+## Images
 
-Bildeplassholdere i `PRESENTASJON.md` refererer til filer i `images/`.
-Se kommentarer i `AGENDA.md` for forslag til passende bilder per lysbilde.
+Image placeholders in `PRESENTASJON.md` reference files in `images/`.
+See comments in `AGENDA.md` for suggestions on appropriate images per slide.
 ````
 
 ---
@@ -370,34 +370,34 @@ Se kommentarer i `AGENDA.md` for forslag til passende bilder per lysbilde.
 Use this structure when building the agenda in Phase 2. Fill in all sections based on user input.
 
 ```markdown
-# [Presentasjonstittel]
+# [Presentation Title]
 
 ## Metadata
 
-- **Dato**: [dato]
-- **Varighet**: [varighet]
-- **Målgruppe**: [målgruppe]
-- **Anledning**: [anledning]
-- **Presentatør(er)**: [navn]
-- **Språk**: Norsk (bokmål)
+- **Date**: [date]
+- **Duration**: [duration]
+- **Audience**: [audience]
+- **Occasion**: [occasion]
+- **Presenter(s)**: [name]
+- **Language**: [language from DISCOVERY.json]
 
-## Begreper og definisjoner
+## Glossary
 
-- **[Begrep]**: [Presis definisjon slik begrepet brukes i denne presentasjonen]
-- **[Begrep]**: [Presis definisjon]
+- **[Term]**: [Precise definition as used in this presentation]
+- **[Term]**: [Precise definition]
 
-## [Seksjonstittel]
+## [Section Title]
 
-- [Lysbilde: Tittel]
-  - [Bilde](images/placeholder.png) <!-- Forslag: [beskrivelse]. Søk: [søkeord] -->
-  - [innholdspunkt]
-  - [innholdspunkt]
+- [Slide: Title]
+  - [Image](images/placeholder.png) <!-- Suggestion: [description]. Search: [keywords] -->
+  - [content point]
+  - [content point]
 
-- [Lysbilde: Tittel]
-  - [Kilde](url) <!-- Hentes automatisk til docs/sources/ -->
-  - [innholdspunkt]
+- [Slide: Title]
+  - [Source](url) <!-- Auto-fetched to docs/sources/ -->
+  - [content point]
 
-## [Neste seksjon]
+## [Next Section]
 
 ...
 ```

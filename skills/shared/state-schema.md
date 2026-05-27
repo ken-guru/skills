@@ -67,7 +67,7 @@ Expected sections:
 ```markdown
 # [Presentation Title]
 
-## Begreper og definisjoner
+## Glossary
 
 - **Term**: Definition
 
@@ -75,8 +75,8 @@ Expected sections:
 
 ### [Slide Topic]
 - Key point
-- [Bilde](images/filename.png) <!-- Forslag: ... -->
-- [Kilde](url)
+- [Image](images/filename.png) <!-- Suggestion: ... -->
+- [Source](url)
 
 ## [Section N Title]
 ...
