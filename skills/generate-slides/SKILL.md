@@ -19,7 +19,7 @@ Check that `AGENDA.md` exists (path from `DISCOVERY.json`). If not:
 > ❌ `AGENDA.md` not found. Run `structure-agenda` to build the agenda.
 Abort.
 
-If the current project folder already has files, confirm with the user before writing new ones.
+If previously generated files exist (`PRESENTASJON.md`, `PRESENTASJON.html`, or media files in `images/` or `videos/`), run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `generate-slides` before proceeding.
 
 ## Procedure
 
