@@ -15,12 +15,12 @@ Run this validation pass after generating `PRESENTASJON.md` and before building 
 
 | Check | Warning message |
 |---|---|
-| Code fences (` ``` `) in slides | "⚠️ Slide X: Kodeblokk oppdaget — vurder å bruke bilde/video i stedet" |
-| More than 6 bullet points on a slide | "⚠️ Slide X: X kulepunkter — vurder å dele opp sliden" |
-| Progressive reveal syntax (`* `) | "⚠️ Slide X: Progressiv avsløring oppdaget — fjern `* ` prefix" |
-| Slide with no presenter notes | "⚠️ Slide X: Mangler presentatørnotat" |
-| Video not on its own slide (other content present) | "⚠️ Slide X: Video skal alltid være på en dedikert blank slide" |
-| Image using `![bg left]` or `![bg right]` | "⚠️ Slide X: Bakgrunnsbilder støttes ikke — bruk `<img class='img-right'>` i stedet" |
+| Code fences (` ``` `) in slides | "⚠️ Slide X: Code block detected — consider using an image/video instead" |
+| More than 6 bullet points on a slide | "⚠️ Slide X: X bullet points — consider splitting the slide" |
+| Progressive reveal syntax (`* `) | "⚠️ Slide X: Progressive reveal detected — remove the `* ` prefix" |
+| Slide with no presenter notes | "⚠️ Slide X: Missing presenter note" |
+| Video not on its own slide (other content present) | "⚠️ Slide X: Video must always be on a dedicated blank slide" |
+| Image using `![bg left]` or `![bg right]` | "⚠️ Slide X: Background images are not supported — use `<img class='img-right'>` instead" |
 
 ## Content checks (report if issues found)
 
@@ -31,11 +31,11 @@ Run this validation pass after generating `PRESENTASJON.md` and before building 
 ## Checklist summary (output at end)
 
 ```
-✅ Ingen kodeblokker
-✅ Alle slides innenfor viewport
-✅ Presentatørnotater i kulepunktformat
-✅ Riktig front matter
-⚠️ X advarsler å gjennomgå (se over)
+✅ No code blocks
+✅ All slides within viewport
+✅ Presenter notes in bullet format
+✅ Correct front matter
+⚠️ X warnings to review (see above)
 ```
 
 ---
@@ -44,32 +44,32 @@ Run this validation pass after generating `PRESENTASJON.md` and before building 
 
 Run after all slides are generated, before building HTML.
 
-### Språk og grammatikk
-- [ ] Ingen åpenbare stavefeil i norsk tekst
-- [ ] Grammatisk kjønn konsistent (en/ei/et — følg Språkrådet bokmål)
-- [ ] Ingen blandingsspråk-setninger (norsk tekst med engelsk setningsstruktur)
-- [ ] Ingen kyrilliske tegn eller enkodingsfeil (søk: tegn utenfor Latin Extended)
-- [ ] Korrekt mellomrom rundt tegnsetting (ingen doble mellomrom, riktig kolon-bruk)
+### Language and grammar
+- [ ] No obvious spelling errors in the presentation language
+- [ ] Grammar consistent throughout (follow conventions of the presentation language)
+- [ ] No mixed-language sentences (content language mixed with different language sentence structure)
+- [ ] No encoding errors or unexpected characters (look for characters outside expected range)
+- [ ] Correct spacing around punctuation (no double spaces, correct colon usage)
 
-### Terminologikonsistens
-- [ ] Alle termer matcher `## Begreper og definisjoner` i AGENDA.md
-- [ ] Ingen synonymer brukt om hverandre (f.eks. "agent" og "agenter" må brukes konsekvent)
-- [ ] Forkortelser forklart ved første bruk
+### Terminology consistency
+- [ ] All terms match the Glossary section in AGENDA.md
+- [ ] No synonyms used interchangeably (e.g. "agent" and "agents" must be used consistently)
+- [ ] Abbreviations explained on first use
 
-### Referanseintegritet
-- [ ] Alle `src`-stier i `<img>`-tagger finnes som oppføringer i IMAGE_SPEC.md
-- [ ] Alle `[Kilde](url)`-lenker i slides ble faktisk hentet (kryssjekk med Step 2-rapport)
-- [ ] Ingen interne lenker som peker på ikke-eksisterende ankere
+### Reference integrity
+- [ ] All `src` paths in `<img>` tags exist as entries in IMAGE_SPEC.md
+- [ ] All `[Source](url)` links in slides were actually fetched (cross-check with Step 2 report)
+- [ ] No internal links pointing to non-existent anchors
 
-### Slide-antall
-- [ ] Faktisk slide-antall samsvarer med estimat i DISCOVERY.json (± 10 %)
+### Slide count
+- [ ] Actual slide count matches the estimate in DISCOVERY.json (± 10%)
 
 Report the proofreading result as part of the Step 8 summary:
 ```
-📝 Korrekturlesing:
-✅ Ingen kyrilliske tegn eller enkodingsfeil
-✅ Terminologi konsistent med ordlisten
-⚠️ X potensielle grammatikkfeil (se slide [liste])
-✅ Bildereferanser validert mot IMAGE_SPEC.md
-✅ X slides — innenfor estimert antall ([estimate] ± 10 %)
+📝 Proofreading:
+✅ No encoding errors or unexpected characters
+✅ Terminology consistent with glossary
+⚠️ X potential grammar issues (see slide [list])
+✅ Image references validated against IMAGE_SPEC.md
+✅ X slides — within estimated count ([estimate] ± 10%)
 ```

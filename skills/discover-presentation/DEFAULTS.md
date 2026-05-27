@@ -4,7 +4,7 @@
 
 | Aspect | Default |
 |---|---|
-| Language | Norwegian (bokmål) — follows [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) |
+| Language | Inferred from user input; defaults to English if not specified |
 | Duration | 45 minutes |
 | Audience | Mixed technical (developers + some management) |
 | Slide density | Max 5–6 bullet points; split if exceeded |
@@ -23,22 +23,22 @@
 Infer the most fitting structure from the topic and occasion. Present the inferred choice in the defaults confirmation.
 
 ### Technical topic (tool, technology, system)
-> problem → løsning → demonstrasjon → implikasjoner
+> problem → solution → demonstration → implications
 
 Slides flow: Why this matters → What the tool is → How to use it → What changes for the team
 
 ### Strategy or organizational topic
-> hvorfor → hva → hvordan → neste steg
+> why → what → how → next steps
 
 Slides flow: Context and motivation → The goal/vision → Concrete actions → Call to action
 
 ### Educational / awareness topic
-> kontekst → kjerneinnhold → eksempler → takeaways
+> context → core content → examples → takeaways
 
 Slides flow: Why you should care → Core concepts → Real-world examples → Key things to remember
 
 ### Workshop or hands-on session
-> intro → konsepter → øvelse → oppsummering
+> intro → concepts → exercise → summary
 
 Slides flow: Goals for today → Concepts to know → Exercise instructions → Debrief and next steps
 

@@ -12,11 +12,11 @@ Renders the final presentation from an approved `AGENDA.md`.
 Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
 
 Check that `DISCOVERY.json` exists. If not:
-> ❌ `DISCOVERY.json` ikke funnet. Kjør `discover-presentation` først.
+> ❌ `DISCOVERY.json` not found. Run `discover-presentation` first.
 Abort.
 
 Check that `AGENDA.md` exists (path from `DISCOVERY.json`). If not:
-> ❌ `AGENDA.md` ikke funnet. Kjør `structure-agenda` for å bygge agendaen.
+> ❌ `AGENDA.md` not found. Run `structure-agenda` to build the agenda.
 Abort.
 
 If the current project folder already has files, confirm with the user before writing new ones.
@@ -29,13 +29,13 @@ Create all files and folders per [SCAFFOLD.md](SCAFFOLD.md) if they do not alrea
 
 ### Step 2: Fetch and summarize sources
 
-For every `[Kilde](url)` link in `AGENDA.md`:
+For every `[Source](url)` link in `AGENDA.md`:
 - Fetch the URL
 - Summarize to `docs/sources/<slug>.md` in concise markdown
 - Include: key facts, statistics, quotes, and context useful for slides
 - Note the original URL at the top of each summary file
 
-Skip any URL marked `(IKKE BESØK)`.
+Skip any URL marked `(DO NOT FETCH)`.
 
 **Error handling:** Collect all failed fetches. Do not halt generation. Report failures at the end.
 
@@ -47,17 +47,17 @@ For each slide that requires a visual, write an entry:
 
 ```markdown
 ## Slide [N] — [Slide Title]
-- **Konsept:** [what the image must communicate]
-- **Stil:** [mood, colour scheme, rendering style — e.g. "dark background, neon accent, technical diagram"]
-- **Elementer:** [specific visual components — e.g. "file tree, threat arrow, padlock icon"]
-- **Filnavn:** `images/[descriptive-name].png`
-- **Prompt-forslag:** "[ready-to-use Midjourney / DALL-E prompt]"
+- **Concept:** [what the image must communicate]
+- **Style:** [mood, colour scheme, rendering style — e.g. "dark background, neon accent, technical diagram"]
+- **Elements:** [specific visual components — e.g. "file tree, threat arrow, padlock icon"]
+- **Filename:** `images/[descriptive-name].png`
+- **Prompt suggestion:** "[ready-to-use Midjourney / DALL-E prompt]"
 ```
 
 Write the file to the project root (default: `IMAGE_SPEC.md`).
 
 Present a summary to the user:
-> "IMAGE_SPEC.md er generert med [X] bildespesifikasjoner. Du kan bruke disse direkte med Midjourney, DALL-E eller annet bildegenereringsverktøy. Vil du se gjennom dem før vi genererer slides?"
+> "IMAGE_SPEC.md has been generated with [X] image specifications. You can use these directly with Midjourney, DALL-E, or other image generation tools. Would you like to review them before we generate the slides?"
 
 Wait for the user to approve or adjust specs before proceeding.
 
@@ -74,7 +74,7 @@ Wait for the user to approve or adjust specs before proceeding.
   - Videos: dedicated blank slide only, only when explicitly requested
   - Presenter notes: always generated in bullet format (2–3 sentences each)
   - Paginate: always on
-  - **Norwegian content:** Follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for spelling, grammar, and terminology
+  - **Language:** Generate all content in the language specified in `DISCOVERY.json`. Respect the user’s language choice throughout — slides, presenter notes, glossary, and all user-facing text must be in the presentation language.
 
 ### Step 5: Validate and proofread
 
@@ -93,13 +93,13 @@ Mark `phases.generation.status = "done"` in `PROJECT.json`.
 ### Step 8: Report to user
 
 ```
-✅ X lysbilde(r) generert
-🖼️  Bildespesifikasjoner: IMAGE_SPEC.md ([X] bilder)
-📝 Korrekturlesing: [sammendrag fra QUALITY.md proofreading-pass]
-⚠️  Kvalitetsadvarsler: [liste eller "ingen"]
-❌  Kilder som feilet: [url liste eller "ingen"]
-▶️  Neste steg:
-    1. Generer bilder fra IMAGE_SPEC.md og legg dem i images/-mappen
-    2. Åpne PRESENTASJON.html for forhåndsvisning
-    3. Kjør `marp -s .` for live presentasjon
+✅ [X] slide(s) generated
+🖼️  Image specifications: IMAGE_SPEC.md ([X] images)
+📝 Proofreading: [summary from QUALITY.md proofreading pass]
+⚠️  Quality warnings: [list or "none"]
+❌  Failed sources: [url list or "none"]
+▶️  Next steps:
+    1. Generate images from IMAGE_SPEC.md and place them in the images/ folder
+    2. Open PRESENTASJON.html for preview
+    3. Run `marp -s .` for live presentation
 ```

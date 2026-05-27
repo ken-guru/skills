@@ -1,6 +1,6 @@
 # Source Fetching
 
-During generation, all `[Kilde](url)` links in `AGENDA.md` are fetched and summarized.
+During generation, all `[Source](url)` links in `AGENDA.md` are fetched and summarized.
 
 ## Fetch procedure
 
@@ -16,7 +16,7 @@ The slug is derived from the URL: lowercase, non-alphanumeric characters replace
 ```markdown
 # Source: [Page Title]
 
-**URL:** [original url]  
+**URL:** [original url]
 **Fetched:** [date]
 
 ## Key facts
@@ -32,11 +32,11 @@ The slug is derived from the URL: lowercase, non-alphanumeric characters replace
 ## Error handling
 
 If a fetch fails (timeout, 404, etc.):
-- Log the failure: `❌ Kilde feilet: [url] — [reason]`
+- Log the failure: `❌ Source failed: [url] — [reason]`
 - Skip the file; do not halt generation
 - Include the failed URL in the final report
 
 ## Skip rules
 
-- Any URL marked `(IKKE BESØK)` in `AGENDA.md` must **never** be fetched
+- Any URL marked `(DO NOT FETCH)` in `AGENDA.md` must **never** be fetched
 - Internal doc references (no `http`) are skipped silently

@@ -13,13 +13,13 @@ Once topic and audience are known, probe for **persona depth** before moving on 
 
 Aim to capture at least 3 of these 4 dimensions. They drive tone, depth, and takeaway prioritisation:
 
-3. **Erfaringsnivå** — Hvor er publikum i karrieren? (entry-level / mid / senior / lead/architect)
-4. **Formål** — Skal de *implementere* løsningen etterpå, eller er målet å *forstå* konseptene?
-5. **Skeptisisme** — Hva er deres største frykt eller motforestilling rundt dette temaet?
-6. **Konkret problem** — Hvilket spesifikt problem løser denne presentasjonen for dem?
+3. **Experience level** — Where are the audience members in their career? (entry-level / mid / senior / lead/architect)
+4. **Goal** — Will they *implement* the solution afterwards, or is the goal to *understand* the concepts?
+5. **Skepticism** — What is their greatest fear or reservation about this topic?
+6. **Concrete problem** — What specific problem does this presentation solve for them?
 
 After persona is clear, ask explicitly:
-> "Hva er de 3 viktigste tingene publikum skal sitte igjen med?"
+> "What are the 3 most important things the audience should walk away with?"
 
 Store these as `audience.experience_level`, `audience.goal`, `audience.top_concerns`, and `audience.top_takeaways` in `DISCOVERY.json`.
 
@@ -27,7 +27,7 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 
 7. **Duration** — How long is the presentation? (default: 45 minutes)
 8. **Occasion** — What type of event? (e.g., intern fagdag, konferanse, workshop, all-hands)
-9. **Language** — What language should the slides be in? (default: Norwegian bokmål)
+9. **Language** — What language should the slides be in? (default: inferred from your input language)
 
 ## Extraction rules
 
