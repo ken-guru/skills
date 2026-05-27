@@ -1,15 +1,22 @@
 ---
 name: build-presentation
-description: Orchestrates the full presentation-building workflow. Detects project state and guides the user through discover-presentation → structure-agenda → generate-slides. Use when user wants to build a presentation, create slides, or mentions "presentation", "slides", "marp", "presentasjon", "bygg presentasjon", "lag presentasjon".
+description: Load when the user wants to build or create a presentation, mentions slides, marp, presentasjon, bygg presentasjon, or lag presentasjon. Detects project state and guides through the full pipeline: discover-presentation → structure-agenda → generate-slides.
 ---
 
 # Build Presentation (Orchestrator)
 
 Coordinates the full presentation pipeline. Detects what has already been done and guides the user to the next step.
 
+## Gotchas
+- Do not advance phases until the current exit criteria are fully satisfied — thin discovery → thin agenda → generic slides
+- Never call generate-slides before structure is done, even if the user asks to skip the agenda
+
 ## Startup
 
-Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
+Before proceeding:
+1. Run `which marp` — if not found, abort: ❌ `marp-cli` not installed. Run `npm install -g @marp-team/marp-cli`
+2. Confirm the project folder is writable — if not, abort: ❌ Cannot write to `<path>`
+3. Run `which node` — if not found, warn but continue: ⚠️ `node` not found — source fetching may fail
 
 ## State detection
 
@@ -30,11 +37,7 @@ Read the project folder to determine current state per [../shared/state-schema.m
 
 → Call `discover-presentation`, then continue.
 
-**Discovery exit criteria** before proceeding:
-- [ ] `DISCOVERY.json` validated as JSON
-- [ ] Persona identified with at least 3 of 4 depth dimensions (experience level, goal, concerns, takeaways)
-- [ ] Duration and slide count estimated and confirmed by user
-- [ ] Top 3 takeaways documented in `DISCOVERY.json`
+Before advancing to structure-agenda, verify [exit criteria](EXIT_CRITERIA.md#discovery-exit-criteria).
 
 ### Discovery done, no agenda
 > "Discovery is complete. Would you like to build the agenda now? (structure-agenda)"
@@ -43,12 +46,7 @@ Options:
 - **Yes** — call `structure-agenda`
 - **Redo discovery** — call `discover-presentation` again. `discover-presentation` will invoke the restart guard, prompting the user to clean up stale downstream files before re-running.
 
-**Agenda exit criteria** before proceeding to generation:
-- [ ] User has chosen one of the 2–3 proposed structures (or a hybrid)
-- [ ] All slides have a title and at least 3 content points
-- [ ] The Glossary section is populated
-- [ ] IMAGE_SPEC.md has been generated and approved by the user
-- [ ] User has given explicit "approved" or equivalent
+Before advancing to generate-slides, verify [exit criteria](EXIT_CRITERIA.md#agenda-exit-criteria).
 
 ### Structure done, no slides
 > "The agenda is approved. Would you like to generate the presentation now? (generate-slides)"

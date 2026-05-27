@@ -45,6 +45,10 @@ A skill that:
 - Handles environment validation before starting
 - Provides estimated token cost for each operation
 
+## Eval cases
+
+Evaluation cases for each skill live in `evals/`. These document expected skill routing behavior (positive, negative, boundary cases) and serve as a foundation for future test infrastructure.
+
 ---
 
 ## Presentation-specific terminology

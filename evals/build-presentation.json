@@ -1,0 +1,44 @@
+[
+  {
+    "skill": "build-presentation",
+    "type": "positive",
+    "query": "I want to build a presentation about Kubernetes for our dev team",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "positive",
+    "query": "lag en presentasjon om sikkerhet i skyløsninger",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "positive",
+    "query": "bygg presentasjon",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "negative",
+    "query": "can you help me fix a bug in my TypeScript code?",
+    "expected": "skill does NOT load"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "negative",
+    "query": "write me a blog post about microservices",
+    "expected": "skill does NOT load"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "I need some slides for a PowerPoint deck",
+    "expected": "skill loads — PowerPoint mentioned but intent is slide creation"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "generate the slides now",
+    "expected": "build-presentation should load (orchestrator), not generate-slides directly — state check determines next step"
+  }
+]

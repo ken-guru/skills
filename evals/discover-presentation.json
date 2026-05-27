@@ -1,0 +1,38 @@
+[
+  {
+    "skill": "discover-presentation",
+    "type": "positive",
+    "query": "I want to start a new presentation but haven't decided on the topic yet",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "positive",
+    "query": "let's redo the discovery for my presentation — the audience has changed",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "positive",
+    "query": "update my presentation requirements",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "negative",
+    "query": "generate the slides now",
+    "expected": "skill does NOT load — generate-slides or build-presentation should handle this"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "negative",
+    "query": "write the agenda for my presentation",
+    "expected": "skill does NOT load — structure-agenda should handle this"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "I want to build a presentation about Kubernetes",
+    "expected": "build-presentation should load (orchestrator), not discover-presentation directly — unless no PROJECT.json exists"
+  }
+]

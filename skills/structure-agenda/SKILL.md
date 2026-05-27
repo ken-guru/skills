@@ -1,15 +1,21 @@
 ---
 name: structure-agenda
-description: Build and iteratively refine the presentation agenda (AGENDA.md). Requires DISCOVERY.json to exist. Use after discover-presentation, or standalone to keep iterating on an existing agenda.
+description: Load when the user wants to build, draft, or revise the presentation agenda, or when discover-presentation has just completed.
 ---
 
 # Structure Agenda
 
 Builds and refines `AGENDA.md` through collaborative iteration with the user.
 
+## Gotchas
+- Do not write AGENDA.md until the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration
+- When the user says "update a slide", iterate on the in-memory draft only; commit to disk only on approval
+
 ## Startup
 
-Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
+Before proceeding:
+1. Run `which marp` — if not found, abort: ❌ `marp-cli` not installed. Run `npm install -g @marp-team/marp-cli`
+2. Confirm the project folder is writable — if not, abort: ❌ Cannot write to `<path>`
 
 Check that `DISCOVERY.json` exists in the project folder. If not:
 > ❌ `DISCOVERY.json` not found. Run `discover-presentation` first.
@@ -17,7 +23,7 @@ Abort.
 
 Read `DISCOVERY.json` to load topic, audience, duration, language, and occasion.
 
-If downstream files exist (check for `IMAGE_SPEC.md` or `PRESENTASJON.md` in the project folder), run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `structure-agenda` before proceeding.
+If downstream files exist (check for `IMAGE_SPEC.md` or `PRESENTASJON.md` in the project folder), run the restart guard per [RESTART-GUARD.md](RESTART-GUARD.md) with phase `structure-agenda` before proceeding.
 
 ## Procedure
 

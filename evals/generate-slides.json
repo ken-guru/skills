@@ -1,0 +1,41 @@
+[
+  {
+    "skill": "generate-slides",
+    "type": "positive",
+    "query": "generate the slides",
+    "precondition": "DISCOVERY.json and AGENDA.md exist",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "positive",
+    "query": "regenerate the presentation",
+    "precondition": "DISCOVERY.json and AGENDA.md exist",
+    "expected": "skill loads — triggers restart guard if previous output exists"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "positive",
+    "query": "build the HTML output from the agenda",
+    "precondition": "DISCOVERY.json and AGENDA.md exist",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "negative",
+    "query": "write the agenda",
+    "expected": "skill does NOT load — structure-agenda should handle this"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "negative",
+    "query": "let's start on the presentation — I haven't defined the topic yet",
+    "expected": "skill does NOT load — discover-presentation or build-presentation should handle this"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate slides but I haven't made an agenda yet",
+    "expected": "skill loads but aborts with missing AGENDA.md error message"
+  }
+]
