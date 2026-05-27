@@ -1,15 +1,25 @@
 ---
 name: generate-slides
-description: Generate PRESENTASJON.md and PRESENTASJON.html from an approved AGENDA.md. Fetches and summarizes sources, validates output, and builds final HTML. Requires DISCOVERY.json and AGENDA.md.
+description: Load when the user wants to generate or regenerate the presentation slides. Requires DISCOVERY.json and AGENDA.md to exist.
 ---
 
 # Generate Slides
 
 Renders the final presentation from an approved `AGENDA.md`.
 
+## Gotchas
+- Never use `![alt](path)` on content slides — renders as a centered block below text and overflows the viewport
+- Never use `![bg](path)`, `![bg left](path)`, or `![bg right](path)` — background directives break all layouts
+- Never use `<img>` without a class attribute on content slides
+- No code blocks in slides — redirect to image or video
+- Language must match the `language` field in `DISCOVERY.json` throughout — slides, notes, and glossary
+
 ## Startup
 
-Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
+Before proceeding:
+1. Run `which marp` — if not found, abort: ❌ `marp-cli` not installed. Run `npm install -g @marp-team/marp-cli`
+2. Confirm the project folder is writable — if not, abort: ❌ Cannot write to `<path>`
+3. Run `which node` — if not found, warn but continue: ⚠️ `node` not found — source fetching may fail
 
 Check that `DISCOVERY.json` exists. If not:
 > ❌ `DISCOVERY.json` not found. Run `discover-presentation` first.
@@ -19,7 +29,7 @@ Check that `AGENDA.md` exists (path from `DISCOVERY.json`). If not:
 > ❌ `AGENDA.md` not found. Run `structure-agenda` to build the agenda.
 Abort.
 
-If previously generated files exist (`PRESENTASJON.md`, `PRESENTASJON.html`, or media files in `images/` or `videos/`), run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `generate-slides` before proceeding.
+If previously generated files exist (`PRESENTASJON.md`, `PRESENTASJON.html`, or media files in `images/` or `videos/`), run the restart guard per [RESTART-GUARD.md](RESTART-GUARD.md) with phase `generate-slides` before proceeding.
 
 ## Procedure
 
@@ -70,12 +80,7 @@ Wait for the user to approve or adjust specs before proceeding.
   - Max 5–6 bullet points per slide; split if exceeded
   - No code blocks in slides
   - No progressive reveal syntax
-  - **Images — read [STYLING.md](STYLING.md) for full reference:**
-    - A slide is a **content slide** if it has bullet points or paragraph text alongside an image. Always use `<img src="images/filename.png" alt="..." class="img-right">` on content slides. Place the tag **after the heading, before any text**.
-    - A slide is a **title or section-divider slide** if it has only a heading (H1 or H2) and no bullets or paragraph text. Centered `![alt](path)` syntax is allowed on these slides.
-    - **Never** use `![alt](path)` on content slides — it renders as a centered block image below the text and overflows the viewport.
-    - **Never** use `![bg](path)`, `![bg left](path)`, or `![bg right](path)` — background directives break all layouts.
-    - **Never** use `<img>` without a class attribute on content slides.
+  - **Images** — see **Gotchas** above and [STYLING.md](STYLING.md) for the full layout reference. On content slides, place `<img src="images/filename.png" alt="..." class="img-right">` after the heading. On title/divider slides (heading only, no bullets), `![alt](path)` is allowed.
   - Videos: dedicated blank slide only, only when explicitly requested
   - Presenter notes: always generated in bullet format (2–3 sentences each)
   - Paginate: always on

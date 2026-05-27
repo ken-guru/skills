@@ -1,17 +1,24 @@
 ---
 name: discover-presentation
-description: Gather requirements for a new presentation by interviewing the user. Produces DISCOVERY.json and PROJECT.json. Use as the first step when starting a new presentation, or when you want to update requirements for an existing one.
+description: Load when the user wants to start a presentation and hasn't yet defined topic, audience, or duration — or when they want to redo or update existing presentation requirements.
 ---
 
 # Discover Presentation
 
 Gathers presentation requirements through a conversational interview. Writes results to `DISCOVERY.json` and `PROJECT.json` in the project folder.
 
+## Gotchas
+- Do not advance to Step 2 until at least 3 of 4 persona dimensions are known — thin personas produce generic slides
+- Infer language from how the user writes; ask explicitly only if ambiguous
+- Do not write DISCOVERY.json until the user confirms the defaults summary in Step 2
+
 ## Startup
 
-Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
+Before proceeding:
+1. Run `which marp` — if not found, abort: ❌ `marp-cli` not installed. Run `npm install -g @marp-team/marp-cli`
+2. Confirm the project folder is writable — if not, abort: ❌ Cannot write to `<path>`
 
-If `DISCOVERY.json` already exists in the project folder, run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `discover-presentation` before continuing.
+If `DISCOVERY.json` already exists in the project folder, run the restart guard per [RESTART-GUARD.md](RESTART-GUARD.md) with phase `discover-presentation` before continuing.
 
 ## Procedure
 
