@@ -6,8 +6,9 @@ Run this validation pass after generating `PRESENTASJON.md` and before building 
 
 | Check | Fix |
 |---|---|
-| Background image directives `![bg` | Replace with `<img class="img-right">` equivalent |
-| Centered images with `![alt](path)` on non-title slides | Wrap as `<img class="img-right">` |
+| Background image directives `![bg` | Replace with `<img src="path" alt="..." class="img-right">` placed after the slide heading |
+| `![alt](path)` on content slides (slides with bullets or paragraph text) | Replace with `<img src="path" alt="alt" class="img-right">` and move the tag to immediately after the slide heading, before any text content. **Do not apply to title or section-divider slides** (heading only, no bullets or paragraph text). |
+| `<img>` tags with no `class` attribute on content slides | Add `class="img-right"` |
 | Missing `alt` attribute on `<img>` tags | Add descriptive alt text from context |
 | Trailing whitespace in presenter notes | Strip |
 
