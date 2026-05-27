@@ -70,7 +70,12 @@ Wait for the user to approve or adjust specs before proceeding.
   - Max 5–6 bullet points per slide; split if exceeded
   - No code blocks in slides
   - No progressive reveal syntax
-  - Images: `<img src="images/filename.png" alt="..." class="img-right">` beside text
+  - **Images — read [STYLING.md](STYLING.md) for full reference:**
+    - A slide is a **content slide** if it has bullet points or paragraph text alongside an image. Always use `<img src="images/filename.png" alt="..." class="img-right">` on content slides. Place the tag **after the heading, before any text**.
+    - A slide is a **title or section-divider slide** if it has only a heading (H1 or H2) and no bullets or paragraph text. Centered `![alt](path)` syntax is allowed on these slides.
+    - **Never** use `![alt](path)` on content slides — it renders as a centered block image below the text and overflows the viewport.
+    - **Never** use `![bg](path)`, `![bg left](path)`, or `![bg right](path)` — background directives break all layouts.
+    - **Never** use `<img>` without a class attribute on content slides.
   - Videos: dedicated blank slide only, only when explicitly requested
   - Presenter notes: always generated in bullet format (2–3 sentences each)
   - Paginate: always on
