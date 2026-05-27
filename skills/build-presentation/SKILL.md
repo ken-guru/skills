@@ -41,7 +41,7 @@ Read the project folder to determine current state per [../shared/state-schema.m
 
 Options:
 - **Yes** — call `structure-agenda`
-- **Redo discovery** — call `discover-presentation` again (warn: existing agenda will need revision)
+- **Redo discovery** — call `discover-presentation` again. `discover-presentation` will invoke the restart guard, prompting the user to clean up stale downstream files before re-running.
 
 **Agenda exit criteria** before proceeding to generation:
 - [ ] User has chosen one of the 2–3 proposed structures (or a hybrid)
@@ -57,7 +57,7 @@ Estimated token cost: **~high** (fetches sources, writes all slides)
 
 Options:
 - **Yes** — call `generate-slides`
-- **Continue editing agenda** — call `structure-agenda` again
+- **Continue editing agenda** — call `structure-agenda` again. `structure-agenda` will invoke the restart guard, prompting the user to clean up stale generation outputs before re-running.
 
 ### Generation done, not proofread
 > "The presentation has been generated. Would you like to run a proofreading pass now?"
@@ -70,9 +70,9 @@ Options:
 > "The presentation is complete ✅"
 
 Options:
-- **Regenerate** — re-run `generate-slides` from existing agenda
-- **Revise agenda** — go back to `structure-agenda`
-- **Start over** — confirm, then wipe state and call `discover-presentation`
+- **Regenerate** — re-run `generate-slides` from existing agenda. `generate-slides` will invoke the restart guard to handle any existing media files before regenerating.
+- **Revise agenda** — go back to `structure-agenda`. `structure-agenda` will invoke the restart guard, prompting the user to clean up stale generation outputs before re-running.
+- **Start over** — call `discover-presentation`. `discover-presentation` will invoke the restart guard, giving the user the option to delete all generated files before starting fresh.
 
 ## Sequential invocation
 

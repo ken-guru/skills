@@ -11,12 +11,7 @@ Gathers presentation requirements through a conversational interview. Writes res
 
 Run validation checks per [../shared/validation.md](../shared/validation.md). Abort if any errors are returned.
 
-If `DISCOVERY.json` already exists in the project folder, warn the user:
-
-> ⚠️ Discovery has already been completed for this project.
-> Would you like to update the requirements? This will not delete `AGENDA.md`, but the agenda may need revision afterwards.
-
-Wait for confirmation before continuing.
+If `DISCOVERY.json` already exists in the project folder, run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `discover-presentation` before continuing.
 
 ## Procedure
 

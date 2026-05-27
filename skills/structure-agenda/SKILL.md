@@ -17,6 +17,8 @@ Abort.
 
 Read `DISCOVERY.json` to load topic, audience, duration, language, and occasion.
 
+If downstream files exist (check for `IMAGE_SPEC.md` or `PRESENTASJON.md` in the project folder), run the restart guard per [../shared/restart-guard.md](../shared/restart-guard.md) with phase `structure-agenda` before proceeding.
+
 ## Procedure
 
 ### Step 1: Propose agenda alternatives
