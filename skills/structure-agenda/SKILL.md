@@ -60,6 +60,8 @@ Using the chosen structure:
 2. Include a Glossary section (in the presentation language) with all key domain terms defined
 3. For each slide topic: include an image placeholder and `[Source](url)` for source material where relevant
 
+When assigning image filenames, choose descriptive, stable names (e.g. `images/threat-model-diagram.png`, not `images/slide-3.png`). These filenames are **canonical** — `generate-slides` will use them exactly to build `IMAGE_SPEC.md` and the final slides. Renaming them later requires updating both `AGENDA.md` and any previously generated `IMAGE_SPEC.md`.
+
 Present the draft agenda to the user before writing any files.
 
 ### Step 3: Iterate

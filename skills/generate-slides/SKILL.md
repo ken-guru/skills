@@ -64,20 +64,43 @@ Skip any URL marked `(DO NOT FETCH)`.
 
 Before writing any slides, produce `IMAGE_SPEC.md` — a structured specification for every image in the presentation.
 
-For each slide that requires a visual, write an entry:
+**`AGENDA.md` is the single source of truth for which images are needed and what they are named.**
+
+First, scan `AGENDA.md` for every image reference matching `[Image](images/<filename>.png)`. Collect the filenames in the order they appear. These filenames are canonical — use them exactly in IMAGE_SPEC.md.
+
+For each image reference found in `AGENDA.md`, write an entry:
 
 ```markdown
 ## Slide [N] — [Slide Title]
 - **Concept:** [what the image must communicate]
 - **Style:** [mood, colour scheme, rendering style — e.g. "dark background, neon accent, technical diagram"]
 - **Elements:** [specific visual components — e.g. "file tree, threat arrow, padlock icon"]
-- **Filename:** `images/[descriptive-name].png`
+- **Filename:** `images/[exact-filename-from-agenda].png`
 - **Prompt suggestion:** "[ready-to-use Midjourney / DALL-E prompt]"
 ```
 
+Do not add images to `IMAGE_SPEC.md` that are not referenced in `AGENDA.md`.
+
 Write the file to the project root (default: `IMAGE_SPEC.md`).
 
-#### Step 3a: Report IMAGE_SPEC changes
+#### Step 3a: Validate alignment
+
+After writing `IMAGE_SPEC.md`, cross-check against `AGENDA.md`:
+
+- Every `[Image](images/...)` in `AGENDA.md` must have a matching entry in `IMAGE_SPEC.md` (matched by filename).
+- Every entry in `IMAGE_SPEC.md` must correspond to a `[Image](images/...)` in `AGENDA.md`.
+
+If any mismatch is found, fix `IMAGE_SPEC.md` to match `AGENDA.md` and report what was corrected:
+
+```
+⚠️ Image alignment corrected:
+  Added to IMAGE_SPEC.md:   images/[name].png (Slide N — Title)
+  Removed from IMAGE_SPEC.md: images/[old-name].png
+```
+
+Proceed only when IMAGE_SPEC.md and AGENDA.md are fully aligned.
+
+#### Step 3b: Report IMAGE_SPEC changes
 
 Before presenting approval prompt:
 

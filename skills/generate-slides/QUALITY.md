@@ -58,7 +58,9 @@ Run after all slides are generated, before building HTML.
 - [ ] Abbreviations explained on first use
 
 ### Reference integrity
-- [ ] All `src` paths in `<img>` tags exist as entries in IMAGE_SPEC.md
+- [ ] All `[Image](images/...)` references in `AGENDA.md` have a corresponding entry in `IMAGE_SPEC.md` (by filename)
+- [ ] All entries in `IMAGE_SPEC.md` correspond to a `[Image](images/...)` reference in `AGENDA.md` — no orphan specs
+- [ ] All `src` paths in `<img>` tags in `PRESENTASJON.md` exist as entries in `IMAGE_SPEC.md`
 - [ ] All `[Source](url)` links in slides were actually fetched (cross-check with Step 2 report)
 - [ ] No internal links pointing to non-existent anchors
 
