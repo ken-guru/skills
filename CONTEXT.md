@@ -2,73 +2,91 @@
 
 ## Skill
 
-An agent skill is a reusable, standalone unit of work that performs a specific phase of a larger workflow. Each skill:
-- Has a clear input/output contract
-- Can be called independently or as part of a sequence
-- Reads/writes persistent state to files in the project folder
-- Handles its own environment validation via a shared validation module
+A reusable, standalone unit of work with a clear input/output contract that an agent can invoke by name. Two kinds exist:
+
+**Phase Skill** — operates on a persistent project folder as part of a pipeline. Reads and writes state files. Can be called independently or sequenced by an orchestrator.
+_Avoid_: pipeline skill, workflow step
+
+**Utility Skill** — stateless and conversational. Performs a standalone task without a project folder or persistent state. Not part of a phase pipeline.
+_Avoid_: helper skill, tool skill
 
 ## Phase
 
 One logical step in the content creation pipeline. Current phases:
 
 1. **Discovery** — gather requirements from the user (topic, audience, duration, language, occasion)
-2. **Structure** — build and iterate on the content outline (AGENDA.md, glossary, sources)
-3. **Generation** — render final output files (PRESENTASJON.md, HTML, sourced content)
+2. **Structure** — build and iterate on the content outline
+3. **Generation** — render the final output files
+4. **Proofread** — quality check the generated output; skippable but recommended
 
-## Project Types (future)
+## Project Type
 
-Content projects can be presentations, documentation, PRDs, tutorials, etc. All follow the same phase sequence, but with type-specific:
-- Default values
-- Output templates
-- Validation rules
+The category of content a pipeline produces (e.g., presentation). Determines default values, output templates, and validation rules for all phase skills.
+_Avoid_: content type, project kind
 
-Currently, **presentations** is the primary project type.
+## Project Folder
 
-## State Files
-
-Each project folder contains:
-
-- **DISCOVERY.json** — user requirements captured during Phase 1 (topic, audience, etc.)
-- **AGENDA.md** — structured outline with sections, slide topics, glossary, source placeholders (Phase 2 output)
-- **PROJECT.json** — metadata (project type, created date, discovered settings, generation options)
-- **PRESENTASJON.md** — final presentation source (Phase 3 output)
-- **PRESENTASJON.html** — rendered HTML (Phase 3 output)
-- **docs/sources/** — fetched and summarized source material (Phase 3 generated)
+The on-disk directory that a Phase Skill reads and writes. Contains all state files for a single project. The schema for those files lives in `skills/shared/state-schema.md`.
+_Avoid_: working directory, output folder
 
 ## Orchestrator
 
-A skill that:
-- Detects the project state (discovery done? agenda exists? ready to generate?)
-- Guides the user through the next logical step
-- Calls phase skills sequentially
-- Handles environment validation before starting
-- Provides estimated token cost for each operation
+A Phase Skill that coordinates a full pipeline — detecting project state and routing the user to the next phase.
+_Avoid_: coordinator, controller, runner
 
-## Eval cases
+## Exit Criteria
 
-Evaluation cases for each skill live in `evals/`. These document expected skill routing behavior (positive, negative, boundary cases) and serve as a foundation for future test infrastructure.
+The conditions an orchestrator verifies before advancing from one phase to the next. Defined per phase transition; all conditions must pass before the next phase skill is called.
+_Avoid_: completion checklist, done criteria
+
+## Restart Guard
+
+A protocol invoked at phase startup when re-running that phase would make downstream files stale. Presents the user with an explicit inventory of affected files and a choice before any modifications are made.
+_Avoid_: cleanup prompt, stale file handler
+
+## Eval
+
+A test case that documents expected skill routing behaviour for a given query. Three types:
+- **positive** — the skill should load
+- **negative** — the skill should not load
+- **boundary** — correct routing depends on project state
+
+## Trigger
+
+The `description` field in a skill's frontmatter. Written as a `Load when…` instruction that the agent uses to decide which skill to invoke for a given user request.
+_Avoid_: activation condition, routing description
+
+---
+
+## Example dialogue
+
+> **Dev:** I want to add a new phase skill for translating a finished presentation into another language. Where does it fit?
+>
+> **Domain expert:** It'd be a phase skill — it reads from the project folder and writes back to it. You'd add a fifth phase after Proofread, with its own exit criteria.
+>
+> **Dev:** Does it need a restart guard?
+>
+> **Domain expert:** Only if running it again would make downstream files stale. If it just overwrites the translated output in place, the guard isn't needed.
+>
+> **Dev:** And how does the orchestrator know when to offer it?
+>
+> **Domain expert:** It checks the phase status in `PROJECT.json`. Once proofread is done, it offers the translation step as the next logical action.
+>
+> **Dev:** What trigger should I write for the skill?
+>
+> **Domain expert:** Something like "Load when the user wants to translate an existing presentation into another language." Keep it narrow — the trigger competes with every other skill's trigger, so vague language causes wrong routing.
 
 ---
 
 ## Presentation-specific terminology
 
-**Slide** — One page in the final output (PRESENTASJON.md)
+**Slide** — One page in the final rendered output.
 
-**Agenda** — The structured outline (AGENDA.md) containing sections, slide topics, image placeholders, source references, and glossary
+**Agenda** — The structured outline containing sections, slide topics, image placeholders, source references, and a glossary. Produced during the Structure phase and consumed by Generation.
+
+**Image Spec** — A file produced during the Structure phase that maps each slide to an AI image generation prompt. Users take these prompts to external image generation tools (e.g., Midjourney, DALL-E).
+_Avoid_: image plan, prompt file
 
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
 
 **Glossary** (Begreper og definisjoner) — Canonical definitions of all domain-specific terms used in the presentation
-
----
-
-## Language conventions
-
-All generated content must match the language specified in `DISCOVERY.json`. The agent must:
-- Detect the user's preferred language from their input and from the `language` field in `DISCOVERY.json`
-- Generate slides, presenter notes, glossary definitions, and all user-facing content in that language
-- Maintain consistent language throughout — do not mix languages in content
-- For Norwegian (bokmål) presentations, follow [Språkrådet guidelines](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/) for spelling, grammar, and terminology
-
-This applies to slide text, presenter notes, glossary definitions, and all content output. The skill instructions themselves (and agent feedback during the workflow) are in English regardless of the presentation language.
