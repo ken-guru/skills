@@ -74,6 +74,20 @@ Mark `phases.structure.status = "done"` in `PROJECT.json`.
 
 ### Step 5: Report to user
 
+If `IMAGE_SPEC.md` exists from a previous `generate-slides` run:
+
+```
+✅ Agenda approved and written to [path]
+
+ℹ️  Your image specifications will be updated when you run `generate-slides` next.
+   Any new images added, removed, or modified will be reported clearly.
+
+▶️  Next step: Run `generate-slides` to generate the presentation
+   (Image changes will be displayed before slide generation begins)
+```
+
+If `IMAGE_SPEC.md` does not exist (first time running):
+
 ```
 ✅ Agenda approved and written to [path]
 ▶️  Next step: Run `generate-slides` to generate the presentation

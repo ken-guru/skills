@@ -24,6 +24,7 @@ A collection of agent skills.
 |--------|-------------|
 | [shared/validation](./skills/shared/validation.md) | Environment checks used by all skills |
 | [shared/state-schema](./skills/shared/state-schema.md) | Schema for DISCOVERY.json, PROJECT.json, and AGENDA.md |
+| [shared/image-spec-diff](./skills/shared/image-spec-diff.md) | Detect and report changes to IMAGE_SPEC.md when agenda or presentation is updated |
 
 ## Installation
 
