@@ -1,6 +1,6 @@
 ---
 name: build-presentation
-description: Load when the user wants to build or create a presentation, mentions slides, marp, presentasjon, bygg presentasjon, or lag presentasjon. Detects project state and guides through the full pipeline: discover-presentation → structure-agenda → generate-slides.
+description: "Load when the user wants to build or create a presentation, mentions slides, marp, presentasjon, bygg presentasjon, or lag presentasjon. Detects project state and guides through the full pipeline: discover-presentation → structure-agenda → generate-slides."
 ---
 
 # Build Presentation (Orchestrator)
