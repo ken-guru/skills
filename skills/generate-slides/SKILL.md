@@ -7,6 +7,17 @@ description: Load when the user wants to generate or regenerate the presentation
 
 Renders the final presentation from an approved `AGENDA.md`.
 
+## Image Specification Changes
+
+When the agenda changes (via `structure-agenda`) or slides are regenerated, the image specifications may change. You will receive detailed feedback about:
+- **Added images**: New images with slide number, filename, and prompt suggestions
+- **Removed images**: Images no longer needed
+- **Modified images**: Updated prompts for existing images
+
+All feedback is provided before slide generation begins, and you're pointed to `IMAGE_SPEC.md` for full details.
+
+See [image-spec-diff.md](../shared/image-spec-diff.md) for implementation details.
+
 ## Gotchas
 - Never use `![alt](path)` on content slides — renders as a centered block below text and overflows the viewport
 - Never use `![bg](path)`, `![bg left](path)`, or `![bg right](path)` — background directives break all layouts
@@ -66,7 +77,18 @@ For each slide that requires a visual, write an entry:
 
 Write the file to the project root (default: `IMAGE_SPEC.md`).
 
-Present a summary to the user:
+#### Step 3a: Report IMAGE_SPEC changes
+
+Before presenting approval prompt:
+
+1. Check if an old `IMAGE_SPEC.md` exists
+2. If yes, run the diff detection procedure from [image-spec-diff.md](../shared/image-spec-diff.md)
+3. If changes detected (added, removed, or modified images):
+   - Show the formatted diff feedback (see [image-spec-diff.md](../shared/image-spec-diff.md) for exact format)
+   - Include the path reference: `📄 Full specification: IMAGE_SPEC.md`
+
+Then present the approval prompt:
+
 > "IMAGE_SPEC.md has been generated with [X] image specifications. You can use these directly with Midjourney, DALL-E, or other image generation tools. Would you like to review them before we generate the slides?"
 
 Wait for the user to approve or adjust specs before proceeding.
@@ -105,11 +127,14 @@ Mark `phases.generation.status = "done"` in `PROJECT.json`.
 ```
 ✅ [X] slide(s) generated
 🖼️  Image specifications: IMAGE_SPEC.md ([X] images)
+    📋 Ready to generate images using Midjourney, DALL-E, or your preferred AI tool
+    💾 Place generated images in the images/ folder
 📝 Proofreading: [summary from QUALITY.md proofreading pass]
 ⚠️  Quality warnings: [list or "none"]
 ❌  Failed sources: [url list or "none"]
 ▶️  Next steps:
-    1. Generate images from IMAGE_SPEC.md and place them in the images/ folder
-    2. Open PRESENTASJON.html for preview
-    3. Run `marp -s .` for live presentation
+    1. Review IMAGE_SPEC.md for image prompts and specifications
+    2. Generate images and save to the images/ folder
+    3. Open PRESENTASJON.html to preview your presentation
+    4. Run `marp -s .` for live presentation mode
 ```
