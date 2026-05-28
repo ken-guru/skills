@@ -1,5 +1,7 @@
 # Ken Sørevåge's Skills
 
+[![skills.sh](https://skills.sh/b/ken-guru/skills)](https://skills.sh/ken-guru/skills)
+
 A collection of agent skills.
 
 ## Skills
