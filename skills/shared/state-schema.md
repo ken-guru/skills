@@ -18,6 +18,7 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
   "projectType": "presentation",
   "paths": {
     "agenda": "AGENDA.md",
+    "imageSpec": "IMAGE_SPEC.md",
     "presentation": "PRESENTASJON.md",
     "html": "PRESENTASJON.html",
     "images": "images/",
@@ -50,6 +51,10 @@ Written by `discover-presentation` and updated by subsequent phase skills.
     },
     "generation": {
       "status": "done | pending",
+      "completedAt": "ISO 8601 date string | null"
+    },
+    "proofread": {
+      "status": "done | pending | skipped",
       "completedAt": "ISO 8601 date string | null"
     }
   }
@@ -91,4 +96,6 @@ Expected sections:
 | `PROJECT.json` missing | Nothing started |
 | `PROJECT.json` exists, `phases.discovery.status == "done"` | Discovery complete |
 | `AGENDA.md` exists, `phases.structure.status == "done"` | Structure complete |
+| `IMAGE_SPEC.md` exists | Image spec generated (sub-step of Structure) |
 | `PRESENTASJON.html` exists, `phases.generation.status == "done"` | Generation complete |
+| `phases.proofread.status == "done" or "skipped"` | Proofread complete |
