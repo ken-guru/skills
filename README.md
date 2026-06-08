@@ -19,6 +19,7 @@ A collection of agent skills.
 | [discover-presentation](./skills/discover-presentation/SKILL.md) | Gather requirements: topic, audience, duration, language, occasion |
 | [structure-agenda](./skills/structure-agenda/SKILL.md) | Build and iterate the agenda (AGENDA.md) |
 | [generate-slides](./skills/generate-slides/SKILL.md) | Generate PRESENTASJON.md and PRESENTASJON.html from approved agenda |
+| [generate-images](./skills/generate-images/SKILL.md) | Generate PNG images from IMAGE_SPEC.md using an AI image generation API (Gemini) |
 
 ### Shared modules
 
