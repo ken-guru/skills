@@ -2,6 +2,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
+
+// Allow globally installed npm packages to be resolved (npm install -g ...)
+try {
+  const globalModules = execSync('npm root -g', { encoding: 'utf8' }).trim();
+  require.main.paths.unshift(globalModules);
+} catch {}
 
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {

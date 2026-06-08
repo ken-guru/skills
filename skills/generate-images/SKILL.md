@@ -17,7 +17,7 @@ Before proceeding:
    Abort.
 3. Check `GEMINI_API_KEY` is set: `echo "$GEMINI_API_KEY"`. If empty, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
 4. Check `node` is available: `which node`. If not found, abort: ❌ `node` not installed.
-5. Check `@google/genai` is installed: `node -e "require('@google/genai')" 2>/dev/null && echo ok`. If it fails:
+5. Check `@google/genai` is installed: `NODE_PATH=$(npm root -g) node -e "require('@google/genai')" 2>/dev/null && echo ok`. If it fails:
    ```bash
    npm install -g @google/genai
    ```
