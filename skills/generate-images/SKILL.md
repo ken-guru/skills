@@ -17,9 +17,10 @@ Before proceeding:
    Abort.
 3. Check `GEMINI_API_KEY` is set: `echo "$GEMINI_API_KEY"`. If empty, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
 4. Check `node` is available: `which node`. If not found, abort: ❌ `node` not installed.
-5. Check `@google/genai` is installed: `node -e "require('@google/genai')" 2>/dev/null && echo ok`. If it fails:
+5. Ensure the skill's dependencies are installed:
    ```bash
-   npm install -g @google/genai
+   [ -d ~/.claude/skills/generate-images/scripts/node_modules ] || \
+     (cd ~/.claude/skills/generate-images/scripts && npm install --loglevel=error)
    ```
 
 ## Procedure

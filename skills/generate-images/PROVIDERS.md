@@ -43,8 +43,10 @@ echo ".envrc" >> .gitignore
 
 ### 3. Install the SDK
 
+The SDK is bundled with the skill. It installs automatically on first use. To install manually:
+
 ```bash
-npm install -g @google/genai
+cd ~/.claude/skills/generate-images/scripts && npm install
 ```
 
 ### Models
