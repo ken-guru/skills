@@ -1,6 +1,6 @@
 ---
 name: structure-agenda
-description: Load when the user wants to build, draft, or revise the presentation agenda, or when discover-presentation has just completed.
+description: Build, draft, or revise the presentation agenda from DISCOVERY.json into AGENDA.md. Use when structuring presentation content, or after discover-presentation has completed.
 ---
 
 # Structure Agenda
