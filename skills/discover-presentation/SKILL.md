@@ -1,6 +1,6 @@
 ---
 name: discover-presentation
-description: Load when the user wants to start a presentation and hasn't yet defined topic, audience, or duration — or when they want to redo or update existing presentation requirements.
+description: Gather presentation requirements (topic, audience, duration) through a structured interview and write DISCOVERY.json. Use when starting a new presentation or updating existing requirements.
 ---
 
 # Discover Presentation

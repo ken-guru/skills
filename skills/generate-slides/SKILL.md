@@ -1,6 +1,6 @@
 ---
 name: generate-slides
-description: Load when the user wants to generate or regenerate the presentation slides. Requires DISCOVERY.json and AGENDA.md to exist.
+description: Generate Marp slides from an approved AGENDA.md, including image specs and HTML output. Requires DISCOVERY.json and AGENDA.md. Use when generating or regenerating presentation slides.
 ---
 
 # Generate Slides

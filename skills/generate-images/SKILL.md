@@ -1,6 +1,6 @@
 ---
 name: generate-images
-description: Generate PNG images for a presentation by submitting prompts from IMAGE_SPEC.md to an AI image generation API. Use when user wants to generate, create, or render presentation images, mentions IMAGE_SPEC.md and generating images, asks to automate image creation, or wants to run image generation after generate-slides has completed.
+description: Generate PNG images for a presentation by submitting prompts from IMAGE_SPEC.md to an AI image generation API. Use when generating or rendering presentation images, when IMAGE_SPEC.md exists, or after generate-slides has completed.
 ---
 
 # Generate Images
