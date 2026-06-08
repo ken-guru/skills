@@ -16,6 +16,8 @@ const specPath = path.resolve(args.find(a => !a.startsWith('--')) || 'IMAGE_SPEC
 const force = args.includes('--force');
 const slideArg = args.find(a => a.startsWith('--slide='));
 const slideFilter = slideArg ? parseInt(slideArg.split('=')[1], 10) : null;
+const slidesArg = args.find(a => a.startsWith('--slides='));
+const slidesFilter = slidesArg ? slidesArg.split('=')[1].split(',').map(n => parseInt(n.trim(), 10)) : null;
 const delayArg = args.find(a => a.startsWith('--delay='));
 const delayMs = delayArg ? parseFloat(delayArg.split('=')[1]) * 1000 : 1000;
 const model = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'gemini-3.1-flash-image';
@@ -103,6 +105,12 @@ async function main() {
     entries = entries.filter(e => e.slideNumber === slideFilter);
     if (!entries.length) {
       console.error(`❌ No image entry for slide ${slideFilter} in ${path.basename(specPath)}`);
+      process.exit(1);
+    }
+  } else if (slidesFilter !== null) {
+    entries = entries.filter(e => slidesFilter.includes(e.slideNumber));
+    if (!entries.length) {
+      console.error(`❌ No image entries for slides [${slidesFilter.join(', ')}] in ${path.basename(specPath)}`);
       process.exit(1);
     }
   }

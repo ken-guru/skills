@@ -24,43 +24,89 @@ Before proceeding:
 
 ## Procedure
 
-### Step 1: Confirm scope
+### Step 1: Resolve scope
 
-Parse `IMAGE_SPEC.md` entries (headers matching `## Slide N — Title`, filenames from `**Filename:**` lines) and present the list:
+Parse all entries from `IMAGE_SPEC.md`. Check which filenames already exist in the project folder.
+
+If **no images exist yet**, scope = all entries — skip to Step 2.
+
+If **at least one image already exists**, present:
 
 ```
-🖼️  Found [N] image(s) in IMAGE_SPEC.md:
-  • images/foo.png — Slide 1 — Title
-  • images/bar.png — Slide 3 — Title
+⚠️  images/ — existing files detected (N of M images already present)
 
-Already-existing images will be skipped unless --force is used.
-Generate all?
+  Already present:    • images/foo.png  (Slide 1 — Title)  [...]
+  Not yet generated:  • images/bar.png  (Slide 3 — Title)  [...]
+
+  A  Generate missing only   — skip the N that already exist
+  B  Regenerate everything   — overwrite all M images
+  C  Choose specific slides  — I'll tell you which slide numbers
+  D  Cancel
 ```
 
-Wait for user confirmation unless `--force` or `--slide=N` was explicitly requested.
+Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 
-### Step 2: Run the generator
+### Step 2: Select generation mode
+
+```
+💡 N image(s) will be generated
+   Gemini charges per image, not per token.
+   Pricing: https://ai.google.dev/gemini-api/docs/pricing
+
+  1  All at once   — generate selected images in sequence
+  2  One at a time — pause after each image for your review
+```
+
+### Step 3: Generate
+
+**Batch (choice 1)**
 
 ```bash
 node ~/.claude/skills/generate-images/scripts/generate-images.js \
-  <project-folder>/IMAGE_SPEC.md [--force] [--slide=N] [--model=<model-id>] [--delay=<seconds>]
+  <IMAGE_SPEC.md path> [--force] [--slides=N,M,...] [--model=<id>] [--delay=<seconds>]
 ```
 
-`GEMINI_API_KEY` is read from the environment automatically. Do not pass it as an argument.
+- Scope A → no extra flags (script skips existing files by default)
+- Scope B → add `--force`
+- Scope C → add `--slides=N,M,...`
 
-### Step 3: Report results
+**Interactive (choice 2)**
 
-Present the script's summary output and, on failure, suggest:
-- Edit the prompt in `IMAGE_SPEC.md` for that slide (simplify if too detailed)
-- Check API quota at [Google AI Studio](https://aistudio.google.com)
-- Retry with `--slide=N` after adjusting the prompt
+For each image in scope, run:
+
+```bash
+node ~/.claude/skills/generate-images/scripts/generate-images.js \
+  <IMAGE_SPEC.md path> --slide=N --force [--model=<id>]
+```
+
+After each, present:
+
+```
+✅ Saved: images/foo.png  (Slide N — Title)
+   Open to review, then choose:
+
+     N  Next  — accept and continue to the next image
+     R  Redo  — regenerate with the same prompt (different result)
+     S  Stop  — exit and keep what has been generated so far
+```
+
+Note: to change a prompt before redoing, edit `IMAGE_SPEC.md` first, then choose R.
+
+**R** re-runs the same script call. **S** exits the loop early.
+
+### Step 4: Report results
+
+Present the script's summary output. On failure, suggest editing the prompt in `IMAGE_SPEC.md` and retrying with `--slide=N`.
 
 ## Options
 
+These flags bypass the interactive prompts — useful for scripting or repeat runs.
+
 | Flag | Effect |
 |------|--------|
-| `--force` | Regenerate images that already exist |
-| `--slide=N` | Generate only the image for slide N |
+| `--force` | Skip scope prompt — regenerate all images in batch |
+| `--slide=N` | Skip all prompts — generate only slide N |
+| `--slides=N,M,...` | Skip scope prompt — generate specific slides in batch |
 | `--model=<id>` | Override the default model (see [PROVIDERS.md](PROVIDERS.md#models)) |
 | `--delay=<seconds>` | Pause between requests (default: 1s; increase on free-tier rate limits) |
 
