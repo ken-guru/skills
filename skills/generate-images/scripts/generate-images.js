@@ -51,8 +51,17 @@ function parseImageSpec(content) {
   return entries;
 }
 
+function safeOutPath(filename) {
+  const resolved = path.resolve(projectDir, filename);
+  const boundary = path.resolve(projectDir) + path.sep;
+  if (!resolved.startsWith(boundary)) {
+    throw new Error(`Filename escapes project directory: ${filename}`);
+  }
+  return resolved;
+}
+
 async function generateOne(entry) {
-  const outPath = path.join(projectDir, entry.filename);
+  const outPath = safeOutPath(entry.filename);
 
   if (!force && fs.existsSync(outPath)) {
     console.log(`⏭️  Slide ${entry.slideNumber}: ${path.basename(outPath)} (exists — use --force to regenerate)`);
