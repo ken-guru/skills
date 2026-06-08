@@ -20,7 +20,7 @@ Before proceeding:
 5. Ensure the skill's dependencies are installed:
    ```bash
    [ -d ~/.claude/skills/generate-images/scripts/node_modules ] || \
-     (cd ~/.claude/skills/generate-images/scripts && npm install --loglevel=error)
+     (cd ~/.claude/skills/generate-images/scripts && npm install --ignore-scripts --loglevel=error)
    ```
 
 ## Procedure

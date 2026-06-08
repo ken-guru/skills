@@ -46,7 +46,7 @@ echo ".envrc" >> .gitignore
 The SDK is bundled with the skill. It installs automatically on first use. To install manually:
 
 ```bash
-cd ~/.claude/skills/generate-images/scripts && npm install
+cd ~/.claude/skills/generate-images/scripts && npm install --ignore-scripts
 ```
 
 ### Models
