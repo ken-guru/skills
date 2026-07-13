@@ -1,6 +1,6 @@
 ---
 name: structure-agenda
-description: Build, draft, or revise the presentation agenda from DISCOVERY.json into AGENDA.md. Use when structuring presentation content, or after discover-presentation has completed.
+description: "Drafting. Use when structuring presentation content, or after discover-presentation has completed."
 ---
 
 # Structure Agenda
@@ -8,7 +8,7 @@ description: Build, draft, or revise the presentation agenda from DISCOVERY.json
 Builds and refines `AGENDA.md` through collaborative iteration with the user.
 
 ## Gotchas
-- Do not write AGENDA.md until the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration
+- Write AGENDA.md only after the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration
 - When the user says "update a slide", iterate on the in-memory draft only; commit to disk only on approval
 
 ## Startup

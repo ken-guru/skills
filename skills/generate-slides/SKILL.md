@@ -1,6 +1,6 @@
 ---
 name: generate-slides
-description: Generate Marp slides from an approved AGENDA.md, including image specs and HTML output. Requires DISCOVERY.json and AGENDA.md. Use when generating or regenerating presentation slides.
+description: "Generator. Use when generating or regenerating presentation slides."
 ---
 
 # Generate Slides
@@ -21,7 +21,7 @@ See [image-spec-diff.md](../shared/image-spec-diff.md) for implementation detail
 ## Gotchas
 - Use `<img class="img-right">` on content slides. Restrict `![alt](path)` to title slides.
 - Place images inline using `<img class="img-right">` to preserve layout integrity.
-- Never use `<img>` without a class attribute on content slides
+- Always use `<img>` with a class attribute on content slides
 - Represent code visually by suggesting an image or video instead of using code fences.
 - Language must match the `language` field in `DISCOVERY.json` throughout — slides, notes, and glossary
 
@@ -58,7 +58,7 @@ For every `[Source](url)` link in `AGENDA.md`:
 
 Skip any URL marked `(DO NOT FETCH)`.
 
-**Error handling:** Collect all failed fetches. Do not halt generation. Report failures at the end.
+**Error handling:** Collect all failed fetches. Continue generation on error. Report failures at the end.
 
 ### Step 3: Generate IMAGE_SPEC.md
 
@@ -79,7 +79,7 @@ For each image reference found in `AGENDA.md`, write an entry:
 - **Prompt suggestion:** "[ready-to-use Midjourney / DALL-E prompt]"
 ```
 
-Do not add images to `IMAGE_SPEC.md` that are not referenced in `AGENDA.md`.
+Add only images referenced in `AGENDA.md` to `IMAGE_SPEC.md`.
 
 Write the file to the project root (default: `IMAGE_SPEC.md`).
 
