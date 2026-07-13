@@ -1,6 +1,6 @@
 ---
 name: discover-presentation
-description: Gather presentation requirements (topic, audience, duration) through a structured interview and write DISCOVERY.json. Use when starting a new presentation or updating existing requirements.
+description: "Gather presentation requirements through a structured interview and write DISCOVERY.json. Use when starting a new presentation or updating requirements."
 ---
 
 # Discover Presentation
@@ -69,15 +69,4 @@ Ask: "Would you like to use the default names, or would you like to adjust any?"
 Wait for the user to approve or correct before proceeding to Step 3.
 
 ### Step 3: Write state files
-
-Write `DISCOVERY.json` and `PROJECT.json` to the project folder per [../shared/state-schema.md](../shared/state-schema.md).
-
-Mark `phases.discovery.status = "done"` in `PROJECT.json`.
-
-### Step 4: Report to user
-
-```
-✅ Discovery complete
-📁 Project folder: [path]
-▶️  Next step: Run `structure-agenda` to build the agenda
-```
+Read the external pointer file `WRITE_DISCOVERY.md` for the next steps ONLY AFTER the user confirms the defaults in Step 2.

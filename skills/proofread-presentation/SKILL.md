@@ -1,3 +1,8 @@
+---
+name: proofread-presentation
+description: "Run quality validation and proofreading passes..."
+---
+
 # Quality Validation
 
 Run this validation pass after generating `PRESENTASJON.md` and before building HTML.
