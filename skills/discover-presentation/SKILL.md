@@ -1,6 +1,6 @@
 ---
 name: discover-presentation
-description: "Gather presentation requirements through a structured interview and write DISCOVERY.json. Use when starting a new presentation or updating requirements."
+description: "Interview the user. Use when starting a new presentation or updating requirements."
 ---
 
 # Discover Presentation
@@ -8,9 +8,9 @@ description: "Gather presentation requirements through a structured interview an
 Gathers presentation requirements through a conversational interview. Writes results to `DISCOVERY.json` and `PROJECT.json` in the project folder.
 
 ## Gotchas
-- Do not advance to Step 2 until at least 3 of 4 persona dimensions are known — thin personas produce generic slides
+- Advance to Step 2 only after at least 3 of 4 persona dimensions are known — thin personas produce generic slides
 - Infer language from how the user writes; ask explicitly only if ambiguous
-- Do not write DISCOVERY.json until the user confirms the defaults summary in Step 2
+- Write DISCOVERY.json only after the user confirms the defaults summary in Step 2
 
 ## Startup
 

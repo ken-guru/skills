@@ -1,6 +1,6 @@
 ---
 name: build-presentation
-description: "Orchestrator for the presentation pipeline. Use when the user wants to build a presentation, or mentions slides or marp."
+description: "Orchestrator. Use when the user wants to build a presentation, or mentions slides or marp."
 ---
 
 # Build Presentation (Orchestrator)
@@ -9,7 +9,7 @@ Coordinates the full presentation pipeline. Detects what has already been done a
 
 ## Gotchas
 - Advance phases only when the current exit criteria are fully satisfied.
-- Require structure to be complete before calling `generate-slides`. Refuse requests to skip the agenda.
+- Require structure to be complete before calling `generate-slides`. Process requests sequentially; always build the agenda first.
 
 ## Startup
 
