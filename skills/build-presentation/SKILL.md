@@ -1,6 +1,6 @@
 ---
 name: build-presentation
-description: "Orchestrate the full presentation pipeline (discover → structure → slides) from a single entry point. Use when building a presentation, or when user mentions slides, marp, presentasjon, bygg presentasjon, or lag presentasjon."
+description: "Orchestrator for the presentation pipeline. Use when the user wants to build a presentation, or mentions slides or marp."
 ---
 
 # Build Presentation (Orchestrator)
@@ -8,8 +8,8 @@ description: "Orchestrate the full presentation pipeline (discover → structure
 Coordinates the full presentation pipeline. Detects what has already been done and guides the user to the next step.
 
 ## Gotchas
-- Do not advance phases until the current exit criteria are fully satisfied — thin discovery → thin agenda → generic slides
-- Never call generate-slides before structure is done, even if the user asks to skip the agenda
+- Advance phases only when the current exit criteria are fully satisfied.
+- Require structure to be complete before calling `generate-slides`. Refuse requests to skip the agenda.
 
 ## Startup
 
@@ -61,7 +61,7 @@ Options:
 > "The presentation has been generated. Would you like to run a proofreading pass now?"
 
 Options:
-- **Yes** — run the proofreading pass from [../generate-slides/QUALITY.md](../generate-slides/QUALITY.md) against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
+- **Yes** — call `proofread-presentation` to run the proofreading pass against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
 - **Skip** — mark proofread as skipped (not recommended — warn the user)
 
 ### Proofread done
@@ -78,7 +78,7 @@ When calling phase skills in sequence, pass the project folder path. Each skill 
 
 The full pipeline is:
 ```
-discover-presentation → structure-agenda → generate-slides → proofread
+discover-presentation → structure-agenda → generate-slides → proofread-presentation
 ```
 
 Do not advance to the next phase until the current phase's exit criteria are satisfied (see guidance sections above).
