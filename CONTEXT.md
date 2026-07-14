@@ -84,13 +84,13 @@ _Avoid_: activation condition, routing description
 
 **Agenda** — The structured outline containing sections, slide topics, image placeholders, source references, and a glossary. Produced during the Structure phase and consumed by Generation.
 
-**Image Spec** — A file produced during the Structure phase that maps each slide to an AI image generation prompt. Users take these prompts to external image generation tools (e.g., Midjourney, DALL-E).
-_Avoid_: image plan, prompt file
+**Media Specs** — Files produced during the Structure phase (`IMAGE_SPEC.md` and `DIAGRAM_SPEC.md`) that map slides to visual assets. `IMAGE_SPEC.md` contains AI image generation prompts; `DIAGRAM_SPEC.md` contains D2 source code for diagrams.
+_Avoid_: image plan, prompt file, media plan
 
-**Image Scope** — The subset of Image Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number.
+**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number.
 _Avoid_: image set, generation targets
 
-**Generation Mode** — How images are produced within a run. **Batch**: all images in scope are generated sequentially without pausing. **Interactive**: one image is generated at a time, pausing after each for user review before proceeding.
+**Generation Mode** — How media (images or diagrams) is produced within a run. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
 _Avoid_: run mode, output mode, step-by-step mode
 
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
