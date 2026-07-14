@@ -28,6 +28,7 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 7. **Duration** — How long is the presentation? (default: 45 minutes)
 8. **Occasion** — What type of event? (e.g., intern fagdag, konferanse, workshop, all-hands)
 9. **Language** — What language should the slides be in? (default: inferred from your input language)
+10. **Visual preference** — Should the slides default to having pictures, diagrams, or no media? (default: Picture)
 
 ## Extraction rules
 

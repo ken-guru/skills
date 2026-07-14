@@ -50,6 +50,7 @@ Present a one-shot confirmation summary before writing any files:
 - Dark mode: Yes (class: invert)
 - Pagination: Yes
 - Max bullet points per slide: 5–6
+- Visual preference: [Picture / Diagram / None]
 ```
 
 Also confirm file/folder naming:

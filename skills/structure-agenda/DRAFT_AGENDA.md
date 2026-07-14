@@ -3,9 +3,9 @@
 Using the chosen structure:
 1. Propose a full agenda outline with sections and slide topics
 2. Include a Glossary section (in the presentation language) with all key domain terms defined
-3. For each slide topic: include an image placeholder and `[Source](url)` for source material where relevant
+3. For each slide topic: indicate the visual choice (e.g., `[Visual: Picture]`, `[Visual: Diagram]`, or `[Visual: None]`) based on the presentation default, a placeholder for the file, and `[Source](url)` for source material where relevant. **Explicitly remind the user that they can override this choice to "None" or another type for any individual slide.**
 
-When assigning image filenames, choose descriptive, stable names (e.g. `images/threat-model-diagram.png`, not `images/slide-3.png`). These filenames are **canonical** — `generate-slides` will use them exactly to build `IMAGE_SPEC.md` and the final slides. Renaming them later requires updating both `AGENDA.md` and any previously generated `IMAGE_SPEC.md`.
+When assigning filenames for pictures or diagrams, choose descriptive, stable names (e.g. `images/threat-model-diagram.svg`, not `images/slide-3.png`). These filenames are **canonical** — `generate-slides` will use them exactly to build `IMAGE_SPEC.md` or `DIAGRAM_SPEC.md` and the final slides. Renaming them later requires updating both `AGENDA.md` and any previously generated specs.
 
 Present the draft agenda to the user before writing any files.
 
