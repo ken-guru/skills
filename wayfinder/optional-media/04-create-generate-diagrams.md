@@ -4,3 +4,10 @@ Create the new `generate-diagrams` skill. It should mirror the architecture of `
 
 Depends on: `01-research-mermaid-cli.md`, `03-update-generate-slides.md`
 Labels: `wayfinder:task`
+Status: Closed
+
+## Resolution
+
+- Created `generate-diagrams` skill in `skills/generate-diagrams/SKILL.md`.
+- Implemented batch and interactive generation modes identical to `generate-images`.
+- Documented usage of the `d2` CLI with ELK layout and theme support (light/dark mode based on `DISCOVERY.json`).
