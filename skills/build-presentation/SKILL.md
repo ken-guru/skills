@@ -28,6 +28,7 @@ Read the project folder to determine current state per [../shared/state-schema.m
 | Discovery done | `PROJECT.json` exists, `phases.discovery.status == "done"` |
 | Structure done | `AGENDA.md` exists, `phases.structure.status == "done"` |
 | Generation done | `PRESENTASJON.html` exists, `phases.generation.status == "done"` |
+| Media done | Media specs exist and corresponding `phases.images.status` and/or `phases.diagrams.status` are "done" or "skipped" |
 | Proofread done | `phases.proofread.status == "done"` |
 
 ## User guidance (based on state)
@@ -57,8 +58,20 @@ Options:
 - **Yes** — call `generate-slides`
 - **Continue editing agenda** — call `structure-agenda` again. `structure-agenda` will invoke the restart guard, prompting the user to clean up stale generation outputs before re-running.
 
-### Generation done, not proofread
-> "The presentation has been generated. Would you like to run a proofreading pass now?"
+### Generation done, media pending
+
+> "The presentation slides have been generated. I see media specifications that haven't been rendered yet."
+
+Check which specs exist and aren't done:
+- If `IMAGE_SPEC.md` exists and `phases.images.status != "done"`, offer: **Generate AI Images** (call `generate-images`)
+- If `DIAGRAM_SPEC.md` exists and `phases.diagrams.status != "done"`, offer: **Generate D2 Diagrams** (call `generate-diagrams`)
+
+Options:
+- **Generate** — call the respective skill(s). After successful generation, mark the corresponding phase status as "done" in `PROJECT.json`.
+- **Skip** — mark the media phase(s) as "skipped".
+
+### Media done, not proofread
+> "The presentation and its media have been generated. Would you like to run a proofreading pass now?"
 
 Options:
 - **Yes** — call `proofread-presentation` to run the proofreading pass against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
@@ -78,7 +91,7 @@ When calling phase skills in sequence, pass the project folder path. Each skill 
 
 The full pipeline is:
 ```
-discover-presentation → structure-agenda → generate-slides → proofread-presentation
+discover-presentation → structure-agenda → generate-slides → generate-images/diagrams → proofread-presentation
 ```
 
 Do not advance to the next phase until the current phase's exit criteria are satisfied (see guidance sections above).
@@ -92,4 +105,6 @@ Display estimated effort before calling expensive operations:
 | `discover-presentation` | Low — conversational only |
 | `structure-agenda` | Low-medium — iterative drafting |
 | `generate-slides` | High — source fetching + full slide generation |
+| `generate-images` | High — API image generation (if not skipped) |
+| `generate-diagrams` | Low — local D2 rendering |
 | Proofread pass | Low — reads existing files only |
