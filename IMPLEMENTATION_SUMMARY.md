@@ -1,4 +1,19 @@
-# Image Spec Diff Feedback Implementation
+# Implementation Summaries
+
+## Optional Media & D2 Diagrams Implementation
+
+### Overview
+Users can now specify their visual preferences for presentations (Picture, Diagram, or None) and optionally generate technical diagrams locally using D2 instead of AI images.
+
+### What Was Implemented
+1. **Discovery & Agenda Updates**: `discover-presentation` now prompts for a global visual preference. `structure-agenda` assigns `[Visual: Picture/Diagram/None]` to every slide, allowing per-slide overrides.
+2. **Spec Split**: `generate-slides` was updated to read these visual preferences and emit either `IMAGE_SPEC.md` for AI images, `DIAGRAM_SPEC.md` containing D2 source syntax for diagrams, or nothing for slides marked "None".
+3. **Diagram Generator**: Created the `generate-diagrams` skill, which wraps the lightweight local `d2` compiler (utilizing the ELK layout engine). It fully mirrors the interactive and batch workflow of the existing `generate-images` skill.
+4. **Orchestrator Integration**: Updated `build-presentation` to natively check for `IMAGE_SPEC.md` and `DIAGRAM_SPEC.md` and sequence the media generation phases immediately before proofreading.
+
+---
+
+## Image Spec Diff Feedback Implementation
 
 ## Overview
 

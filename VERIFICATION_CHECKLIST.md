@@ -147,3 +147,39 @@ Users will now receive clear, actionable feedback about image specification chan
 2. Slides are regenerated (via `generate-slides`)
 
 The feedback includes exact filenames, slide numbers, prompt suggestions, and always points to the full specification file for additional details.
+
+---
+
+## Requirement: Optional Media & D2 Diagrams
+
+### ✅ Requirement 1: Global and Per-Slide Visual Preferences
+- [x] `discover-presentation` asks for "Visual preference" (Picture, Diagram, None).
+- [x] `structure-agenda` assigns `[Visual: ...]` to each slide and allows overriding.
+
+### ✅ Requirement 2: Separation of Media Specs
+- [x] `generate-slides` parses visual preferences.
+- [x] Outputs `IMAGE_SPEC.md` for AI images.
+- [x] Outputs `DIAGRAM_SPEC.md` for D2 diagrams.
+- [x] Skips slides explicitly marked as "None".
+
+### ✅ Requirement 3: Local Diagram Generation
+- [x] Created `generate-diagrams` phase skill.
+- [x] Supports Interactive and Batch modes identical to `generate-images`.
+- [x] Executes `d2` with ELK layout engine and themes based on `DISCOVERY.json`.
+
+### ✅ Requirement 4: Orchestrator Integration
+- [x] Updated `build-presentation` orchestrator state table.
+- [x] Detects missing images/diagrams and prompts the user to run the respective media generators before proofreading.
+
+## File Creation & Modifications
+
+| File | Status | Details |
+|------|--------|---------|
+| `skills/discover-presentation/*` | ✅ Modified | Added Visual preference question and defaults |
+| `skills/structure-agenda/DRAFT_AGENDA.md` | ✅ Modified | Prompted AI to draft agenda with Visual tags |
+| `skills/generate-slides/SKILL.md` | ✅ Modified | Split generation into `IMAGE_SPEC.md` and `DIAGRAM_SPEC.md` |
+| `skills/generate-diagrams/SKILL.md` | ✅ Created | Local D2 diagram generator |
+| `skills/shared/state-schema.md` | ✅ Modified | Added tracking for images and diagrams |
+| `skills/build-presentation/SKILL.md` | ✅ Modified | Updated pipeline to sequence media steps |
+| `docs/adr/0007-optional-media...md`| ✅ Created | ADR detailing D2 usage over Mermaid |
+| `CONTEXT.md` / `README.md` | ✅ Modified | Updated taxonomy to "Media Specs" |

@@ -20,6 +20,7 @@ A collection of agent skills.
 | [structure-agenda](./skills/structure-agenda/SKILL.md) | Build and iterate the agenda (AGENDA.md) |
 | [generate-slides](./skills/generate-slides/SKILL.md) | Generate PRESENTASJON.md and PRESENTASJON.html from approved agenda |
 | [generate-images](./skills/generate-images/SKILL.md) | Generate PNG images from IMAGE_SPEC.md using an AI image generation API (Gemini) |
+| [generate-diagrams](./skills/generate-diagrams/SKILL.md) | Generate SVG diagrams from DIAGRAM_SPEC.md using the local D2 compiler with ELK layout |
 
 ### Shared modules
 
