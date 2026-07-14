@@ -60,15 +60,15 @@ Skip any URL marked `(DO NOT FETCH)`.
 
 **Error handling:** Collect all failed fetches. Continue generation on error. Report failures at the end.
 
-### Step 3: Generate IMAGE_SPEC.md
+### Step 3: Generate media specifications (IMAGE_SPEC.md and DIAGRAM_SPEC.md)
 
-Before writing any slides, produce `IMAGE_SPEC.md` — a structured specification for every image in the presentation.
+Before writing any slides, produce the media specifications for the presentation.
 
-**`AGENDA.md` is the single source of truth for which images are needed and what they are named.**
+**`AGENDA.md` is the single source of truth for which visuals are needed and what they are named.**
 
-First, scan `AGENDA.md` for every image reference matching `[Image](images/<filename>.png)`. Collect the filenames in the order they appear. These filenames are canonical — use them exactly in IMAGE_SPEC.md.
+First, scan `AGENDA.md` for every visual reference (e.g., `[Visual: Picture]`, `[Visual: Diagram]`, or `[Visual: None]`). Collect the corresponding filenames (e.g., `images/<filename>.png` or `images/<filename>.svg`) in the order they appear. These filenames are canonical — use them exactly in the specs.
 
-For each image reference found in `AGENDA.md`, write an entry:
+For each `[Visual: Picture]` reference, write an entry to `IMAGE_SPEC.md`:
 
 ```markdown
 ## Slide [N] — [Slide Title]
@@ -79,40 +79,43 @@ For each image reference found in `AGENDA.md`, write an entry:
 - **Prompt suggestion:** "[ready-to-use Midjourney / DALL-E prompt]"
 ```
 
-Add only images referenced in `AGENDA.md` to `IMAGE_SPEC.md`.
+For each `[Visual: Diagram]` reference, write an entry to `DIAGRAM_SPEC.md`:
 
-Write the file to the project root (default: `IMAGE_SPEC.md`).
+```markdown
+## Slide [N] — [Slide Title]
+- **Concept:** [what the diagram must communicate]
+- **Filename:** `images/[exact-filename-from-agenda].svg`
+- **D2 Source:**
+  ```d2
+  [Write the complete D2 syntax here, utilizing the ELK layout engine where appropriate]
+  ```
+```
+
+If a slide is marked `[Visual: None]`, skip it entirely.
+
+Write the files to the project root (`IMAGE_SPEC.md` and `DIAGRAM_SPEC.md`). Do not create a spec file if it would be empty.
 
 #### Step 3a: Validate alignment
 
-After writing `IMAGE_SPEC.md`, cross-check against `AGENDA.md`:
+After writing the specs, cross-check against `AGENDA.md`:
 
-- Every `[Image](images/...)` in `AGENDA.md` must have a matching entry in `IMAGE_SPEC.md` (matched by filename).
-- Every entry in `IMAGE_SPEC.md` must correspond to a `[Image](images/...)` in `AGENDA.md`.
+- Every `[Visual: Picture]` must have a matching entry in `IMAGE_SPEC.md` (matched by filename).
+- Every `[Visual: Diagram]` must have a matching entry in `DIAGRAM_SPEC.md` (matched by filename).
 
-If any mismatch is found, fix `IMAGE_SPEC.md` to match `AGENDA.md` and report what was corrected:
+If any mismatch is found, fix the specs to match `AGENDA.md` and report what was corrected. Proceed only when the specs and AGENDA.md are fully aligned.
 
-```
-⚠️ Image alignment corrected:
-  Added to IMAGE_SPEC.md:   images/[name].png (Slide N — Title)
-  Removed from IMAGE_SPEC.md: images/[old-name].png
-```
+#### Step 3b: Report spec changes
 
-Proceed only when IMAGE_SPEC.md and AGENDA.md are fully aligned.
+Before presenting the approval prompt:
 
-#### Step 3b: Report IMAGE_SPEC changes
-
-Before presenting approval prompt:
-
-1. Check if an old `IMAGE_SPEC.md` exists
-2. If yes, run the diff detection procedure from [image-spec-diff.md](../shared/image-spec-diff.md)
-3. If changes detected (added, removed, or modified images):
-   - Show the formatted diff feedback (see [image-spec-diff.md](../shared/image-spec-diff.md) for exact format)
-   - Include the path reference: `📄 Full specification: IMAGE_SPEC.md`
+1. Check if an old `IMAGE_SPEC.md` or `DIAGRAM_SPEC.md` exists.
+2. If yes, run the diff detection procedure from [image-spec-diff.md](../shared/image-spec-diff.md) (applying it to both specs).
+3. If changes detected (added, removed, or modified media):
+   - Show the formatted diff feedback.
 
 Then present the approval prompt:
 
-> "IMAGE_SPEC.md has been generated with [X] image specifications. You can use these directly with Midjourney, DALL-E, or other image generation tools. Would you like to review them before we generate the slides?"
+> "Media specifications have been generated. You can review `IMAGE_SPEC.md` (for AI images) and `DIAGRAM_SPEC.md` (for D2 diagrams) before we generate the slides. Would you like to review them now?"
 
 Wait for the user to approve or adjust specs before proceeding.
 

@@ -12,6 +12,7 @@ Update the presentation pipeline to support optional AI images or Mermaid diagra
 - [01-research-mermaid-cli.md](file:///Users/ken/Workspace/ken-guru/skills/wayfinder/optional-media/01-research-mermaid-cli.md) — Mermaid requires Puppeteer/Chromium; best run via Docker or system Chromium for automation. Native alternatives like D2 exist but require syntax changes.
 - Decision: Use **D2** (with the ELK layout engine) instead of Mermaid for diagram generation, as it is a lightweight native binary and supports good styling options.
 - [02-update-discovery-and-agenda.md](file:///Users/ken/Workspace/ken-guru/skills/wayfinder/optional-media/02-update-discovery-and-agenda.md) — Implemented: `discover-presentation` and `structure-agenda` now prompt for visual preferences, defaulting to Picture but explicitly supporting Diagram and None per slide.
+- [03-update-generate-slides.md](file:///Users/ken/Workspace/ken-guru/skills/wayfinder/optional-media/03-update-generate-slides.md) — Implemented: `generate-slides` now reads `[Visual: ...]` and generates `IMAGE_SPEC.md` and `DIAGRAM_SPEC.md` with D2 syntax, skipping "None" slides.
 ## Not yet specified
 
 ## Out of scope
