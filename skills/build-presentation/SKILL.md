@@ -64,7 +64,7 @@ Options:
 
 Check which specs exist and aren't done:
 - If `IMAGE_SPEC.md` exists and `phases.images.status != "done"`, offer: **Generate AI Images** (call `generate-images`)
-- If `DIAGRAM_SPEC.md` exists and `phases.diagrams.status != "done"`, offer: **Generate D2 Diagrams** (call `generate-diagrams`)
+- If `DIAGRAM_SPEC.md` exists and `phases.diagrams.status != "done"`, offer: **Generate D2 Diagrams** (call `generate-diagrams`). If D2 is unavailable, that skill offers a consented installation or lets the user install it themselves before rendering.
 
 Options:
 - **Generate** — call the respective skill(s). After successful generation, mark the corresponding phase status as "done" in `PROJECT.json`.

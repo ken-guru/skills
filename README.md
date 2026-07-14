@@ -50,3 +50,14 @@ You can install any skill from this repository using:
 npx skills@latest add ken-guru/skills/<skill-name>
 ```
 
+### D2 for presentation diagrams
+
+The presentation skills use the [D2 CLI](https://d2lang.com/tour/install/) to render SVG diagrams. D2 is only required when a presentation includes diagrams; image-only presentations do not need it.
+
+`generate-diagrams` checks whether D2 is available before rendering. If it is missing, it can help install it after you confirm, or you can install it yourself and tell the agent when it is ready. On macOS with Homebrew, run:
+
+```bash
+brew install d2
+```
+
+For Linux and Windows, or another installation method, follow the [official D2 installation guide](https://d2lang.com/tour/install/).

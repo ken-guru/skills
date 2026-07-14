@@ -15,7 +15,20 @@ Before proceeding:
 2. Check `DIAGRAM_SPEC.md` exists. If not:
    > ❌ `DIAGRAM_SPEC.md` not found. Run `generate-slides` first to create diagram specifications.
    Abort.
-3. Check `d2` is available: `which d2`. If not found, abort: ❌ `d2` not installed.
+3. Check `d2` is available: `which d2`. If it is not found, explain that D2 is required to render these diagrams and offer:
+
+   ```
+   ❌ D2 is not installed. It is required to render SVG diagrams.
+
+     1  Install D2 now       — I’ll use a suitable installation method after your confirmation
+     2  I’ll install it      — install D2 yourself, then tell me when it is ready
+     3  Cancel
+   ```
+
+   - For **1**, identify the operating system and available package manager. Ask for confirmation before executing the proposed command. Prefer `brew install d2` on macOS when Homebrew is available; on Linux, use D2’s [official installer](https://d2lang.com/tour/install/) or the distribution package manager; on Windows, use an available supported package manager or direct the user to the official installer.
+   - For **2**, link the user to the [official D2 installation guide](https://d2lang.com/tour/install/) and wait until they say it is installed.
+   - For **3**, stop without changing the project.
+   - After **1** or **2**, run `which d2` again. Continue only when the binary is available; otherwise report that D2 is still unavailable and offer the same choices again.
 
 ## Procedure
 
