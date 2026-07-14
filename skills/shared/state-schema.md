@@ -19,6 +19,7 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
   "paths": {
     "agenda": "AGENDA.md",
     "imageSpec": "IMAGE_SPEC.md",
+    "diagramSpec": "DIAGRAM_SPEC.md",
     "presentation": "PRESENTASJON.md",
     "html": "PRESENTASJON.html",
     "images": "images/",
@@ -51,6 +52,14 @@ Written by `discover-presentation` and updated by subsequent phase skills.
     },
     "generation": {
       "status": "done | pending",
+      "completedAt": "ISO 8601 date string | null"
+    },
+    "images": {
+      "status": "done | pending | skipped",
+      "completedAt": "ISO 8601 date string | null"
+    },
+    "diagrams": {
+      "status": "done | pending | skipped",
       "completedAt": "ISO 8601 date string | null"
     },
     "proofread": {
