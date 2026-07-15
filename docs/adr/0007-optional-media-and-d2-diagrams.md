@@ -10,8 +10,8 @@ We needed a way to:
 ## Decision
 We decided to:
 1. Introduce a "Visual preference" question in the `discover-presentation` phase.
-2. Instruct the `structure-agenda` drafting phase to embed `[Visual: Picture/Diagram/None]` on each slide.
-3. Update `generate-slides` to parse these preferences and emit either an `IMAGE_SPEC.md` or a `DIAGRAM_SPEC.md`, dropping "None" entirely.
+2. Instruct the `structure-agenda` drafting phase to embed `[Visual: Picture/Diagram/None]` on each slide. Diagram entries also carry a complete, agenda-time `Diagram brief` with the intended message, content to show, and audience takeaway.
+3. Update `generate-slides` to parse these preferences and emit either an `IMAGE_SPEC.md` or a `DIAGRAM_SPEC.md`, dropping "None" entirely. Diagram briefs are preserved explicitly in `DIAGRAM_SPEC.md`; generation fails before changing output if a Diagram entry has no complete brief.
 4. Adopt **D2** (with the ELK layout engine) over Mermaid for diagram generation. Mermaid requires Puppeteer/Chromium, which adds significant overhead for automated scripting, whereas D2 is a lightweight, standalone native binary with excellent styling features.
 5. Create a new phase skill, `generate-diagrams`, mirroring the interactive and batch workflow of `generate-images`, to execute the local `d2` compiler.
 6. Integrate the media generation steps explicitly into the `build-presentation` orchestrator (running before the proofreading phase).
