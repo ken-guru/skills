@@ -1,0 +1,26 @@
+{
+  "name": "presentation-skills",
+  "version": "1.0.0",
+  "description": "A state-aware presentation workflow: discover requirements, structure an agenda, generate slides and media, and proofread the result.",
+  "author": {
+    "name": "Ken Sørevåge"
+  },
+  "repository": "https://github.com/ken-guru/skills",
+  "license": "MIT",
+  "keywords": [
+    "presentation",
+    "slides",
+    "marp",
+    "agenda",
+    "proofreading"
+  ],
+  "skills": [
+    "./skills/build-presentation",
+    "./skills/discover-presentation",
+    "./skills/structure-agenda",
+    "./skills/generate-slides",
+    "./skills/generate-images",
+    "./skills/generate-diagrams",
+    "./skills/proofread-presentation"
+  ]
+}

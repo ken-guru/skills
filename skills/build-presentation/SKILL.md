@@ -1,11 +1,15 @@
 ---
 name: build-presentation
-description: "Orchestrator. Use when the user wants to build a presentation, or mentions slides or marp."
+description: "Orchestrator for the installed presentation skill suite. Use when the user wants a guided end-to-end presentation workflow."
 ---
 
 # Build Presentation (Orchestrator)
 
 Coordinates the full presentation pipeline. Detects what has already been done and guides the user to the next step.
+
+## Installation boundary
+
+This skill orchestrates `discover-presentation`, `structure-agenda`, `generate-slides`, `generate-images`, `generate-diagrams`, and `proofread-presentation`; it does not contain those capabilities itself. Install it together with that suite. The phase skills remain separately useful for focused work in an existing project folder.
 
 ## Gotchas
 - Advance phases only when the current exit criteria are fully satisfied.
