@@ -1,0 +1,21 @@
+{
+  "name": "ken-guru-skills",
+  "owner": {
+    "name": "Ken Sørevåge"
+  },
+  "description": "Presentation-generation skills for agent workflows.",
+  "plugins": [
+    {
+      "name": "presentation-skills",
+      "source": "./",
+      "description": "A complete, state-aware presentation workflow with independently usable phase skills.",
+      "category": "productivity",
+      "keywords": [
+        "presentation",
+        "slides",
+        "marp",
+        "agenda"
+      ]
+    }
+  ]
+}

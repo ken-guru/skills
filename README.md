@@ -6,21 +6,28 @@ A collection of agent skills.
 
 ## Skills
 
-### Orchestrators
+### Orchestrator
 
 | Skill | Description |
 |-------|-------------|
-| [build-presentation](./skills/build-presentation/SKILL.md) | Full presentation pipeline — detects state and guides through all phases |
+| [build-presentation](./skills/build-presentation/SKILL.md) | Full presentation pipeline — detects state and routes through the installed phase skills |
 
-### Phase skills (use individually or via orchestrator)
+`build-presentation` is orchestration-only: install it with the phase skills below. It does not embed or install its dependencies.
+
+For `npx skills` browsing and installation, this suite is also published as the nested **Presentation Skills** group. You can toggle the group to select the full workflow or select any phase skill inside it.
+
+### Phase skills
 
 | Skill | Description |
 |-------|-------------|
-| [discover-presentation](./skills/discover-presentation/SKILL.md) | Gather requirements: topic, audience, duration, language, occasion |
-| [structure-agenda](./skills/structure-agenda/SKILL.md) | Build and iterate the agenda (AGENDA.md) |
-| [generate-slides](./skills/generate-slides/SKILL.md) | Generate PRESENTASJON.md and PRESENTASJON.html from approved agenda |
-| [generate-images](./skills/generate-images/SKILL.md) | Generate PNG images from IMAGE_SPEC.md using an AI image generation API (Gemini) |
-| [generate-diagrams](./skills/generate-diagrams/SKILL.md) | Generate SVG diagrams from DIAGRAM_SPEC.md using the local D2 compiler with ELK layout |
+| [discover-presentation](./skills/discover-presentation/SKILL.md) | Start or revise a presentation brief; writes `DISCOVERY.json` and `PROJECT.json` |
+| [structure-agenda](./skills/structure-agenda/SKILL.md) | Independently refine an existing presentation’s agenda; requires `DISCOVERY.json` |
+| [generate-slides](./skills/generate-slides/SKILL.md) | Independently generate or regenerate slides; requires `DISCOVERY.json` and approved `AGENDA.md` |
+| [generate-images](./skills/generate-images/SKILL.md) | Independently render selected AI images; requires `IMAGE_SPEC.md` and a Gemini API key |
+| [generate-diagrams](./skills/generate-diagrams/SKILL.md) | Independently render selected D2 diagrams; requires `DIAGRAM_SPEC.md` and D2 |
+| [proofread-presentation](./skills/proofread-presentation/SKILL.md) | Independently validate and proofread a generated `PRESENTASJON.md` |
+
+The phase skills are deliberately separate because they support focused, resumable work. Their prerequisites are project artifacts, not the orchestrator: for example, use `generate-images` to re-render a changed image without re-running discovery, agenda work, or slide generation.
 
 ### Shared modules
 
@@ -44,11 +51,26 @@ See [ADR-0006](./docs/adr/0006-prompt-injection-defence-for-source-fetching.md) 
 
 ## Installation
 
-You can install any skill from this repository using:
+To install the complete guided workflow, select the orchestrator and every phase skill together:
 
 ```bash
-npx skills@latest add ken-guru/skills/<skill-name>
+npx skills@latest add ken-guru/skills \
+  --skill build-presentation \
+  --skill discover-presentation \
+  --skill structure-agenda \
+  --skill generate-slides \
+  --skill generate-images \
+  --skill generate-diagrams \
+  --skill proofread-presentation
 ```
+
+To install a phase skill for a focused task, select it by name:
+
+```bash
+npx skills@latest add ken-guru/skills --skill generate-images
+```
+
+Run `npx skills@latest add ken-guru/skills --list` to browse the available skills. Install `build-presentation` only as part of the complete workflow; every other listed skill is useful on its own when its documented project artifacts already exist.
 
 ### D2 for presentation diagrams
 
