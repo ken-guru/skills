@@ -1,0 +1,83 @@
+{
+  "$schema": "../theme.schema.json",
+  "id": "signal",
+  "name": "Signal",
+  "description": "Bold, high-contrast, and structured for energy, systems, and data.",
+  "packageVersion": "1.0.0",
+  "markupVersion": 1,
+  "marpTheme": "signal",
+  "css": "theme.css",
+  "fonts": {
+    "display": ["Impact", "Arial Black", "sans-serif"],
+    "body": ["Arial", "Helvetica", "sans-serif"],
+    "label": ["Menlo", "Consolas", "monospace"],
+    "genericFallback": "sans-serif"
+  },
+  "palette": {
+    "background": "#0b0f19",
+    "foreground": "#f4f6f1",
+    "accent": "#dfff00",
+    "secondary": "#82ffe2",
+    "highlight": "#ff4f8b",
+    "light": "#f4f6f1"
+  },
+  "media": {
+    "pictureTreatment": "High-energy documentary imagery with controlled contrast, cool cyan shadows, restrained magenta highlights, clear subjects, and uncluttered edges for modular framing.",
+    "diagramTreatment": "High-contrast cyan, acid-yellow, and white linework on a dark protected grid; stable semantic colors, exact labels, and uncropped relationships."
+  },
+  "archetypes": {
+    "title": {
+      "class": "archetype-title",
+      "tone": "tone-dark",
+      "slots": ["title", "subtitle", "media"],
+      "capacity": {"titleLines": 3, "subtitleLines": 2},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    },
+    "section": {
+      "class": "archetype-section",
+      "tone": "tone-accent",
+      "slots": ["title", "orientation"],
+      "capacity": {"titleLines": 3, "orientationLines": 2},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    },
+    "text-only": {
+      "class": "archetype-text-only",
+      "tone": "tone-dark",
+      "slots": ["heading", "body"],
+      "capacity": {"headingLines": 2, "bullets": 5, "bulletLines": 2},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    },
+    "text-plus-image": {
+      "class": "archetype-text-plus-image",
+      "tone": "tone-dark",
+      "slots": ["heading", "body", "media", "caption"],
+      "capacity": {"headingLines": 2, "bullets": 4, "bulletLines": 2, "captionLines": 2},
+      "variations": [
+        {"id": "portrait", "class": "variation-portrait", "when": "orientation=portrait"},
+        {"id": "landscape", "class": "variation-landscape", "when": "orientation=landscape"}
+      ]
+    },
+    "data": {
+      "class": "archetype-data",
+      "tone": "tone-accent",
+      "slots": ["heading", "metrics", "media", "takeaway"],
+      "capacity": {"headingLines": 2, "charts": 1, "metrics": 4, "takeawayLines": 2},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    },
+    "diagram": {
+      "class": "archetype-diagram",
+      "tone": "tone-dark",
+      "slots": ["heading", "media", "caption"],
+      "capacity": {"headingLines": 2, "diagrams": 1, "captionLines": 2},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    },
+    "quotation": {
+      "class": "archetype-quotation",
+      "tone": "tone-dark",
+      "slots": ["quote", "attribution", "context"],
+      "capacity": {"quoteLines": 4, "attributionLines": 2, "contextLines": 1},
+      "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
+    }
+  },
+  "assets": []
+}

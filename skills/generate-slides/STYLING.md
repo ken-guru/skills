@@ -1,80 +1,71 @@
-# Image Layout Reference
+# Semantic Slide Markup Reference
 
-## The golden rule
+Every Presentation Theme consumes this shared markup. Never emit theme-specific Content Slot names.
 
-**For every slide that has bullet points or paragraph text AND an image — always use `img-right`:**
+## Shared classes
+
+- Archetypes: `archetype-title`, `archetype-section`, `archetype-text-only`, `archetype-text-plus-image`, `archetype-data`, `archetype-diagram`, `archetype-quotation`.
+- Variations: `variation-default`, `variation-portrait`, `variation-landscape`.
+- Tonal states come from the Theme Manifest: `tone-light`, `tone-dark`, or `tone-accent`.
+- Content Slots: `slot-title`, `slot-heading`, `slot-subtitle`, `slot-orientation`, `slot-label`, `slot-context`, `slot-body`, `slot-metrics`, `slot-media`, `slot-caption`, `slot-takeaway`, `slot-quote`, `slot-attribution`.
+
+## Markup patterns
+
+Use native Markdown headings when possible and semantic HTML when a named slot or figure is required. Keep informative nodes in reading order regardless of their CSS placement.
+
+### Text-plus-image
+
+```markdown
+<!-- _class: archetype-text-plus-image variation-portrait tone-light -->
+
+## A heading that fits two lines
+
+<div class="slot-body">
+  <ul><li>First point</li><li>Second point</li></ul>
+</div>
+
+<figure class="slot-media">
+  <img src="images/example.png" alt="Purpose-based alternative text">
+</figure>
+
+<p class="slot-caption">A concise two-line caption.</p>
+```
+
+Add `class="slot-heading"` to the rendered heading when emitting raw HTML. For Markdown headings, Marp places `h2` directly and theme CSS treats the first heading as the heading slot.
+
+### Data
 
 ```html
-<img src="images/your-image.png" alt="Description" class="img-right">
-
-## Slide Heading
-
-- Bullet one
-- Bullet two
-- Bullet three
+<h2 class="slot-heading">The primary quantitative message</h2>
+<div class="slot-metrics" role="img" aria-label="Four metrics showing the key comparison">
+  <div class="metric"><strong>42%</strong><span>Meaningful label</span></div>
+</div>
+<p class="slot-takeaway">The relationship the audience should retain.</p>
 ```
 
-Place the `<img>` tag **after the heading, before any text content**. The image floats right (33% width), text flows left (67% width). No vertical space is wasted and the image cannot push content below the viewport.
+### Diagram
 
----
-
-## When centered images are allowed
-
-A slide is a **title or section-divider slide** if it has **only a heading (H1 or H2) and no bullet points or paragraph text**. Centered `![alt](path)` syntax is allowed on these slides.
-
-```markdown
-# Hackathon 2026 — Agentisk Utvikling
-
-![](images/title-hero.png)
+```html
+<h2 class="slot-heading">The relationship to understand</h2>
+<figure class="slot-media">
+  <img src="images/example.svg" alt="Summary of the diagram's relationship and takeaway">
+</figure>
+<p class="slot-caption">Optional supporting explanation.</p>
 ```
 
-```markdown
-## Del 1 — Problem: Risikoer og guardrails
-```
+### Quotation
 
----
+```html
+<p class="slot-context">Context label</p>
+<blockquote class="slot-quote">A quotation that fits four lines.</blockquote>
+<p class="slot-attribution">Name — role or source</p>
+```
 
 ## Forbidden patterns
 
-| Do NOT use | Reason |
-|---|---|
-| `![bg](image.png)` | Creates full-screen background that obscures text |
-| `![bg left](image.png)` | Same — background directive |
-| `![bg right](image.png)` | Same — background directive |
-| `![alt](image.png)` on content slides | Centered, 35vh max-height, pushes bullets below viewport |
-| `<div style="display:flex">` | Fragile, unreliable with Marp |
-| `<img src="...">` with no class | Renders as centered block image |
-
----
-
-## Layout specifications
-
-| Use case | Syntax | Width | Max height |
-|---|---|---|---|
-| Content slide with image | `<img class="img-right">` | 33% | 60vh |
-| Content slide with image left | `<img class="img-left">` | 33% | 60vh |
-| Title / section-divider slide | `![alt](path)` | auto | 35vh |
-| Video (dedicated slide only) | `<video src="..." controls></video>` | 100% | 65vh |
-
----
-
-## Worked example
-
-```markdown
----
-
-### GitHub Advanced Security (GHAS) — obligatorisk grunnmur
-
-<img src="images/ghas-overview.png" alt="GHAS overview diagram" class="img-right">
-
-**Tre pilar:**
-- **Dependabot alerts** — automatisk varsling om sårbare avhengigheter
-- **Secret scanning** — GitHub blokkerer commits som inneholder hemmeligheter
-- **CodeQL** — statisk kodeanalyse finner sikkerhetsfeil automatisk
-
-Se [docs: GitHub security features](docs/sources/ghas-features.md)
-
----
-```
-
-The image sits on the right. All three bullets are visible within the slide. No overflow.
+- `![bg](...)`, `![bg left](...)`, or `![bg right](...)`.
+- The old universal `img-right`, `img-left`, or `layout-with-image` contract.
+- Theme-specific wrappers required for semantic content.
+- Essential text inside raster media.
+- Decorative images with non-empty alternative text or reading-order presence.
+- Inline layout styles that compete with the locked Theme Package.

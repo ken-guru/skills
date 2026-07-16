@@ -37,5 +37,61 @@
     "type": "boundary",
     "query": "generate slides but I haven't made an agenda yet",
     "expected": "skill loads but aborts with missing AGENDA.md error message"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate the presentation",
+    "precondition": "Legacy DISCOVERY.json has no theme field and AGENDA.md exists",
+    "expected": "skill reports Editorial fallback without mutating DISCOVERY.json and produces Markdown, HTML, and PDF"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate the presentation",
+    "precondition": "DISCOVERY.json contains theme.id=midnight",
+    "expected": "skill blocks before output changes and lists editorial, signal, and field-notes"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "regenerate after changing only the presentation font",
+    "precondition": "Agenda, Media Specs, media, and prior presentation outputs exist",
+    "expected": "skill preserves Agenda, Media Specs, and media; invalidates only Markdown, HTML, PDF, Generation, and Proofread"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate a slide containing a diagram, quantitative claims, and a picture",
+    "precondition": "Approved Agenda and complete Media Specs exist",
+    "expected": "ordered classification selects diagram, persists archetype/variation/tone classes, and emits theme-independent Semantic Slide Markup"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate this portrait picture slide",
+    "precondition": "Agenda declares Portrait but existing media dimensions are landscape",
+    "expected": "skill blocks with an orientation mismatch before changing presentation outputs"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "fit six two-line bullets into this text-only slide",
+    "precondition": "Selected Theme Manifest supports five bullets at two lines",
+    "expected": "skill splits the slide while preserving narrative order and does not shrink below accessibility thresholds"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "refresh the locked presentation theme",
+    "precondition": "A newer installed package and generated outputs exist",
+    "expected": "skill inventories and confirms theme-change invalidation before refresh; an unconfirmed refresh performs no writes"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate after the theme CSS was manually edited",
+    "precondition": "Locked snapshot fingerprint does not match theme-lock.json",
+    "expected": "skill blocks before project writes and reports the modified locked package"
   }
 ]

@@ -18,7 +18,7 @@ Before proceeding:
 1. Run `which marp` — if not found, abort: ❌ `marp-cli` not installed. Run `npm install -g @marp-team/marp-cli`
 2. Confirm the project folder is writable — if not, abort: ❌ Cannot write to `<path>`
 
-If `DISCOVERY.json` already exists in the project folder, run the restart guard per [RESTART-GUARD.md](RESTART-GUARD.md) with phase `discover-presentation` before continuing.
+If `DISCOVERY.json` already exists, read and retain it for change comparison. Do not delete anything yet.
 
 ## Procedure
 
@@ -47,7 +47,8 @@ Present a one-shot confirmation summary before writing any files:
 - Occasion: [occasion]
 - Language: [language]
 - Presentation style: [narrative structure from DEFAULTS.md]
-- Dark mode: Yes (class: invert)
+- Presentation Theme: [Editorial / Signal / Field Notes] ([identifier])
+- External Font Override: [exact family or none]
 - Pagination: Yes
 - Max bullet points per slide: 5–6
 - Visual preference: [Picture / Diagram / None]
@@ -68,6 +69,8 @@ Also confirm file/folder naming:
 Ask: "Would you like to use the default names, or would you like to adjust any?"
 
 Wait for the user to approve or correct before proceeding to Step 3.
+
+If prior Discovery state exists, compare it with the confirmed values now. Run the restart guard per [RESTART-GUARD.md](RESTART-GUARD.md), selecting the theme-only, font-only, or general path from the actual diff. Complete the guard before writing new state.
 
 ### Step 3: Write state files
 Read the external pointer file `WRITE_DISCOVERY.md` for the next steps ONLY AFTER the user confirms the defaults in Step 2.

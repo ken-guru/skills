@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROTOTYPE — Presentation themes</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Three four-slide theme variants, switchable via ?variant=, on this throwaway route. -->
+    <main>
+      <section class="deck editorial" data-variant="editorial" aria-label="Editorial theme prototype">
+        <header class="prototype-state state-light">
+          <span>Editorial</span><span>Georgia + Arial</span><span>Warm paper · asymmetric rhythm · framed photography</span>
+        </header>
+
+        <article class="slide editorial-title">
+          <div class="edition">THE COLLABORATIVE ISSUE · 01</div>
+          <div class="editorial-title-copy">
+            <p class="kicker">A field guide for better thinking</p>
+            <h1>Ideas take<br /><em>shape</em> together.</h1>
+            <p class="dek">Human judgment gives direction.<br />AI gives momentum.</p>
+          </div>
+          <figure class="editorial-hero"><img src="assets/collaboration-studio.png" alt="Collaborators shaping a presentation in a studio" /></figure>
+          <div class="folio">01</div>
+        </article>
+
+        <article class="slide editorial-content">
+          <div class="editorial-rail"><span>PROCESS</span><strong>02</strong></div>
+          <div class="editorial-copy">
+            <p class="kicker">From fragments to a shared story</p>
+            <h2>Clarity is<br />a sequence,<br /><em>not a spark.</em></h2>
+            <p class="standfirst">The strongest decks emerge from a visible rhythm of divergence, selection, and refinement.</p>
+            <ol>
+              <li><b>Open</b><span>Collect the useful mess</span></li>
+              <li><b>Shape</b><span>Find the narrative spine</span></li>
+              <li><b>Sharpen</b><span>Make every slide earn its place</span></li>
+            </ol>
+          </div>
+          <figure class="editorial-photo"><img src="assets/workshop-notes.png" alt="Hands arranging notes into a story" /><figcaption>Working in public makes the reasoning inspectable.</figcaption></figure>
+        </article>
+
+        <article class="slide editorial-data" id="editorial-slide-3">
+          <p class="kicker">A simple operating rhythm</p>
+          <h2>Three modes.<br />One shared direction.</h2>
+          <div class="editorial-chart" role="img" aria-label="A three-stage process: explore 40 percent, align 25 percent, express 35 percent">
+            <div class="chart-labels"><span>EXPLORE</span><span>ALIGN</span><span>EXPRESS</span></div>
+            <div class="chart-band"><i style="--w:40%">40</i><i style="--w:25%">25</i><i style="--w:35%">35</i></div>
+            <p>Broad enough to discover.<br />Focused enough to decide.</p>
+          </div>
+          <div class="folio">03</div>
+        </article>
+
+        <article class="slide editorial-quote">
+          <div class="quote-mark">“</div>
+          <blockquote>The theme should carry the mood—<em>never the meaning.</em></blockquote>
+          <p>Design principle 04</p>
+          <div class="editorial-stamp">MAKE THE<br />IDEA VISIBLE</div>
+        </article>
+      </section>
+
+      <section class="deck signal" data-variant="signal" aria-label="Signal theme prototype">
+        <header class="prototype-state state-dark">
+          <span>SIGNAL_01</span><span>Arial Black + Menlo</span><span>Electric contrast · modular grid · clipped media</span>
+        </header>
+
+        <article class="slide signal-title">
+          <div class="signal-grid"></div>
+          <div class="signal-index">01 / 04</div>
+          <div class="signal-title-copy">
+            <p>COLLABORATIVE INTELLIGENCE</p>
+            <h1>IDEAS<br />TAKE <span>SHAPE</span><br />TOGETHER</h1>
+            <div class="signal-rule"><i></i><b>HUMAN DIRECTION</b><i></i><b>AI MOMENTUM</b></div>
+          </div>
+          <figure class="signal-hero"><img src="assets/collaboration-studio.png" alt="Collaborators shaping a presentation in a studio" /></figure>
+          <div class="signal-corner">↘</div>
+        </article>
+
+        <article class="slide signal-content">
+          <div class="signal-index">02 / 04</div>
+          <div class="signal-heading"><span>PROCESS</span><h2>FROM FRAGMENTS<br />TO A SHARED STORY</h2></div>
+          <figure class="signal-photo"><img src="assets/workshop-notes.png" alt="Hands arranging notes into a story" /></figure>
+          <div class="signal-steps">
+            <div><b>01</b><strong>OPEN</strong><span>Collect the useful mess</span></div>
+            <div><b>02</b><strong>SHAPE</strong><span>Find the narrative spine</span></div>
+            <div><b>03</b><strong>SHARPEN</strong><span>Make every slide earn its place</span></div>
+          </div>
+        </article>
+
+        <article class="slide signal-data">
+          <div class="signal-index">03 / 04</div>
+          <p class="signal-eyebrow">OPERATING RHYTHM / LIVE SYSTEM</p>
+          <h2>THREE MODES.<br /><span>ONE DIRECTION.</span></h2>
+          <div class="signal-metrics">
+            <div><i>40%</i><b>EXPLORE</b><span>discover widely</span></div>
+            <div><i>25%</i><b>ALIGN</b><span>decide visibly</span></div>
+            <div><i>35%</i><b>EXPRESS</b><span>land the message</span></div>
+          </div>
+          <div class="signal-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </article>
+
+        <article class="slide signal-quote">
+          <div class="signal-index">04 / 04</div>
+          <p>DESIGN PRINCIPLE</p>
+          <blockquote>THE THEME<br />CARRIES THE <mark>MOOD.</mark><br />NEVER THE MEANING.</blockquote>
+          <div class="signal-footer"><b>04</b><span>MAKE THE IDEA VISIBLE</span><i>● ONLINE</i></div>
+        </article>
+      </section>
+
+      <section class="deck field-notes" data-variant="field-notes" aria-label="Field Notes theme prototype">
+        <header class="prototype-state state-light">
+          <span>Field Notes</span><span>Trebuchet MS + Georgia</span><span>Natural palette · tactile collage · documentary media</span>
+        </header>
+
+        <article class="slide field-title">
+          <div class="paper-grain"></div>
+          <div class="field-date">FIELD NOTE / 16 JUL</div>
+          <div class="field-title-copy">
+            <span class="scribble">working theory</span>
+            <h1>Ideas take<br />shape <em>together.</em></h1>
+            <p>Human judgment gives direction.<br />AI gives momentum.</p>
+          </div>
+          <figure class="field-hero"><span class="tape"></span><img src="assets/collaboration-studio.png" alt="Collaborators shaping a presentation in a studio" /><figcaption>Making the thinking visible →</figcaption></figure>
+          <svg class="field-path" viewBox="0 0 300 160" aria-hidden="true"><path d="M8 145 C 70 20, 140 190, 292 15" /></svg>
+          <div class="field-page">01</div>
+        </article>
+
+        <article class="slide field-content">
+          <div class="field-page">02</div>
+          <figure class="field-photo"><span class="tape"></span><img src="assets/workshop-notes.png" alt="Hands arranging notes into a story" /><figcaption>Evidence of thought, left on the table.</figcaption></figure>
+          <div class="field-copy">
+            <span class="scribble">observation no. 2</span>
+            <h2>Clarity is a<br />sequence,<br /><em>not a spark.</em></h2>
+            <ul>
+              <li><b>Open</b> — collect the useful mess</li>
+              <li><b>Shape</b> — find the narrative spine</li>
+              <li><b>Sharpen</b> — make every slide earn its place</li>
+            </ul>
+          </div>
+          <div class="leaf-shape"></div>
+        </article>
+
+        <article class="slide field-data">
+          <div class="field-page">03</div>
+          <span class="scribble">the rhythm we noticed</span>
+          <h2>Three modes,<br />one shared direction.</h2>
+          <div class="field-rings" role="img" aria-label="Explore 40 percent, Align 25 percent, Express 35 percent">
+            <div class="ring ring-one"><b>40%</b><span>explore</span></div>
+            <div class="ring ring-two"><b>25%</b><span>align</span></div>
+            <div class="ring ring-three"><b>35%</b><span>express</span></div>
+          </div>
+          <p class="field-note">The process loops.<br />The direction holds.</p>
+          <svg class="field-arrow" viewBox="0 0 140 70" aria-hidden="true"><path d="M5 55 C45 12 95 8 132 44"/><path d="M117 36 L132 44 L121 56"/></svg>
+        </article>
+
+        <article class="slide field-quote">
+          <div class="field-page">04</div>
+          <div class="pressed-flower">✽</div>
+          <p class="scribble">keep this close</p>
+          <blockquote>The theme should carry the mood—<em>never the meaning.</em></blockquote>
+          <div class="field-underline"></div>
+          <p class="field-credit">Design principle 04<br /><span>Make the idea visible.</span></p>
+        </article>
+      </section>
+    </main>
+
+    <nav class="prototype-switcher" aria-label="Prototype theme switcher">
+      <button type="button" data-direction="-1" aria-label="Previous theme">←</button>
+      <div><small>PROTOTYPE THEME</small><strong id="variant-label">Editorial</strong></div>
+      <button type="button" data-direction="1" aria-label="Next theme">→</button>
+    </nav>
+
+    <script src="prototype.js"></script>
+  </body>
+</html>

@@ -4,6 +4,14 @@ Using the chosen structure:
 1. Propose a full agenda outline with sections and slide topics
 2. Include a Glossary section (in the presentation language) with all key domain terms defined
 3. For each slide topic: indicate the visual choice and its canonical filename (e.g., `[Visual: Picture — \`images/example.png\`]`, `[Visual: Diagram — \`images/example.svg\`]`, or `[Visual: None]`) based on the presentation default, and `[Source](url)` for source material where relevant. **Explicitly remind the user that they can override this choice to "None" or another type for any individual slide.**
+4. For every Picture, declare `Intended Media Orientation` as exactly `Portrait` or `Landscape`. Infer the orientation from Media Intent and the selected theme's composition needs, show it in the draft, and let the user override it. This declaration selects the matching text-plus-image Archetype Variation and guides image generation.
+
+Use this Picture form:
+
+```markdown
+[Visual: Picture — `images/example.png`]
+- **Intended Media Orientation:** Portrait
+```
 
 When assigning filenames for pictures or diagrams, choose descriptive, stable names (e.g. `images/threat-model-diagram.svg`, not `images/slide-3.png`). These filenames are **canonical** — `generate-slides` will use them exactly to build `IMAGE_SPEC.md` or `DIAGRAM_SPEC.md` and the final slides. Renaming them later requires updating both `AGENDA.md` and any previously generated specs.
 

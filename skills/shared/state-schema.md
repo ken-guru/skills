@@ -16,17 +16,23 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
   "occasion": "string",
   "language": "string",
   "projectType": "presentation",
+  "theme": {
+    "id": "editorial | signal | field-notes",
+    "fontOverride": "null | { family: string, sourceUrl?: string }"
+  },
   "paths": {
     "agenda": "AGENDA.md",
     "imageSpec": "IMAGE_SPEC.md",
     "diagramSpec": "DIAGRAM_SPEC.md",
     "presentation": "PRESENTASJON.md",
     "html": "PRESENTASJON.html",
+    "pdf": "PRESENTASJON.pdf",
     "images": "images/",
     "videos": "videos/",
     "docs": "docs/",
     "sources": "docs/sources/",
-    "themes": "themes/"
+    "themes": "themes/",
+    "themeLock": "themes/theme-lock.json"
   }
 }
 ```
@@ -106,5 +112,5 @@ Expected sections:
 | `PROJECT.json` exists, `phases.discovery.status == "done"` | Discovery complete |
 | `AGENDA.md` exists, `phases.structure.status == "done"` | Structure complete |
 | `IMAGE_SPEC.md` exists | Image spec generated (sub-step of Structure) |
-| `PRESENTASJON.html` exists, `phases.generation.status == "done"` | Generation complete |
+| `PRESENTASJON.md`, `PRESENTASJON.html`, and `PRESENTASJON.pdf` exist, `phases.generation.status == "done"` | Generation complete |
 | `phases.proofread.status == "done" or "skipped"` | Proofread complete |
