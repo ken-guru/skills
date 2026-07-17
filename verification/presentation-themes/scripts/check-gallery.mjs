@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -60,29 +60,65 @@ async function compareApproved(actual, asset) {
 
 async function createReviewMatrix(context) {
   const cells = [];
+  const labelCells = [];
   for (const slide of gallerySlides) {
     for (const theme of themeIds) {
       const filename = `${theme}-${slide.archetype}.png`;
-      const sourceUrl = `data:image/png;base64,${(
-        await readFile(path.join(paths.reportsDirectory, filename))
-      ).toString('base64')}`;
-      cells.push(`<figure><figcaption>${theme} · ${slide.archetype}</figcaption><img src="${sourceUrl}"></figure>`);
+      cells.push(`<figure><figcaption>${theme} · ${slide.archetype}</figcaption><img src="${filename}"></figure>`);
+      labelCells.push(`<figure><figcaption>${theme} · ${slide.archetype}</figcaption><div class="image-space"></div></figure>`);
     }
   }
+  const reviewHtmlPath = path.join(paths.reportsDirectory, 'presentation-themes-review-matrix.html');
+  await writeFile(reviewHtmlPath, `<style>
+    body{margin:24px;background:#202124;color:#fff;font:14px system-ui;display:grid;grid-template-columns:repeat(3,384px);gap:24px}
+    figure{margin:0;width:384px;height:240px}figcaption{height:24px;line-height:16px;text-transform:capitalize}img{display:block;width:384px;height:216px}
+  </style>${cells.join('')}`);
   const page = await context.newPage();
-  await page.setViewportSize({ width: 1260, height: 900 });
+  await page.setViewportSize({ width: 1260, height: 1080 });
   await page.setContent(`<style>
     body{margin:24px;background:#202124;color:#fff;font:14px system-ui;display:grid;grid-template-columns:repeat(3,384px);gap:24px}
-    figure{margin:0}figcaption{margin:0 0 8px;text-transform:capitalize}img{display:block;width:384px;height:216px}
-  </style>${cells.join('')}`);
-  await page.evaluate(async () => {
-    await Promise.all([...document.images].map((image) => image.decode()));
-  });
+    figure{margin:0;width:384px;height:240px}figcaption{height:24px;line-height:16px;text-transform:capitalize}.image-space{width:384px;height:216px}
+  </style>${labelCells.join('')}`);
+  const labelLayerPath = path.join(paths.reportsDirectory, 'presentation-themes-review-labels.png');
   await page.screenshot({
-    path: path.join(paths.reportsDirectory, 'presentation-themes-review-matrix.png'),
+    path: labelLayerPath,
     fullPage: true,
   });
   await page.close();
+
+  const matrix = PNG.sync.read(await readFile(labelLayerPath));
+  for (const [row, slide] of gallerySlides.entries()) {
+    for (const [column, theme] of themeIds.entries()) {
+      const slidePng = PNG.sync.read(
+        await readFile(
+          path.join(paths.reportsDirectory, `${theme}-${slide.archetype}.png`),
+        ),
+      );
+      const left = 24 + column * 408;
+      const top = 48 + row * 264;
+      for (let y = 0; y < 216; y += 1) {
+        const sourceY = Math.min(
+          slidePng.height - 1,
+          Math.floor((y / 216) * slidePng.height),
+        );
+        for (let x = 0; x < 384; x += 1) {
+          const sourceX = Math.min(
+            slidePng.width - 1,
+            Math.floor((x / 384) * slidePng.width),
+          );
+          const sourceOffset = (sourceY * slidePng.width + sourceX) * 4;
+          const destinationOffset = ((top + y) * matrix.width + left + x) * 4;
+          for (let channel = 0; channel < 4; channel += 1) {
+            matrix.data[destinationOffset + channel] = slidePng.data[sourceOffset + channel];
+          }
+        }
+      }
+    }
+  }
+  await writeFile(
+    path.join(paths.reportsDirectory, 'presentation-themes-review-matrix.png'),
+    PNG.sync.write(matrix),
+  );
 }
 
 async function checkMarkdownPreviews(context) {

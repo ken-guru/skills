@@ -14,9 +14,9 @@
     "approve-gallery": "node scripts/approve-gallery.mjs",
     "acceptance": "npm run fixtures && npm run render && npm run check-renders",
     "acceptance:gallery": "npm run fixtures:gallery && npm run render:gallery && npm run check-gallery",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs && npm run check-gallery-docs",
     "test:fast": "npm test",
-    "test:full": "npm run acceptance"
+    "test:full": "npm run acceptance && npm run acceptance:gallery && npm run check-gallery-docs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
