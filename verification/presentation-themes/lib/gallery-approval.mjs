@@ -42,6 +42,13 @@ export async function approveGalleryAssets({
   const captureManifest = JSON.parse(
     await readFile(path.join(reportDirectory, 'rendered-gallery-manifest.json'), 'utf8'),
   );
+  if (
+    captureManifest.sourceFingerprint !== source.sourceFingerprint ||
+    captureManifest.fixtureVersion !== source.fixtureVersion ||
+    captureManifest.sourceMediaSha256 !== source.sampleMediaSha256
+  ) {
+    throw new Error('Gallery capture attestation does not match the current gallery source. Rerender and review the matrix before approval.');
+  }
 
   const inspected = [];
   let totalBytes = 0;

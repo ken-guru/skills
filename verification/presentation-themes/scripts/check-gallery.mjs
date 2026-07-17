@@ -96,7 +96,15 @@ try {
   }
 
   if (Object.keys(captures).length !== source.assets.length) issues.push(`Captured ${Object.keys(captures).length} gallery screenshots; expected ${source.assets.length}.`);
-  await writeFile(path.join(paths.reportsDirectory, 'rendered-gallery-manifest.json'), `${JSON.stringify({ captures }, null, 2)}\n`);
+  await writeFile(
+    path.join(paths.reportsDirectory, 'rendered-gallery-manifest.json'),
+    `${JSON.stringify({
+      sourceFingerprint: source.sourceFingerprint,
+      fixtureVersion: source.fixtureVersion,
+      sourceMediaSha256: source.sampleMediaSha256,
+      captures,
+    }, null, 2)}\n`,
+  );
 
   const context = await browser.newContext();
   await createGalleryReviewMatrix({ context, reportsDirectory: paths.reportsDirectory, themeIds });

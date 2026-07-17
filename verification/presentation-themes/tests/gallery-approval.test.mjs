@@ -36,7 +36,12 @@ async function approvalFixture() {
   }
   await writeFile(
     path.join(reportDirectory, 'rendered-gallery-manifest.json'),
-    `${JSON.stringify({ captures }, null, 2)}\n`,
+    `${JSON.stringify({
+      sourceFingerprint: source.sourceFingerprint,
+      fixtureVersion: source.fixtureVersion,
+      sourceMediaSha256: source.sampleMediaSha256,
+      captures,
+    }, null, 2)}\n`,
   );
   return { reportDirectory, assetsDirectory, source };
 }
@@ -48,6 +53,22 @@ test('gallery approval refuses writes without explicit approval', async () => {
     /explicit --approve flag/,
   );
   await assert.rejects(readdir(fixture.assetsDirectory), { code: 'ENOENT' });
+});
+
+test('gallery approval rejects captures attested for a different source version', async () => {
+  const fixture = await approvalFixture();
+  const capturePath = path.join(fixture.reportDirectory, 'rendered-gallery-manifest.json');
+  const capture = JSON.parse(await readFile(capturePath, 'utf8'));
+  capture.sourceFingerprint = 'stale-source';
+  await writeFile(capturePath, `${JSON.stringify(capture, null, 2)}\n`);
+  await assert.rejects(
+    approveGalleryAssets({
+      ...fixture,
+      approve: true,
+      provenance: { provider: 'Gemini', model: 'test-model', approvedAt: '2026-07-17' },
+    }),
+    /capture attestation does not match the current gallery source/,
+  );
 });
 
 test('gallery approval writes only exact reviewed assets and their provenance manifest', async () => {
