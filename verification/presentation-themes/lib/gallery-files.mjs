@@ -7,7 +7,7 @@ import { themeIds } from './theme-catalog.mjs';
 export const galleryPortraitRelativePath =
   'verification/presentation-themes/fixtures/gallery/media/collaboration-portrait.png';
 
-export async function loadGallerySource({ repositoryDirectory, suiteDirectory }) {
+export async function loadGallerySource({ repositoryDirectory }) {
   const relativePaths = [
     'skills/generate-slides/themes/catalog.json',
     ...themeIds.flatMap((theme) => [
@@ -20,6 +20,11 @@ export async function loadGallerySource({ repositoryDirectory, suiteDirectory })
     'verification/presentation-themes/fixtures/gallery/AGENDA.md',
     'verification/presentation-themes/fixtures/gallery/IMAGE_SPEC.md',
     'verification/presentation-themes/lib/gallery-contract.mjs',
+    'verification/presentation-themes/lib/gallery-approval.mjs',
+    'verification/presentation-themes/lib/gallery-documentation.mjs',
+    'verification/presentation-themes/lib/gallery-markdown-preview.mjs',
+    'verification/presentation-themes/lib/gallery-review-matrix.mjs',
+    'verification/presentation-themes/lib/gallery-slide-acceptance.mjs',
     'verification/presentation-themes/lib/gallery-files.mjs',
     'verification/presentation-themes/scripts/generate-gallery-fixtures.mjs',
     'verification/presentation-themes/scripts/render-gallery.mjs',
@@ -31,12 +36,15 @@ export async function loadGallerySource({ repositoryDirectory, suiteDirectory })
   ];
   const sourceFiles = [];
   let sampleMediaPresent = true;
+  let sampleMediaBytes;
   for (const relativePath of relativePaths) {
     try {
+      const bytes = await readFile(path.join(repositoryDirectory, relativePath));
       sourceFiles.push({
         path: relativePath,
-        bytes: await readFile(path.join(repositoryDirectory, relativePath)),
+        bytes,
       });
+      if (relativePath === galleryPortraitRelativePath) sampleMediaBytes = bytes;
     } catch (error) {
       if (relativePath === galleryPortraitRelativePath && error.code === 'ENOENT') {
         sampleMediaPresent = false;
@@ -45,7 +53,13 @@ export async function loadGallerySource({ repositoryDirectory, suiteDirectory })
       throw error;
     }
   }
-  return resolveGallerySource({ themes: themeIds, sourceFiles, sampleMediaPresent });
+  return resolveGallerySource({
+    themes: themeIds,
+    sourceFiles,
+    sampleMediaPresent,
+    sampleMediaBytes,
+    fixtureVersion: 1,
+  });
 }
 
 export function galleryPaths(suiteDirectory) {

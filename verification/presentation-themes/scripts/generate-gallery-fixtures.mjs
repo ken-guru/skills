@@ -12,7 +12,6 @@ const suiteDirectory = path.resolve(scriptDirectory, '..');
 const paths = galleryPaths(suiteDirectory);
 const source = await loadGallerySource({
   repositoryDirectory: paths.repositoryDirectory,
-  suiteDirectory,
 });
 const themesDirectory = path.join(paths.repositoryDirectory, 'skills/generate-slides/themes');
 const commonMediaDirectory = path.join(suiteDirectory, 'fixtures/media');
@@ -73,4 +72,3 @@ for (const id of themeIds) {
 process.stdout.write(
   `Generated ${themeIds.length} gallery fixtures at source ${source.sourceFingerprint.slice(0, 12)}.\n`,
 );
-

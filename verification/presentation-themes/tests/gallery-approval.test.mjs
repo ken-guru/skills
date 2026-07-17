@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,10 +8,9 @@ import test from 'node:test';
 import { PNG } from 'pngjs';
 
 import {
-  approveGalleryAssets,
   resolveGallerySource,
-  validateApprovedGallery,
 } from '../lib/gallery-contract.mjs';
+import { approveGalleryAssets, validateApprovedGallery } from '../lib/gallery-approval.mjs';
 
 async function approvalFixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'gallery-approval-'));
@@ -21,11 +21,23 @@ async function approvalFixture() {
     themes: ['editorial'],
     sourceFiles: [{ path: 'fixture', bytes: Buffer.from('fixture') }],
     sampleMediaPresent: true,
+    sampleMediaBytes: Buffer.from('portrait'),
+    fixtureVersion: 1,
   });
+  const captures = {};
   for (const asset of source.assets) {
     const png = new PNG({ width: 1280, height: 720 });
-    await writeFile(path.join(reportDirectory, asset.filename), PNG.sync.write(png));
+    const bytes = PNG.sync.write(png);
+    await writeFile(path.join(reportDirectory, asset.filename), bytes);
+    captures[asset.filename] = {
+      renderer: 'html',
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    };
   }
+  await writeFile(
+    path.join(reportDirectory, 'rendered-gallery-manifest.json'),
+    `${JSON.stringify({ captures }, null, 2)}\n`,
+  );
   return { reportDirectory, assetsDirectory, source };
 }
 
@@ -58,6 +70,8 @@ test('gallery approval writes only exact reviewed assets and their provenance ma
     await readFile(path.join(fixture.assetsDirectory, 'manifest.json'), 'utf8'),
   );
   assert.equal(manifest.sourceFingerprint, fixture.source.sourceFingerprint);
+  assert.equal(manifest.fixtureVersion, 1);
+  assert.equal(manifest.sourceMedia.sha256, fixture.source.sampleMediaSha256);
   assert.deepEqual(manifest.provenance, {
     provider: 'Gemini',
     model: 'test-model',
@@ -65,6 +79,10 @@ test('gallery approval writes only exact reviewed assets and their provenance ma
   });
   assert.equal(manifest.assets['editorial-title.png'].width, 1280);
   assert.equal(manifest.assets['editorial-title.png'].height, 720);
+  assert.equal(manifest.assets['editorial-title.png'].renderer, 'html');
+  assert.equal(manifest.assets['editorial-title.png'].theme, 'editorial');
+  assert.equal(manifest.assets['editorial-title.png'].archetype, 'title');
+  assert.equal(manifest.assets['editorial-title.png'].slideNumber, 1);
   assert.match(manifest.assets['editorial-title.png'].sha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(
     await validateApprovedGallery({
@@ -83,4 +101,53 @@ test('gallery approval writes only exact reviewed assets and their provenance ma
     source: fixture.source,
   });
   assert.ok(issues.some((issue) => issue.includes('editorial-title.png hash does not match')));
+});
+
+test('gallery approval rejects unexpected screenshots', async () => {
+  const fixture = await approvalFixture();
+  await writeFile(path.join(fixture.reportDirectory, 'unexpected.png'), Buffer.from('not reviewed'));
+  await assert.rejects(
+    approveGalleryAssets({
+      ...fixture,
+      approve: true,
+      provenance: { provider: 'Gemini', model: 'test-model', approvedAt: '2026-07-17' },
+    }),
+    /unexpected reviewed gallery file/,
+  );
+});
+
+test('gallery approval removes stale public screenshots outside the exact reviewed set', async () => {
+  const fixture = await approvalFixture();
+  await mkdir(fixture.assetsDirectory);
+  await writeFile(path.join(fixture.assetsDirectory, 'stale.png'), Buffer.from('stale'));
+  await approveGalleryAssets({
+    ...fixture,
+    approve: true,
+    provenance: { provider: 'Gemini', model: 'test-model', approvedAt: '2026-07-17' },
+  });
+  assert.ok(!(await readdir(fixture.assetsDirectory)).includes('stale.png'));
+});
+
+test('gallery validation checks manifest identity and recorded metadata', async () => {
+  const fixture = await approvalFixture();
+  await approveGalleryAssets({
+    ...fixture,
+    approve: true,
+    provenance: { provider: 'Gemini', model: 'test-model', approvedAt: '2026-07-17' },
+  });
+  const manifestPath = path.join(fixture.assetsDirectory, 'manifest.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  manifest.assets['editorial-title.png'].theme = 'signal';
+  manifest.assets['editorial-title.png'].bytes += 1;
+  manifest.assets['unexpected.png'] = { ...manifest.assets['editorial-title.png'] };
+  manifest.fixtureVersion = 99;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const issues = await validateApprovedGallery({
+    assetsDirectory: fixture.assetsDirectory,
+    source: fixture.source,
+  });
+  assert.ok(issues.some((issue) => issue.includes('fixture version')));
+  assert.ok(issues.some((issue) => issue.includes('theme metadata')));
+  assert.ok(issues.some((issue) => issue.includes('byte count')));
+  assert.ok(issues.some((issue) => issue.includes('unexpected manifest asset')));
 });

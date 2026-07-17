@@ -11,11 +11,12 @@ const sourceFiles = [
 ];
 
 test('gallery source resolution returns the twelve semantic documentation assets deterministically', () => {
-  const first = resolveGallerySource({ themes, sourceFiles, sampleMediaPresent: true });
+  const first = resolveGallerySource({ themes, sourceFiles, sampleMediaPresent: true, sampleMediaBytes: Buffer.from('portrait') });
   const second = resolveGallerySource({
     themes,
     sourceFiles: [...sourceFiles].reverse(),
     sampleMediaPresent: true,
+    sampleMediaBytes: Buffer.from('portrait'),
   });
 
   assert.deepEqual(first.assets.map(({ filename }) => filename), [
@@ -41,6 +42,7 @@ test('gallery source resolution returns the twelve semantic documentation assets
         file.path.endsWith('deck.mjs') ? { ...file, bytes: Buffer.from('changed') } : file,
       ),
       sampleMediaPresent: true,
+      sampleMediaBytes: Buffer.from('portrait'),
     }).sourceFingerprint,
   );
 });

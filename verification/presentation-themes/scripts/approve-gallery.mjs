@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { approveGalleryAssets } from '../lib/gallery-contract.mjs';
+import { approveGalleryAssets } from '../lib/gallery-approval.mjs';
 import { galleryPaths, loadGallerySource } from '../lib/gallery-files.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -15,7 +15,6 @@ const imageSpec = await readFile(
 const field = (name) => imageSpec.match(new RegExp(`\\*\\*${name}:\\*\\* (.+)`))?.[1]?.trim();
 const source = await loadGallerySource({
   repositoryDirectory: paths.repositoryDirectory,
-  suiteDirectory,
 });
 const result = await approveGalleryAssets({
   approve: process.argv.includes('--approve'),
@@ -31,4 +30,3 @@ const result = await approveGalleryAssets({
 
 for (const warning of result.warnings) process.stderr.write(`⚠️  ${warning}\n`);
 process.stdout.write(`Approved ${result.approved} public gallery screenshots.\n`);
-

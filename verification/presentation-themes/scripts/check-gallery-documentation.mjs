@@ -2,10 +2,8 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  validateApprovedGallery,
-  validateGalleryDocumentation,
-} from '../lib/gallery-contract.mjs';
+import { validateApprovedGallery } from '../lib/gallery-approval.mjs';
+import { validateGalleryDocumentation } from '../lib/gallery-documentation.mjs';
 import { galleryPaths, loadGallerySource } from '../lib/gallery-files.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -13,7 +11,6 @@ const suiteDirectory = path.resolve(scriptDirectory, '..');
 const paths = galleryPaths(suiteDirectory);
 const source = await loadGallerySource({
   repositoryDirectory: paths.repositoryDirectory,
-  suiteDirectory,
 });
 const readme = await readFile(path.join(paths.repositoryDirectory, 'README.md'), 'utf8');
 const gallery = await readFile(
@@ -25,6 +22,7 @@ const existingPaths = new Set(
     entry.split(path.sep).join('/'),
   ),
 );
+const warnings = [];
 const issues = [
   ...validateGalleryDocumentation({
     readme,
@@ -32,8 +30,14 @@ const issues = [
     expectedAssets: source.assets.map(({ filename }) => filename),
     existingPaths,
   }),
-  ...(await validateApprovedGallery({ assetsDirectory: paths.assetsDirectory, source })),
+  ...(await validateApprovedGallery({
+    assetsDirectory: paths.assetsDirectory,
+    source,
+    onWarning: (warning) => warnings.push(warning),
+  })),
 ];
+
+for (const warning of warnings) process.stderr.write(`⚠️  ${warning}\n`);
 
 if (issues.length) {
   process.stderr.write(`${issues.map((issue) => `- ${issue}`).join('\n')}\n`);
@@ -41,4 +45,3 @@ if (issues.length) {
 } else {
   process.stdout.write('Presentation theme gallery documentation passed fast validation.\n');
 }
-

@@ -31,4 +31,3 @@ for (const id of themeIds) {
 }
 
 process.stdout.write(`Rendered ${themeIds.length} production gallery HTML decks.\n`);
-

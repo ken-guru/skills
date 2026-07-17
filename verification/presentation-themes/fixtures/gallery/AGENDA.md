@@ -8,4 +8,3 @@
 6. Shared direction — Data with four metrics.
 7. Direction loop — Diagram, `media/diagram.svg`.
 8. Design principle — Quotation.
-
