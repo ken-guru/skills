@@ -35,6 +35,18 @@ test('canonical fixture populates every archetype at the shared capacity floor',
   assert.match(slides[7], /slot-quote[^>]*>[^<]*<br>[^<]*<br>[^<]*<br>/);
 });
 
+test('canonical fixture can reuse an approved gallery portrait without changing its slide contract', () => {
+  const deck = capacityDeck('editorial', manifest, {
+    portraitFilename: 'media/collaboration-portrait.png',
+    portraitAlt: 'Two collaborators shaping a shared idea in a studio',
+  });
+
+  assert.equal(deck.match(/media\/collaboration-portrait\.png/g)?.length, 2);
+  assert.doesNotMatch(deck, /media\/portrait\.svg/);
+  assert.match(deck, /alt="Two collaborators shaping a shared idea in a studio"/);
+  assert.equal(deck.split('\n---\n').slice(1).length, 8);
+});
+
 test('Semantic Slide Markup blocks missing meaningful media alternatives', () => {
   assert.throws(
     () =>
