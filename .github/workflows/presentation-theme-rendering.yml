@@ -1,0 +1,62 @@
+name: Presentation rendered acceptance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: presentation-theme-rendering-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rendered-acceptance:
+    name: Presentation rendered acceptance
+    # The approved visual baselines use the bundled macOS offline-safe fonts.
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: verification/presentation-themes
+
+    env:
+      PRESENTATION_THEME_BROWSER: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+      PRESENTATION_THEME_MARP: ${{ github.workspace }}/verification/presentation-themes/node_modules/.bin/marp
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verification/presentation-themes/package-lock.json
+
+      - name: Install Ghostscript
+        run: brew install ghostscript
+
+      - name: Verify browser availability
+        run: test -x "$PRESENTATION_THEME_BROWSER"
+
+      - name: Install pinned dependencies
+        run: npm ci
+
+      - name: Run HTML, PDF, and gallery acceptance
+        run: npm run test:full
+
+      - name: Upload acceptance reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: presentation-theme-acceptance-reports
+          path: verification/presentation-themes/reports/
+          if-no-files-found: ignore
+          retention-days: 7

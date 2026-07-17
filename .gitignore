@@ -1,1 +1,5 @@
 .vscode/
+.envrc
+verification/presentation-themes/.generated/
+verification/presentation-themes/reports/
+verification/presentation-themes/node_modules/

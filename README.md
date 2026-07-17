@@ -4,6 +4,34 @@
 
 A collection of agent skills.
 
+## Presentation themes
+
+The presentation workflow includes three deliberately distinct visual directions. Each theme is a deterministic visual system with consistent typography, palette, spacing, decoration, image treatment, and composition rules. Exact layouts respond to slide content and media, so the examples are representative rather than fixed templates.
+
+The sample artwork was AI-generated for this comparison and is reused unchanged across all themes. The themes control its placement, crop, framing, and treatment—not its underlying artistic style.
+
+### Editorial
+
+Warm, typographic, and composed like a modern magazine. Well suited to polished narratives, proposals, strategy, and reports.
+
+![Editorial theme title example with a warm cream canvas, large serif headline on the left, and a softly framed collaboration portrait on the right](docs/assets/presentation-themes/editorial-title.png)
+
+### Signal
+
+Bold, high-contrast, and structured for energy, systems, and data. Well suited to energetic launches, system explanations, and data-forward stories.
+
+![Signal theme title example with a dark technical grid, condensed white headline, vivid accent line, and an angled collaboration portrait](docs/assets/presentation-themes/signal-title.png)
+
+### Field Notes
+
+Tactile, natural, and shaped like a documented working session. Well suited to workshops, research, retrospectives, and human-centered stories.
+
+![Field Notes theme title example with a warm paper texture, green serif headline, hand-drawn accents, and a taped collaboration portrait](docs/assets/presentation-themes/field-notes-title.png)
+
+Editorial is the default. New presentations choose a theme during Discovery; existing presentations can change themes by rerunning Discovery.
+
+[Explore the complete matched theme gallery](./docs/presentation-themes.md), including text-plus-image, data, and quotation compositions.
+
 ## Skills
 
 ### Orchestrator

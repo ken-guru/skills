@@ -34,5 +34,19 @@
     "type": "boundary",
     "query": "I want to build a presentation about Kubernetes",
     "expected": "build-presentation should load (orchestrator), not discover-presentation directly — unless no PROJECT.json exists"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "Use Signal for this new presentation",
+    "precondition": "Discovery interview is active and Visual preference has been confirmed",
+    "expected": "skill records theme.id=signal and does not ask about external fonts"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "Use Editorial with Source Sans 3 from https://fonts.googleapis.com/css2?family=Source+Sans+3",
+    "precondition": "Discovery interview is active",
+    "expected": "skill records the exact explicit font family and approved source URL in theme.fontOverride"
   }
 ]

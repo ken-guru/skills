@@ -31,7 +31,7 @@ Read the project folder to determine current state per [../shared/state-schema.m
 | Nothing started | `PROJECT.json` missing |
 | Discovery done | `PROJECT.json` exists, `phases.discovery.status == "done"` |
 | Structure done | `AGENDA.md` exists, `phases.structure.status == "done"` |
-| Generation done | `PRESENTASJON.html` exists, `phases.generation.status == "done"` |
+| Generation done | `PRESENTASJON.md`, `PRESENTASJON.html`, and `PRESENTASJON.pdf` exist, `phases.generation.status == "done"` |
 | Media done | Media specs exist and corresponding `phases.images.status` and/or `phases.diagrams.status` are "done" or "skipped" |
 | Proofread done | `phases.proofread.status == "done"` |
 

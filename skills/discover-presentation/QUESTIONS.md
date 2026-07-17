@@ -29,6 +29,12 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 8. **Occasion** — What type of event? (e.g., intern fagdag, konferanse, workshop, all-hands)
 9. **Language** — What language should the slides be in? (default: inferred from your input language)
 10. **Visual preference** — Should the slides default to having pictures, diagrams, or no media? (default: Picture)
+11. **Presentation Theme** — Immediately after Visual preference, present these choices in order using descriptions translated into the presentation language:
+   - **Editorial** (`editorial`, recommended) — “Warm, typographic, and composed like a modern magazine.”
+   - **Signal** (`signal`) — “Bold, high-contrast, and structured for energy, systems, and data.”
+   - **Field Notes** (`field-notes`) — “Tactile, natural, and shaped like a documented working session.”
+
+Theme selection is required for new projects. Do not infer it from topic, audience, or occasion. Do not proactively ask about fonts. If the user explicitly volunteers a particular font family, capture it as an External Font Override with the exact family and an optional source URL that the user approves.
 
 ## Extraction rules
 
@@ -36,3 +42,4 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 - If the user gives a topic that implies an audience (e.g., "intro to Kubernetes for the dev team"), infer audience = "developers"
 - If the user mentions a language or writes in a specific language, use that
 - Fill remaining gaps with defaults from [DEFAULTS.md](DEFAULTS.md)
+- Keep theme names and identifiers untranslated. Translate only their descriptions and surrounding prompt.

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="440" viewBox="0 0 1100 440" role="img" aria-labelledby="title desc">
+  <title id="title">Three-stage collaboration diagram</title>
+  <desc id="desc">Explore flows to Align, which flows to Express, while feedback returns from Express to Explore.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#315c57"/></marker></defs>
+  <rect width="1100" height="440" rx="24" fill="#fffaf0"/>
+  <g fill="none" stroke="#315c57" stroke-width="8" marker-end="url(#arrow)">
+    <path d="M320 210H450"/><path d="M650 210H780"/><path d="M900 320C700 415 380 415 190 320"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle">
+    <rect x="70" y="120" width="250" height="180" rx="24" fill="#f2c14e" stroke="#315c57" stroke-width="6"/><text x="195" y="220">EXPLORE</text>
+    <rect x="450" y="120" width="200" height="180" rx="24" fill="#82ffe2" stroke="#315c57" stroke-width="6"/><text x="550" y="220">ALIGN</text>
+    <rect x="780" y="120" width="250" height="180" rx="24" fill="#ef8354" stroke="#315c57" stroke-width="6"/><text x="905" y="220">EXPRESS</text>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+{
+  "catalogVersion": 1,
+  "markupVersion": 1,
+  "defaultTheme": "editorial",
+  "themes": [
+    {
+      "id": "editorial",
+      "package": "editorial"
+    },
+    {
+      "id": "signal",
+      "package": "signal"
+    },
+    {
+      "id": "field-notes",
+      "package": "field-notes"
+    }
+  ]
+}

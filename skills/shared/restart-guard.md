@@ -8,7 +8,7 @@ Invoked at the **Startup** of any phase skill when previously generated files ma
 |-------|-----------------|
 | `discover-presentation` | `AGENDA.md` already exists in the project folder |
 | `structure-agenda` | `IMAGE_SPEC.md` or `PRESENTASJON.md` already exists |
-| `generate-slides` | `PRESENTASJON.md` or `PRESENTASJON.html` already exists, **or** media files exist in `images/` or `videos/` |
+| `generate-slides` | `PRESENTASJON.md`, `PRESENTASJON.html`, or `PRESENTASJON.pdf` already exists, **or** media files exist in `images/` or `videos/` |
 
 ## Stale file map
 
@@ -16,8 +16,8 @@ Re-running a phase makes the outputs of that phase and all subsequent phases pot
 
 | Phase re-run | Stale text files | Stale media |
 |-------------|-----------------|-------------|
-| `discover-presentation` | `AGENDA.md`, `IMAGE_SPEC.md`, `docs/sources/` (contents), `PRESENTASJON.md`, `PRESENTASJON.html` | `images/`, `videos/` |
-| `structure-agenda` | `IMAGE_SPEC.md`, `docs/sources/` (contents), `PRESENTASJON.md`, `PRESENTASJON.html` | `images/`, `videos/` |
+| `discover-presentation` | `AGENDA.md`, `IMAGE_SPEC.md`, `DIAGRAM_SPEC.md`, `docs/sources/` (contents), `PRESENTASJON.md`, `PRESENTASJON.html`, `PRESENTASJON.pdf` | `images/`, `videos/` |
+| `structure-agenda` | `IMAGE_SPEC.md`, `DIAGRAM_SPEC.md`, `docs/sources/` (contents), `PRESENTASJON.md`, `PRESENTASJON.html`, `PRESENTASJON.pdf` | `images/`, `videos/` |
 | `generate-slides` | *(files are overwritten in place — no separate stale text)* | `images/`, `videos/` |
 
 ## Procedure
@@ -118,3 +118,21 @@ After any deletion (Options A or B), update `PROJECT.json` to mark the affected 
 | `generate-slides` | `generation`, `proofread` (if present) |
 
 `discovery` is never reset by the guard — the discovery phase itself will update it when it runs.
+
+## Focused Presentation Theme changes
+
+After the user confirms updated Discovery values, compare them with the existing `DISCOVERY.json` before writing anything.
+
+Use `presentation-theme-invalidation.mjs` as the executable source of truth for the focused stale, preserved, and pending sets below. Inventory and user confirmation still happen in this guard; the helper never deletes or mutates project files.
+
+### Theme identifier only
+
+Preserve `AGENDA.md`, source summaries, and generated media. Inventory `IMAGE_SPEC.md`, `DIAGRAM_SPEC.md`, `PRESENTASJON.md`, `PRESENTASJON.html`, `PRESENTASJON.pdf`, Marp configuration, and the locked Theme Package as stale. Warn that preserved media may no longer match Theme Treatment. After confirmation, remove stale text/configuration, set Generation, Images, Diagrams, and Proofread to `pending`, then write Discovery. Do not offer the media-deletion option for this focused path.
+
+### External Font Override only
+
+Preserve the Agenda, both Media Specs, source summaries, generated media, and the locked Theme Package. Inventory only `PRESENTASJON.md`, `PRESENTASJON.html`, and `PRESENTASJON.pdf` as stale. After confirmation, remove them and set Generation and Proofread to `pending`; leave Images and Diagrams unchanged.
+
+### Any broader Discovery change
+
+Use the general protocol and stale-file map above.

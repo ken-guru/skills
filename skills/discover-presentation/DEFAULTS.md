@@ -10,10 +10,10 @@
 | Slide density | Max 5–6 bullet points; split if exceeded |
 | Presentation style | Informative with a clear narrative arc |
 | Visual preference | Picture (AI-generated) |
-| Visual layout | One visual per slide, right-aligned (`img-right`) |
+| Visual composition | Selected Presentation Theme composes each Slide Archetype |
 | Presenter notes | Always generated, bullet format |
 | Paginate | Always on |
-| Theme | Dark mode (`class: invert`) with inline CSS |
+| Theme | Editorial (`editorial`), offline-safe fonts, no External Font Override |
 | Code blocks | Not permitted (warn and redirect to image/video) |
 | Progressive reveal | Not used (all bullets visible immediately) |
 

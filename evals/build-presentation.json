@@ -40,5 +40,12 @@
     "type": "boundary",
     "query": "generate the slides now",
     "expected": "build-presentation should load (orchestrator), not generate-slides directly — state check determines next step"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "is my presentation complete?",
+    "precondition": "PRESENTASJON.md and PRESENTASJON.html exist but PRESENTASJON.pdf is missing",
+    "expected": "orchestrator treats Generation as incomplete and routes back to generate-slides"
   }
 ]

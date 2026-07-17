@@ -4,81 +4,80 @@ disable-model-invocation: true
 description: "Run quality validation and proofreading passes..."
 ---
 
-# Quality Validation
+# Proofread Presentation
 
-Run this validation pass after generating `PRESENTASJON.md` and before building HTML.
+Validate an existing themed `PRESENTASJON.md`, safely fix mechanical issues, report content concerns, and update Proofread state only when blocking checks pass.
 
-## Auto-fixable issues (fix silently)
+## Startup
 
-| Check | Fix |
-|---|---|
-| Background image directives `![bg` | Replace with `<img src="path" alt="..." class="img-right">` placed after the slide heading |
-| `![alt](path)` on content slides (slides with bullets or paragraph text) | Replace with `<img src="path" alt="alt" class="img-right">` and move the tag to immediately after the slide heading, before any text content. **Apply only to content slides** (do not alter title or section-divider slides). |
-| `<img>` tags with no `class` attribute on content slides | Add `class="img-right"` |
-| Missing `alt` attribute on `<img>` tags | Add descriptive alt text from context |
-| Trailing whitespace in presenter notes | Strip |
+Require `DISCOVERY.json`, `PROJECT.json`, `PRESENTASJON.md`, Node.js, and Marp CLI. Read the project-local `themes/theme-lock.json`, its selected Theme Manifest, declared CSS, and assets. Recompute the lock's SHA-256 fingerprints and validate the manifest contract described below before changing anything. A missing, modified, or incompatible Theme Package is fatal. Do not depend on another phase skill being installed.
 
-## Issues to report with slide number (report only)
+Read the locked Theme Manifest and validate against its interface rather than hard-coding Editorial, Signal, or Field Notes behavior.
 
-| Check | Warning message |
-|---|---|
-| Code fences (` ``` `) in slides | "⚠️ Slide X: Code block detected — consider using an image/video instead" |
-| More than 6 bullet points on a slide | "⚠️ Slide X: X bullet points — consider splitting the slide" |
-| Progressive reveal syntax (`* `) | "⚠️ Slide X: Progressive reveal detected — remove the `* ` prefix" |
-| Slide with no presenter notes | "⚠️ Slide X: Missing presenter note" |
-| Video not on its own slide (other content present) | "⚠️ Slide X: Video must always be on a dedicated blank slide" |
-| Image using `![bg left]` or `![bg right]` | "⚠️ Slide X: Background images are not supported — use `<img class='img-right'>` instead" |
+## Safe mechanical fixes
 
-## Content checks (report if issues found)
+- Add missing purpose-based `alt` text to meaningful media when intent is unambiguous from the Agenda and Media Specs.
+- Use empty `alt` text for explicitly decorative images.
+- Strip trailing whitespace from presenter notes.
+- Correct a missing semantic Content Slot class when the slide's existing archetype and content make the intended slot unambiguous.
 
-- All slides have a heading (H1 or H2) — warn if any slide has only bullet points and no heading
-- Slides reference image files that don't exist yet — list placeholders in the final report (expected)
-- Front matter contains `marp: true`, `paginate: true`, `class: invert`, and `style:` block
+Never convert media to `img-right`, add `class: invert`, insert inline theme CSS, change an archetype, choose another variation, rewrite Media Intent, or delete content as an automatic fix.
 
-## Checklist summary (output at end)
+## Blocking validation
 
-```
-✅ No code blocks
-✅ All slides within viewport
-✅ Presenter notes in bullet format
-✅ Correct front matter
-⚠️ X warnings to review (see above)
-```
+### Theme and markup
 
----
+- Front matter contains `marp: true`, the resolved theme ID, `size: 16:9`, `paginate: true`, and the presentation language.
+- Front matter contains no copied theme CSS. Only the generated External Font Override style is permitted.
+- Every slide declares exactly one supported Slide Archetype, one supported Archetype Variation, and the Theme Manifest's tonal state.
+- Every populated node uses shared Semantic Slide Markup and Content Slots; no theme-specific semantic wrappers exist.
+- Classification agrees with the Agenda and Media Spec visual type.
 
-## Proofreading pass
+### Accessibility and readability
 
-Run after all slides are generated, before building HTML.
+- Meaningful Pictures, charts, and Diagrams have purpose-based alternative text; decorative media is absent from reading order.
+- DOM order is heading, body or takeaway, media, then caption.
+- Essential wording is real text rather than raster content.
+- Computed contrast is at least 4.5:1 for body/supporting text, 3:1 for large headings, and 3:1 for meaningful non-text graphics.
+- On the 1280×720 reference slide, titles are at least 54 px, headings 36 px, body and metric labels 28 px, captions and attribution 20 px, and pagination/context labels 18 px.
+- Body line height is 1.25–1.5; display line height is at least 1.0. All-caps is limited to short labels and brief Signal headings.
 
-### Language and grammar
-- [ ] No obvious spelling errors in the presentation language
-- [ ] Grammar consistent throughout (follow conventions of the presentation language)
-- [ ] No mixed-language sentences (content language mixed with different language sentence structure)
-- [ ] No encoding errors or unexpected characters (look for characters outside expected range)
-- [ ] Correct spacing around punctuation (no double spaces, correct colon usage)
+### Capacity, collision, and media
 
-### Terminology consistency
-- [ ] All terms match the Glossary section in AGENDA.md
-- [ ] No synonyms used interchangeably (e.g. "agent" and "agents" must be used consistently)
-- [ ] Abbreviations explained on first use
+- Content does not exceed the selected composition's declared Content Capacity.
+- No text or semantic media leaves the slide, overlaps another protected Content Slot, clips, scrolls, truncates, or sits within 32 px of an edge.
+- Essential text never overlays raster media.
+- Picture dimensions agree with Intended Media Orientation.
+- Raster media is not enlarged beyond native size; fallback raster output is at least 2× displayed dimensions.
+- Cropping preserves Media Intent; Diagram labels and chart values remain legible at 100% view.
+- Theme grading preserves semantic colors and required contrast.
 
-### Reference integrity
-- [ ] All `[Image](images/...)` references in `AGENDA.md` have a corresponding entry in `IMAGE_SPEC.md` (by filename)
-- [ ] All entries in `IMAGE_SPEC.md` correspond to a `[Image](images/...)` reference in `AGENDA.md` — no orphan specs
-- [ ] All `src` paths in `<img>` tags in `PRESENTASJON.md` exist as entries in `IMAGE_SPEC.md`
-- [ ] All `[Source](url)` links in slides were actually fetched (cross-check with Step 2 report)
-- [ ] No internal links pointing to non-existent anchors
+Any failure above blocks completion and is reported with slide numbers and the relevant archetype/slot.
 
-### Slide count
-- [ ] Actual slide count matches the estimate in DISCOVERY.json (± 10%)
+## Non-blocking content warnings
 
-Report the proofreading result as part of the Step 8 summary:
-```
-📝 Proofreading:
-✅ No encoding errors or unexpected characters
-✅ Terminology consistent with glossary
-⚠️ X potential grammar issues (see slide [list])
-✅ Image references validated against IMAGE_SPEC.md
-✅ X slides — within estimated count ([estimate] ± 10%)
-```
+Report with slide numbers:
+
+- Code fences or progressive-reveal syntax.
+- More bullets than the archetype permits.
+- Missing presenter notes or notes not in bullet format.
+- A video sharing a slide with other content.
+- A slide without a semantic heading.
+- Mixed language, inconsistent glossary terminology, unexplained abbreviations, grammar concerns, or encoding problems.
+- Expected media placeholders that have not yet been rendered.
+
+## Reference integrity
+
+- Every Agenda Picture filename matches one `IMAGE_SPEC.md` entry and every Picture used by slides exists in that spec.
+- Every Agenda Diagram filename matches one `DIAGRAM_SPEC.md` entry and every Diagram used by slides exists in that spec.
+- No orphan Media Spec entry exists.
+- Every source link used by slides has a successful source summary or appears in the reported fetch failures.
+- Slide count remains within the confirmed estimate unless the user approved a different count.
+
+## Export parity
+
+When HTML and PDF exist, confirm equal slide counts, 16:9 dimensions, text, media, and pagination. Compare PDF visually with the HTML Accessible Reference Output for layout shift, clipping, missing decoration, materially different color, and illegible media. A mismatch is blocking.
+
+## Completion
+
+Report fixed issues, blocking failures, warnings, and reference results. Mark `phases.proofread.status = "done"` with a timestamp only when no blocking issue remains. Otherwise keep it pending.

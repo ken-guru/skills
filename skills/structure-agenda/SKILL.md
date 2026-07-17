@@ -10,6 +10,7 @@ Builds and refines `AGENDA.md` through collaborative iteration with the user.
 ## Gotchas
 - Write AGENDA.md only after the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration
 - When the user says "update a slide", iterate on the in-memory draft only; commit to disk only on approval
+- Every Picture has an explicit Intended Media Orientation (`Portrait` or `Landscape`)
 
 ## Startup
 
