@@ -1,7 +1,7 @@
 # Document the presentation theme gallery
 
 Labels: `wayfinder:map`
-Status: Open
+Status: Closed
 
 ## Destination
 
