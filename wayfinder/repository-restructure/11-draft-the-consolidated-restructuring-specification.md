@@ -12,8 +12,11 @@ What single draft specification faithfully consolidates every resolved architect
 
 ## Resolution
 
-Drafted the single Collection-owned specification at
-[Repository restructuring around portable Skill Suites](../../docs/specs/repository-restructure.md).
+Drafted the then-current Collection-owned specification, preserved as the immutable
+[original approved restructuring draft](https://github.com/ken-guru/skills/blob/e6b2c18/docs/specs/repository-restructure.md).
+
+The live Collection specification was later replaced by the proportionality review;
+this ticket records the historical draft rather than the current authority.
 
 The draft consolidates the approved domain model, target tree, Artifact Owner rules,
 discovery and compatibility policy, exact dependency schemas and tooling interfaces,

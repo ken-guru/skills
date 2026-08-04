@@ -12,9 +12,12 @@ Does the consolidated repository restructuring specification completely and accu
 
 ## Resolution
 
-The user explicitly approved the
-[Repository restructuring around portable Skill Suites](../../docs/specs/repository-restructure.md)
-specification on 2026-08-04 as the implementation authority for the migration.
+The user explicitly approved the then-current
+[original restructuring specification](https://github.com/ken-guru/skills/blob/e6b2c18/docs/specs/repository-restructure.md)
+on 2026-08-04 as the implementation authority for the migration.
+
+That authority was subsequently withdrawn for a proportionality review. This ticket
+records the historical approval and does not point to the live replacement draft.
 
 The approval review found no unresolved decisions, broken local links, placeholders,
 ownership conflicts, or contradictions between the specification, domain glossary,
