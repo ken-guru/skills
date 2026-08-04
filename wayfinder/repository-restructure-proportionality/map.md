@@ -40,6 +40,8 @@ deferred, and provide a proportionate migration and acceptance contract.
 
 ## Decisions so far
 
+- [Assess the cost and implications of the approved design](00-assess-the-cost-and-implications-of-the-approved-design.md) — Prefer a minimum viable Collection: retain the useful Presentation ownership seam and present behavior, but remove permanent machinery justified only by withdrawn focused installs or hypothetical future scale.
+
 ## Not yet specified
 
 - The final wording needed to supersede or amend the existing implementation issue
