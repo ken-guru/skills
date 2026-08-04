@@ -10,6 +10,51 @@ _Avoid_: pipeline skill, workflow step
 **Utility Skill** — stateless and conversational. Performs a standalone task without a project folder or persistent state. Not part of a phase pipeline.
 _Avoid_: helper skill, tool skill
 
+## Skill Suite
+
+A cohesive group of Skills that share a domain, workflow, documentation, tests, and supporting assets. Members may support individual installation or declare required Skill Dependencies; a Skill Suite is not itself a Skill.
+_Avoid_: skillset, skill collection, plugin
+
+## Collection
+
+The repository-level catalog of discoverable Skills and Skill Suites together with their shared distribution and contribution surfaces. A Collection is not itself a Skill Suite.
+_Avoid_: bundle, package
+
+## Artifact Owner
+
+The narrowest stable Collection, Skill Suite, or Skill scope whose responsibility fully explains why an artifact exists. Consumers and physical location do not by themselves determine ownership.
+_Avoid_: parent folder, primary consumer
+
+## Shared Module
+
+A Module owned by a Skill Suite and used by multiple member Skills through an explicit interface. A Shared Module is not independently invokable.
+_Avoid_: shared artifact, common helper
+
+## Dependency Declaration
+
+A Skill-owned statement of its direct Shared Modules and callable Skill Dependencies. Absence of dependencies is declared explicitly rather than inferred from a missing statement.
+_Avoid_: dependency manifest, inferred dependencies
+
+## Contribution Path
+
+A Collection-defined route for adding or changing a standalone Skill, a Skill Suite member, a Skill Suite, or an artifact's ownership. Each path carries the guarantees and review evidence appropriate to its Artifact Owner.
+_Avoid_: contribution type, change category
+
+## Migration Manifest
+
+An exhaustive mapping from current artifact families to their target owners, migration actions, implementation order, coupled reference changes, and acceptance evidence.
+_Avoid_: move list, migration checklist
+
+## Dependency Snapshot
+
+A generated, read-only copy of the Shared Modules one Skill needs to remain independently installable. Its canonical sources retain ownership in the Skill Suite.
+_Avoid_: vendored copy, duplicated shared files
+
+## Skill Dependency
+
+A required callable Skill named by another Skill and verified before that Skill runs. A Skill Dependency is not a Shared Module and is never hidden inside a Dependency Snapshot.
+_Avoid_: bundled phase, embedded skill
+
 ## Phase
 
 One logical step in the content creation pipeline. Current phases:
