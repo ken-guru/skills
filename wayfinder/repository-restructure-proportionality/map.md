@@ -42,6 +42,7 @@ deferred, and provide a proportionate migration and acceptance contract.
 
 - [Assess the cost and implications of the approved design](00-assess-the-cost-and-implications-of-the-approved-design.md) — Prefer a minimum viable Collection: retain the useful Presentation ownership seam and present behavior, but remove permanent machinery justified only by withdrawn focused installs or hypothetical future scale.
 - [Choose the minimum viable Collection tree and distribution contract](01-choose-the-minimum-viable-collection-tree-and-distribution-contract.md) — Use the conventional flat-standalone/one-level-suite tree, human-maintained indexes and contribution guidance, two scoped contexts, and complete-suite distribution through `npx skills` and the existing Claude plugin without structural manifests or registries.
+- [Define the direct shared and runtime dependency contract](02-define-the-direct-shared-and-runtime-dependency-contract.md) — Make every installed member self-contained, localize state and restart contracts, remove the runtime shared directory and dependency framework, bundle `generate-images`, keep external preflights owner-local, and defer focused-install guarantees until an explicit extraction.
 
 ## Not yet specified
 

@@ -41,8 +41,7 @@ Use this minimum structural convention:
 │       ├── generate-slides/
 │       ├── generate-images/
 │       ├── generate-diagrams/
-│       ├── proofread-presentation/
-│       └── shared/
+│       └── proofread-presentation/
 └── …
 ```
 
@@ -59,7 +58,7 @@ The tree itself distinguishes owner shapes:
 Do not add `skill-suite.json`, a registry, or a structural schema. Root README is a
 human-maintained Collection index with **Skill Suites** and **Standalone Skills**
 tables. Presentation README owns the purpose, complete-install instructions,
-seven-member catalog, shared prerequisites, and links to active suite documentation.
+seven-member catalog, external prerequisites, and links to active suite documentation.
 Member `SKILL.md` files remain focused on invocation contracts.
 
 Keep the domain context split:
@@ -81,8 +80,9 @@ Distribution has one supported unit: the complete Presentation suite.
 - Support both the interactive **Presentation** group and a deterministic command
   explicitly selecting all seven names.
 - Remove focused-install examples and guarantees. An installer may still expose
-  individual selection, but that result is unsupported; missing suite material must
-  fail clearly.
+  individual selection, but that result is unsupported. Every installed member is
+  nevertheless self-contained because complete `npx skills` selection installs
+  member directories separately rather than preserving their suite parent.
 - Keep `.claude-plugin/marketplace.json` sourced from `"./"`.
 - Keep the root `presentation-skills` plugin and update its seven explicit paths to
   `./skills/presentation/<stable-name>`.
