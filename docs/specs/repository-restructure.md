@@ -1,6 +1,6 @@
 # Proportionate repository restructuring
 
-Status: **Draft revision for approval**
+Status: **Approved**
 
 Implementation issue:
 [Restructure the repository around portable Skill Suites](https://github.com/ken-guru/skills/issues/51)
@@ -19,16 +19,15 @@ Implications:
 
 ## 1. Authority
 
-This draft replaces the earlier approved restructuring design as the proposed
-implementation authority. The earlier dependency-snapshot and Collection-governance
-design is withdrawn from implementation.
+This specification replaces the earlier approved restructuring design and is the
+sole implementation authority. The earlier dependency-snapshot and
+Collection-governance design is withdrawn from implementation.
 
-Neither design may be implemented until
 [Approve the revised proportionate restructuring specification](../../wayfinder/repository-restructure-proportionality/06-approve-the-revised-proportionate-restructuring-specification.md)
-records explicit approval.
+records the explicit human approval.
 
-GitHub issue 51 remains paused without `ready-for-agent`. Pull request 52 remains a
-draft planning baseline. No migration checkpoint may begin before approval.
+GitHub issue 51 is ready for implementation. Pull request 52 remains draft until
+Checkpoints 1 and 2 are complete and Checkpoint 3 is ready for review.
 
 ## 2. Outcome
 
@@ -465,8 +464,7 @@ Implement only the smallest response to observed evidence.
 
 ## 14. Approval gate
 
-This specification remains a draft until the final proportionality approval ticket
-closes.
+This specification was approved through the final proportionality approval ticket.
 
 Before approval:
 
@@ -474,11 +472,11 @@ Before approval:
 - pull request 52 remains draft;
 - no migration checkpoint begins.
 
-After approval:
+The approval transition completed:
 
-- mark this document approved;
-- update issue 51 and pull request 52 to identify this document and its Migration
-  Manifest as the sole implementation authority;
-- restore `ready-for-agent`;
-- keep the pull request draft until Checkpoints 1 and 2 are complete and Checkpoint 3
-  is ready for review.
+- this document is marked approved;
+- issue 51 and pull request 52 identify this document and its Migration Manifest as
+  the sole implementation authority;
+- issue 51 has `ready-for-agent`;
+- the pull request remains draft until Checkpoints 1 and 2 are complete and
+  Checkpoint 3 is ready for review.

@@ -1,7 +1,7 @@
 # Simplify the repository restructuring before implementation
 
 Labels: `wayfinder:map`
-Status: Open
+Status: Closed
 
 ## Destination
 
@@ -46,6 +46,7 @@ deferred, and provide a proportionate migration and acceptance contract.
 - [Choose the active artifact migration boundary](03-choose-the-active-artifact-migration-boundary.md) — Move active Skills, owner documentation, existing evals, verification, and required adapters under the simplified suite contract while leaving planning history, archives, and the prototype in place and preserving approved image bytes.
 - [Define proportionate acceptance and deferred-complexity triggers](04-define-proportionate-acceptance-and-deferred-complexity-triggers.md) — Keep permanent CI focused on existing Presentation behavior and bundle reproducibility, require one-time migration evidence for identity, distribution, paths, and hashes, and reintroduce deferred machinery only after concrete repeated needs.
 - [Draft the revised proportionate restructuring specification](05-draft-the-revised-proportionate-restructuring-specification.md) — Replace the withdrawn dependency/governance design with one review-ready specification and normative Migration Manifest covering the minimum tree, self-contained runtime, active cutover, three checkpoints, proportionate acceptance, and evidence triggers.
+- [Approve the revised proportionate restructuring specification](06-approve-the-revised-proportionate-restructuring-specification.md) — Approve the proportionate specification and Migration Manifest as the sole implementation authority after confirming their benefits, trade-offs, deferred-complexity triggers, migration detail, and acceptance evidence.
 
 ## Not yet specified
 
