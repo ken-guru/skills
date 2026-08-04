@@ -65,7 +65,9 @@ Free tier allows roughly 15 requests per minute. The script inserts a 1-second p
 
 ## Adding another provider
 
-The script in `scripts/generate-images.js` uses a simple interface internally:
+Edit the authored source at `scripts/src/generate-images.js`; do not edit the
+committed bundle at `scripts/generate-images.js` directly. The source uses a simple
+interface internally:
 
 **Input:** a text prompt string  
 **Output:** a PNG `Buffer`
@@ -79,8 +81,11 @@ To add a provider:
      return Buffer.from(base64ImageData, 'base64');
    }
    ```
-2. Replace the Gemini `generate()` call in the script with your function.
+2. Replace or dispatch around the Gemini `ai.models.generateContent(...)` call in
+   `generateOne(...)`.
 3. Read your provider's API key from a dedicated environment variable (e.g. `MY_PROVIDER_API_KEY`).
+4. From `scripts/`, run `npm run build && npm run check:bundle`, then commit both the
+   authored source and rebuilt bundle.
 
 Any API that accepts a text prompt and returns image data (base64, binary, or a URL to download) fits this pattern.
 

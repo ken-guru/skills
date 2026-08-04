@@ -30,10 +30,13 @@ selection may be exposed by an installer but is unsupported.
 | `verification/presentation-themes/` except `prototype/` | `skills/presentation/verification/presentation-themes/` |
 | `skills/shared/state-schema.md` | `skills/presentation/docs/state-schema.md` |
 | `skills/shared/image-spec-diff.md` | `skills/presentation/generate-slides/MEDIA_SPEC_DIFF.md` |
+| `skills/shared/restart-guard.md` | `skills/presentation/discover-presentation/RESTART-GUARD.md`, `skills/presentation/structure-agenda/RESTART-GUARD.md`, and `skills/presentation/generate-slides/RESTART-GUARD.md` |
+| `skills/shared/presentation-theme-invalidation.mjs` | `skills/presentation/discover-presentation/scripts/presentation-theme-invalidation.mjs` and `skills/presentation/generate-slides/scripts/presentation-theme-invalidation.mjs` |
+| `skills/shared/validation.md` | Retired (no replacement) |
 
-The prototype remains at `verification/presentation-themes/prototype/`. Former
-shared Restart Guard and validation authorities are retired; their real contracts
-are owner-local.
+The prototype remains at `verification/presentation-themes/prototype/`. The former
+Restart Guard and invalidation contracts are now owner-local; the former shared
+validation authority is retired.
 
 ## Baseline evidence
 

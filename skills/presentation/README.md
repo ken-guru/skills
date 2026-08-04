@@ -49,8 +49,9 @@ it needs. Members exchange project state only through the user's Project Folder.
 
 ## External prerequisites
 
-- **Marp and Node.js:** required by Generate Slides; Marp is also checked by the
-  guided workflow.
+- **Marp and Node.js:** required and checked by Generate Slides and Proofread when
+  either phase is invoked.
+- **Node.js:** also required and checked by Generate Images.
 - **D2:** required only when Generate Diagrams renders a diagram.
 - **Gemini credential:** required only when Generate Images calls Gemini. Its pinned
   SDK is already bundled; installed execution performs no package installation.
