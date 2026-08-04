@@ -3,7 +3,7 @@
   "owner": {
     "name": "Ken Sørevåge"
   },
-  "description": "Presentation-generation skills for agent workflows.",
+  "description": "A Collection of agent Skills and Skill Suites.",
   "plugins": [
     {
       "name": "presentation-skills",

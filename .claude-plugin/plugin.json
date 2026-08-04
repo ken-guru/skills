@@ -1,6 +1,6 @@
 {
   "name": "presentation-skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A state-aware presentation workflow: discover requirements, structure an agenda, generate slides and media, and proofread the result.",
   "author": {
     "name": "Ken Sørevåge"
@@ -15,12 +15,12 @@
     "proofreading"
   ],
   "skills": [
-    "./skills/build-presentation",
-    "./skills/discover-presentation",
-    "./skills/structure-agenda",
-    "./skills/generate-slides",
-    "./skills/generate-images",
-    "./skills/generate-diagrams",
-    "./skills/proofread-presentation"
+    "./skills/presentation/build-presentation",
+    "./skills/presentation/discover-presentation",
+    "./skills/presentation/structure-agenda",
+    "./skills/presentation/generate-slides",
+    "./skills/presentation/generate-images",
+    "./skills/presentation/generate-diagrams",
+    "./skills/presentation/proofread-presentation"
   ]
 }

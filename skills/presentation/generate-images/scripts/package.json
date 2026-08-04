@@ -1,0 +1,15 @@
+{
+  "name": "generate-images-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/generate-images.js --bundle --minify --platform=node --format=cjs --outfile=generate-images.js",
+    "check:bundle": "node check-bundle.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "1.52.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
