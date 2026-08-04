@@ -1,0 +1,54 @@
+# Simplify the repository restructuring before implementation
+
+Labels: `wayfinder:map`
+Status: Open
+
+## Destination
+
+Produce and approve a revised, implementation-ready repository restructuring
+specification that preserves the useful Collection → Presentation Skill Suite seam
+while removing complexity that is not justified by the repository's present needs.
+The result must explain the implications of both designs, define what is deliberately
+deferred, and provide a proportionate migration and acceptance contract.
+
+## Notes
+
+- Domain: proportional architecture for a small Collection containing one cohesive
+  seven-Skill Presentation suite.
+- Consult `grilling`, `domain-modeling`, and `codebase-design` when resolving design
+  tickets.
+- Treat the previously approved specification as one candidate, not as the default.
+  Any earlier architectural decision may be revoked by the revised specification.
+- Optimize for the repository's current needs and accept a later refactor when a
+  second real Skill Suite or standalone-distribution requirement supplies concrete
+  evidence.
+- Retain the core `skills/presentation/` suite seam, all seven stable Skill names,
+  independent invocation within the suite, full-suite installation, the
+  `presentation-skills` plugin identity, and current behavior.
+- Drop focused installation of individual Presentation Skills as a current guarantee.
+- Avoid Dependency Declarations, Dependency Snapshots, dependency-graph tooling,
+  custom structural schemas, root-adapter registration, and a Collection checker
+  unless this review finds present evidence that one is necessary.
+- Keep a localized portability fix for `generate-images`, including a reproducible
+  self-contained runtime bundle.
+- Move active Presentation-owned artifacts, but leave completed planning history and
+  archives at their existing paths.
+- Replace exhaustive structural acceptance with behavior-focused evidence.
+- Planning only: no migration wave begins until this map closes with explicit approval.
+- GitHub issue 51 is paused without `ready-for-agent`; pull request 52 is a draft
+  planning baseline.
+
+## Decisions so far
+
+## Not yet specified
+
+- The final wording needed to supersede or amend the existing implementation issue
+  and draft pull request depends on the revised target and acceptance contract.
+
+## Out of scope
+
+- Implementing either restructuring design.
+- Adding a second Skill Suite or a new standalone Skill.
+- Preserving focused installation merely for backward compatibility; the install
+  base is small and the guarantee has been explicitly withdrawn.
+- General package-per-suite publishing or multi-plugin release automation.
