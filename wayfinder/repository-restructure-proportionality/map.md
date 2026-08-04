@@ -44,11 +44,9 @@ deferred, and provide a proportionate migration and acceptance contract.
 - [Choose the minimum viable Collection tree and distribution contract](01-choose-the-minimum-viable-collection-tree-and-distribution-contract.md) — Use the conventional flat-standalone/one-level-suite tree, human-maintained indexes and contribution guidance, two scoped contexts, and complete-suite distribution through `npx skills` and the existing Claude plugin without structural manifests or registries.
 - [Define the direct shared and runtime dependency contract](02-define-the-direct-shared-and-runtime-dependency-contract.md) — Make every installed member self-contained, localize state and restart contracts, remove the runtime shared directory and dependency framework, bundle `generate-images`, keep external preflights owner-local, and defer focused-install guarantees until an explicit extraction.
 - [Choose the active artifact migration boundary](03-choose-the-active-artifact-migration-boundary.md) — Move active Skills, owner documentation, existing evals, verification, and required adapters under the simplified suite contract while leaving planning history, archives, and the prototype in place and preserving approved image bytes.
+- [Define proportionate acceptance and deferred-complexity triggers](04-define-proportionate-acceptance-and-deferred-complexity-triggers.md) — Keep permanent CI focused on existing Presentation behavior and bundle reproducibility, require one-time migration evidence for identity, distribution, paths, and hashes, and reintroduce deferred machinery only after concrete repeated needs.
 
 ## Not yet specified
-
-- The final wording needed to supersede or amend the existing implementation issue
-  and draft pull request depends on the revised target and acceptance contract.
 
 ## Out of scope
 
