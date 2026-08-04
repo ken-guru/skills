@@ -31,8 +31,9 @@ deferred, and provide a proportionate migration and acceptance contract.
   unless this review finds present evidence that one is necessary.
 - Keep a localized portability fix for `generate-images`, including a reproducible
   self-contained runtime bundle.
-- Move active Presentation-owned artifacts, but leave completed planning history and
-  archives at their existing paths.
+- Move active Presentation-owned artifacts and leave useful completed planning
+  history and archives at their existing paths, except for the superseded original
+  restructuring plan removed by the post-approval amendment.
 - Replace exhaustive structural acceptance with behavior-focused evidence.
 - Planning only: no migration wave begins until this map closes with explicit approval.
 - GitHub issue 51 is paused without `ready-for-agent`; pull request 52 is a draft
@@ -47,6 +48,7 @@ deferred, and provide a proportionate migration and acceptance contract.
 - [Define proportionate acceptance and deferred-complexity triggers](04-define-proportionate-acceptance-and-deferred-complexity-triggers.md) — Keep permanent CI focused on existing Presentation behavior and bundle reproducibility, require one-time migration evidence for identity, distribution, paths, and hashes, and reintroduce deferred machinery only after concrete repeated needs.
 - [Draft the revised proportionate restructuring specification](05-draft-the-revised-proportionate-restructuring-specification.md) — Replace the withdrawn dependency/governance design with one review-ready specification and normative Migration Manifest covering the minimum tree, self-contained runtime, active cutover, three checkpoints, proportionate acceptance, and evidence triggers.
 - [Approve the revised proportionate restructuring specification](06-approve-the-revised-proportionate-restructuring-specification.md) — Approve the proportionate specification and Migration Manifest as the sole implementation authority after confirming their benefits, trade-offs, deferred-complexity triggers, migration detail, and acceptance evidence.
+- [Remove the superseded original restructuring plan](07-remove-the-superseded-original-restructuring-plan.md) — Remove the contradictory original plan from the active tree before migration while preserving its complete record at immutable commit `8c87d6b`.
 
 ## Not yet specified
 

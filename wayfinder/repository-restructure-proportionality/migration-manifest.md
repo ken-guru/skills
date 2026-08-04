@@ -1,8 +1,10 @@
 # Proportionate restructuring Migration Manifest
 
 This is the normative path-family handoff for the revised minimum viable Collection.
-The earlier manifest under `wayfinder/repository-restructure/` is historical and must
-not guide implementation.
+The superseded plan and earlier manifest formerly under
+`wayfinder/repository-restructure/` are removed from the active tree and must not
+guide implementation. Their complete record remains in the
+[immutable pre-removal tree](https://github.com/ken-guru/skills/tree/8c87d6b/wayfinder/repository-restructure).
 
 ## Actions
 
@@ -54,7 +56,7 @@ not guide implementation.
 | Active verification `.generated/`, `reports/`, `node_modules/` | Same names under target package | Regenerate | Do not copy local ignored contents | Clean install/render regenerates ignored output |
 | `IMPLEMENTATION_SUMMARY.md` and `VERIFICATION_CHECKLIST.md` | Same paths | Retain | Repair only migration-caused broken links | Historical prose and structure unchanged |
 | 28 completed pre-restructuring Wayfinder files | Same paths | Retain | Repair only migration-caused broken links | No relocation or modernization |
-| `wayfinder/repository-restructure/**` | Same paths | Retain | Treat prior decisions and manifest as historical; keep their immutable original-spec pointer | Links to historical evidence resolve |
+| `wayfinder/repository-restructure/**` | Immutable Git history only | Retire | Remove the superseded plan from the active tree; preserve commit `8c87d6b` as its historical record | Directory is absent; maintained documents use the immutable tree link |
 | `wayfinder/repository-restructure-proportionality/**` | Same paths | Retain | Preserve revised decisions and normative manifest | Final approval links resolve |
 | `docs/specs/repository-restructure.md` | Same path | Retain, replace authority | Replace prior design with proportionate specification | Final human approval recorded |
 | Empty old `skills/shared/`, `evals/`, flat Skill paths, and active verification paths | None | Retire | Remove only after accounting and link scans | No obsolete active authority remains |

@@ -311,7 +311,7 @@ not add evals for the other four Skills during restructuring.
 Keep at existing paths:
 
 - the 28 completed pre-restructuring Wayfinder files;
-- both restructuring maps and their research;
+- the proportionality decision map, assessment, and Migration Manifest;
 - `IMPLEMENTATION_SUMMARY.md`;
 - `VERIFICATION_CHECKLIST.md`;
 - `verification/presentation-themes/prototype/` and its assets.
@@ -319,6 +319,13 @@ Keep at existing paths:
 Do not modernize historical prose or reorganize history. Repair only links that this
 migration newly breaks. Exclude historical material from stricter active-documentation
 rules.
+
+Remove the superseded original restructuring plan at
+`wayfinder/repository-restructure/` from the active tree. Its full decision, research,
+inventory, and manifest record remains available in the
+[immutable pre-removal tree](https://github.com/ken-guru/skills/tree/8c87d6b/wayfinder/repository-restructure).
+It is not an implementation authority and creates no migration link-repair
+obligation.
 
 ## 10. Compatibility and evidence preservation
 
