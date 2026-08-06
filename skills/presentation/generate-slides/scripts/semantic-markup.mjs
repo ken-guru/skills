@@ -8,6 +8,8 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;');
 const lines = (value) =>
   (Array.isArray(value) ? value : [value]).map(escapeHtml).join('<br>');
+const optionalLabel = (value) =>
+  typeof value === 'string' && value.trim() ? `<p class="slot-label">${escapeHtml(value)}</p>` : '';
 const list = (items, tag = 'ul') =>
   `<div class="slot-body"><${tag}>\n${items.map((item) => `<li>${lines(item)}</li>`).join('\n')}\n</${tag}></div>`;
 const image = (slide) => {
@@ -27,7 +29,7 @@ function slideMarkup(slide, plan) {
     case 'section':
       return `${directive}\n\n<h1 class="slot-title">${lines(slide.title)}</h1>\n<p class="slot-context">${escapeHtml(slide.context)}</p>\n<p class="slot-orientation">${lines(slide.orientation)}</p>`;
     case 'text-only':
-      return `${directive}\n\n<h2 class="slot-heading">${lines(slide.heading)}</h2>\n<p class="slot-label">${escapeHtml(slide.label)}</p>\n${list(slide.body, 'ol')}`;
+      return `${directive}\n\n<h2 class="slot-heading">${lines(slide.heading)}</h2>\n${optionalLabel(slide.label)}\n${list(slide.body, 'ol')}`;
     case 'text-plus-image':
       return `${directive}\n\n<h2 class="slot-heading">${lines(slide.heading)}</h2>\n${list(slide.body)}\n${image(slide)}\n<p class="slot-caption">${lines(slide.caption)}</p>`;
     case 'data':
