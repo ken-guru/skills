@@ -70,3 +70,16 @@ test('Semantic Slide Markup blocks missing meaningful media alternatives', () =>
     { code: 'MISSING_MEDIA_ALTERNATIVE' },
   );
 });
+
+test('text-only slides omit absent and blank labels while preserving meaningful labels', () => {
+  const render = (label) =>
+    renderPresentationMarkdown({
+      frontMatter: { marp: true, theme: 'editorial' },
+      manifest,
+      slides: [{ heading: 'Heading', label, body: [['Body']] }],
+    });
+
+  assert.doesNotMatch(render(undefined), /slot-label|undefined/);
+  assert.doesNotMatch(render(' \t\n '), /slot-label/);
+  assert.match(render('Meaningful label'), /<p class="slot-label">Meaningful label<\/p>/);
+});
