@@ -20,6 +20,28 @@ Update the root and suite indexes, relevant behavioral checks, and externally fi
 distribution paths together. Shared tooling requires demonstrated repetition across
 independent owners; do not add a registry, schema, or checker for hypothetical scale.
 
+## Dependency updates and rendered-gallery fingerprints
+
+The Presentation Theme verification suite fingerprints its source inputs, including
+the suite `package-lock.json`. A dependency-only change can therefore invalidate
+the approved gallery manifest even when no CSS or rendering code changed. A stale
+fingerprint is a required follow-up, not a reason to weaken the check.
+
+For Dependabot updates in `skills/presentation/verification/presentation-themes`:
+
+1. Install from the lockfile with `npm ci`.
+2. Regenerate the gallery fixtures and renders with `npm run fixtures:gallery` and
+   `npm run render:gallery`.
+3. Review the rendered output. Update the tracked source fingerprint in
+   `skills/presentation/docs/assets/presentation-themes/manifest.json` only after
+   confirming the reviewed gallery remains valid.
+4. Run `npm run check-gallery` and `npm test`, then include the manifest update in
+   the same PR as the lockfile update.
+
+Do not commit the generated `reports/` or `.generated/` files. If the dependency
+update changes the rendered pixels, stop and obtain explicit visual approval before
+replacing the public gallery assets.
+
 ## Extracting a suite member
 
 When a member becomes independently distributed:
