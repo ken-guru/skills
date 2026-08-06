@@ -1,5 +1,5 @@
 .vscode/
 .envrc
-verification/presentation-themes/.generated/
-verification/presentation-themes/reports/
-verification/presentation-themes/node_modules/
+skills/presentation/verification/presentation-themes/.generated/
+skills/presentation/verification/presentation-themes/reports/
+skills/presentation/verification/presentation-themes/node_modules/

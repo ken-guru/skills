@@ -23,11 +23,11 @@ jobs:
 
     defaults:
       run:
-        working-directory: verification/presentation-themes
+        working-directory: skills/presentation/verification/presentation-themes
 
     env:
       PRESENTATION_THEME_BROWSER: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
-      PRESENTATION_THEME_MARP: ${{ github.workspace }}/verification/presentation-themes/node_modules/.bin/marp
+      PRESENTATION_THEME_MARP: ${{ github.workspace }}/skills/presentation/verification/presentation-themes/node_modules/.bin/marp
 
     steps:
       - name: Check out repository
@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: verification/presentation-themes/package-lock.json
+          cache-dependency-path: skills/presentation/verification/presentation-themes/package-lock.json
 
       - name: Install Ghostscript
         run: brew install ghostscript
@@ -57,6 +57,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: presentation-theme-acceptance-reports
-          path: verification/presentation-themes/reports/
+          path: skills/presentation/verification/presentation-themes/reports/
           if-no-files-found: ignore
           retention-days: 7

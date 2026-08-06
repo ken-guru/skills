@@ -22,7 +22,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: verification/presentation-themes
+        working-directory: skills/presentation/verification/presentation-themes
 
     steps:
       - name: Check out repository
@@ -33,10 +33,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: verification/presentation-themes/package-lock.json
+          cache-dependency-path: |
+            skills/presentation/verification/presentation-themes/package-lock.json
+            skills/presentation/generate-images/scripts/package-lock.json
 
       - name: Install pinned dependencies
         run: npm ci
+
+      - name: Install image generator build dependencies
+        run: npm ci
+        working-directory: skills/presentation/generate-images/scripts
+
+      - name: Verify reproducible image generator bundle
+        run: npm run check:bundle
+        working-directory: skills/presentation/generate-images/scripts
 
       - name: Run contract and documentation tests
         run: npm test
