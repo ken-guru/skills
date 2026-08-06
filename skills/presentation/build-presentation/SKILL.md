@@ -20,8 +20,45 @@ This skill orchestrates `discover-presentation`, `structure-agenda`, `generate-s
 Before proceeding:
 1. Confirm the project folder is readable.
 2. If it already exists, require `PROJECT.json` to identify a Presentation Project.
+3. From the project folder, run `git rev-parse --is-inside-work-tree`. If it
+   succeeds, enable Git checkpoints for this run. If it fails, tell the user
+   before making presentation changes that they will not be able to revisit
+   persisted states from the development cycle, then continue without commits.
 
 Each invoked phase owns the preflight for the external tools it actually uses.
+
+## Git checkpoints
+
+When Git checkpoints are enabled, snapshot the project folder's Git status
+before invoking a phase. After a phase completes, inspect the status again.
+If that phase changed presentation files, stage only the files it changed and
+create one commit before offering or invoking the next phase. Use a message
+that names the completed phase, for example:
+
+```
+presentation: complete discovery
+presentation: complete agenda structure
+presentation: complete slide generation
+presentation: complete image generation
+presentation: complete diagram generation
+presentation: complete proofreading
+```
+
+Never stage pre-existing, unrelated, or secret-bearing changes. A phase that
+makes no changes creates no commit. If Git cannot create a checkpoint, report
+the exact failure and do not advance to a later phase until the user has chosen
+how to proceed without that persisted state.
+
+When a rewrite sends the project back to an earlier phase, finish the restart
+guard and commit its confirmed file changes before re-invoking that phase. Make
+the reset evident in the message, for example:
+
+```
+presentation: reset to agenda structure — revise narrative
+```
+
+Then checkpoint the re-run phase on completion, as usual. In a non-Git project,
+repeat the persistence limitation whenever a restart is confirmed.
 
 ## State detection
 
@@ -94,6 +131,11 @@ Options:
 ## Sequential invocation
 
 When calling phase skills in sequence, pass the project folder path. Each skill reads `DISCOVERY.json` and `PROJECT.json` to find all paths and settings.
+
+After each successful phase invocation, apply the Git checkpoint protocol before
+continuing the pipeline. This includes `discover-presentation`,
+`structure-agenda`, `generate-slides`, `generate-images`,
+`generate-diagrams`, and `proofread-presentation`.
 
 The full pipeline is:
 ```
