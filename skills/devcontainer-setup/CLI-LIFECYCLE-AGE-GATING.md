@@ -1,0 +1,31 @@
+# Age-gating auto-updated agent tooling
+
+Agent coding tools (CLIs, MCP servers, package managers) tend to auto-update on every session or container start, because staying current matters for compatibility and features. That auto-update path is also a live supply-chain surface: a registry, a release feed, or a signed manifest can serve a just-published version that hasn't had time for the community to notice something wrong with it. A pinned rebuild floor (reviewed once, changed only through deliberate review) covers the baseline, but the runtime auto-update path needs its own, narrower mitigation, since it runs unattended and unreviewed on every start.
+
+## The pattern: minimum release age, fail-safe on uncertainty
+
+Require every auto-updated tool to declare a minimum release age (in days). On each update cycle, once a newer version is known to exist, only install a candidate that has been public for at least that many days. This buys a review window: most rapidly-discovered supply-chain incidents surface within a few days of publication, so a tool that waits that long before adopting a new release skips the highest-risk period without giving up on staying current indefinitely.
+
+The critical design decision is what happens when the release's age cannot be determined at all, not "is it too young" but "how old even is it." A registry lookup can fail. A changelog page's markup can change shape. A timestamp can fail to parse. The correct behavior in every one of these cases is identical to the "too young" case: hold, do not update. Put plainly, absence of proof of age must be treated as insufficient age, never as a pass. Any code path that treats "I couldn't check" as equivalent to "it's probably fine" turns the mitigation into decoration: an attacker (or a broken parser) doesn't need to defeat the age check, only to make it fail to answer.
+
+A gate built this way naturally produces more than one kind of "not updating right now," and it's worth surfacing the difference rather than collapsing it into one generic message:
+
+- A specific candidate is known and its age is known, but it hasn't cleared the bar yet. This resolves on its own once enough time passes.
+- Release history is available, but nothing in the known window clears the bar (every candidate is either too young or no newer than what's installed). Also self-resolving, once a new release appears or an existing one ages in.
+- The age of even the newest known release could not be established. This will recur indefinitely until the underlying lookup is fixed, and deserves different operational attention than the first two.
+
+Distinguishing these in whatever status output the update process produces (log lines, exit codes, a status file) turns "nothing happened this cycle" into an actionable signal instead of a shrug.
+
+## Falling back gracefully, where the distribution channel allows it
+
+For tools distributed through a registry with full version history (an npm-style package registry, for instance), a release too young to install doesn't have to mean holding at the current version: the gate can walk backward through release history and install the newest release that both postdates the currently-installed version and clears the age bar. This keeps the tool moving forward even while the true latest release is still in its review window.
+
+Not every distribution channel supports this. A tool whose only verified, checksummed download is "whatever the vendor's manifest currently calls latest" (no per-version pinning, no historical download endpoint) cannot fall back to an older release even if it wanted to: there's nothing safe to fall back to. For that channel shape, the gate degenerates to a binary question: is the current latest old enough? If yes, install it; if no, hold. That's not a shortcoming in the gate's implementation, it's an honest reflection of what the distribution channel actually offers. Don't build in a fallback branch that has nowhere to go; document the asymmetry instead, so a future maintainer doesn't waste time trying to add it.
+
+## Probe the real operation, not a proxy signal for it
+
+This lesson generalizes past age-gating specifically: when a health check needs to confirm that some privileged or sandboxed operation will actually work at runtime, checking for a proxy signal (a binary's presence on `PATH`, a security-module profile being loaded, a config flag being set) is not the same as confirming the operation itself succeeds, and the gap between the two shows up exactly on the hosts you didn't test against.
+
+A binary being present says nothing about whether it can actually perform the privileged operation it needs (namespace creation, a specific mount, a syscall a virtualization layer might filter). A security-module profile being loaded says nothing on a host where that security module isn't exposed to the container at all, and a naive check that requires the profile will produce a false failure there even though the equivalent protection is enforced a different way. The fix is to exercise the real operation in the health check itself: actually create the namespace, actually attempt the mount, actually run the minimal version of whatever the tool needs at runtime, and treat a security-module profile check (where one is available) as an additional, conditional layer on top of that, not a replacement for it. A host that doesn't expose the security module at all should downgrade that specific check to a warning rather than fail outright, since its absence isn't itself evidence of a broken sandbox.
+
+The general principle: whenever a health check exists to answer "will X work," design it to attempt (a safe, minimal version of) X, not to inspect indirect evidence that X is likely to work. Indirect evidence is cheaper to check but only as reliable as the assumption linking it to the real question, and that assumption is exactly what varies across hosts, containers, and virtualization layers.

@@ -1,0 +1,49 @@
+{
+  "_comment": "Skeleton shape for an auto-updated developer-tool manifest. One entry per tool; the age-gate check script reads this file directly. Replace every <placeholder> before use.",
+
+  "startupUpdate": {
+    "timeoutSeconds": 120
+  },
+
+  "<tool-a-key>": {
+    "binary": "<tool-a-binary-name>",
+    "installer": "registry-package",
+    "package": "<registry-package-name>",
+    "version": "<pinned-baseline-version>",
+    "versionPolicy": "auto-update",
+    "minimumReleaseAgeDays": 3,
+    "versionCheck": {
+      "registry": "https://<package-registry-host>"
+    }
+  },
+
+  "<tool-b-key>": {
+    "binary": "<tool-b-binary-name>",
+    "installer": "pinned-release",
+    "version": "<pinned-baseline-version>",
+    "versionPolicy": "auto-update",
+    "minimumReleaseAgeDays": 3,
+    "releaseManifest": "https://<vendor-host>/manifests/{platform}.json",
+    "releases": {
+      "<platform-a>": {
+        "url": "https://<vendor-host>/releases/<pinned-baseline-version>/<platform-a>.tar.gz",
+        "sha512": "<expected-sha512-of-the-pinned-archive>"
+      },
+      "<platform-b>": {
+        "url": "https://<vendor-host>/releases/<pinned-baseline-version>/<platform-b>.tar.gz",
+        "sha512": "<expected-sha512-of-the-pinned-archive>"
+      }
+    }
+  },
+
+  "<tool-c-key>": {
+    "binary": "<tool-c-binary-name>",
+    "installer": "vendor-feature",
+    "version": "<pinned-baseline-version>",
+    "versionPolicy": "auto-update",
+    "minimumReleaseAgeDays": 3,
+    "versionCheck": {
+      "registry": "https://<package-registry-host>"
+    }
+  }
+}

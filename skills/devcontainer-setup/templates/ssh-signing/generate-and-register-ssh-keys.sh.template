@@ -1,0 +1,168 @@
+#!/bin/bash
+# Skeleton: generate and register a dual-purpose SSH key pair (transport +
+# signing) against a Git hosting platform's API, with content-based
+# idempotency checks so this script is safe to run on every environment
+# startup, not just the first time.
+#
+# Fill in the placeholders marked TODO. This is a template, not a working
+# script: the API endpoints below use gh (GitHub CLI) syntax as an example
+# of the pattern, swap in your platform's equivalent (a GitLab token call,
+# a Bitbucket API call, etc).
+#
+# Key lessons encoded here (see the accompanying skill section for the
+# full explanation of each):
+#   1. Never reuse one key for both transport and signing; most platforms
+#      reject a key as a signing key if it is already registered elsewhere.
+#   2. Check "is this already registered" by comparing key CONTENT, not
+#      the human-readable title/label. A title survives key rotation
+#      (e.g. a wiped persistent volume regenerating a new key under the
+#      same name); content does not.
+#   3. If your platform's CLI has both a bundled JSON filter flag and a
+#      real standalone JSON-filtering binary, don't assume the bundled
+#      flag supports the standalone tool's full flag set (e.g. `--arg`
+#      for variable injection). Pipe to the standalone tool when you need
+#      that.
+
+set -euo pipefail
+
+# --- Configuration -----------------------------------------------------
+
+# TODO: identify this environment (hostname, CI runner id, etc.) so keys
+# from different machines/environments are distinguishable and revocable
+# individually.
+ENV_LABEL="${ENV_LABEL:?set ENV_LABEL to a stable identifier for this environment}"
+
+TRANSPORT_KEY_TITLE="example-project-devcontainer@${ENV_LABEL}"
+SIGNING_KEY_TITLE="example-project-devcontainer-signing@${ENV_LABEL}"
+
+TRANSPORT_KEY_PATH="$HOME/.ssh/id_ed25519"
+SIGNING_KEY_PATH="$HOME/.ssh/id_ed25519_signing"
+
+# TODO: replace with your actual repository/org identifier.
+REPO="example-org/example-repo"
+
+# --- Step 1: generate two keys, never one ------------------------------
+#
+# Two ED25519 keys, one per purpose. A single shared key will work for
+# transport registration and then be silently rejected (or rejected with
+# an unhelpful error) when you try to register the same public key as a
+# signing key on the same platform account.
+
+if [ ! -f "$TRANSPORT_KEY_PATH" ]; then
+  ssh-keygen -t ed25519 -C "$TRANSPORT_KEY_TITLE" -f "$TRANSPORT_KEY_PATH" -N ""
+fi
+chmod 600 "$TRANSPORT_KEY_PATH"
+chmod 644 "${TRANSPORT_KEY_PATH}.pub"
+
+if [ ! -f "$SIGNING_KEY_PATH" ]; then
+  ssh-keygen -t ed25519 -C "$SIGNING_KEY_TITLE" -f "$SIGNING_KEY_PATH" -N ""
+fi
+chmod 600 "$SIGNING_KEY_PATH"
+chmod 644 "${SIGNING_KEY_PATH}.pub"
+
+# --- Step 2: register the transport key, checked by CONTENT ------------
+#
+# This block is idempotent and rotation-safe. It is safe to run on every
+# startup because it never re-registers a key that's already correctly
+# registered, and it correctly detects and repairs a stale registration
+# left behind by a previous, now-replaced key.
+
+TRANSPORT_PUBKEY=$(cat "${TRANSPORT_KEY_PATH}.pub")
+# Extract just "<type> <base64-body>", dropping the trailing comment/title,
+# since the title is not part of what identifies the key cryptographically.
+TRANSPORT_KEY_BODY=$(echo "$TRANSPORT_PUBKEY" | awk '{print $1, $2}')
+
+# TODO: replace with your platform's "list registered deploy/transport
+# keys for this repo" API call. Below is illustrative gh-CLI-shaped
+# pseudocode for a GitHub-style deploy-keys endpoint.
+ALL_REGISTERED_KEYS=$(your_platform_cli api "repos/${REPO}/keys")
+
+# Content match: is the CURRENT key already registered correctly?
+existing_id=$(echo "$ALL_REGISTERED_KEYS" | jq -r \
+  --arg body "$TRANSPORT_KEY_BODY" \
+  '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id')
+
+if [ -n "$existing_id" ]; then
+  echo "Transport key already registered: $TRANSPORT_KEY_TITLE"
+else
+  # No content match. Check whether a STALE entry exists under the same
+  # title (this happens when a persistent volume holding the key was
+  # wiped and regenerated a new key under the same generation logic).
+  stale_id=$(echo "$ALL_REGISTERED_KEYS" | jq -r \
+    --arg title "$TRANSPORT_KEY_TITLE" \
+    '.[] | select(.title == $title) | .id')
+
+  if [ -n "$stale_id" ]; then
+    # TODO: replace with your platform's "delete a registered key by id"
+    # call.
+    your_platform_cli api "repos/${REPO}/keys/${stale_id}" -X DELETE
+    echo "Removed stale transport key (rotated): $TRANSPORT_KEY_TITLE"
+  fi
+
+  # TODO: replace with your platform's "register a new deploy/transport
+  # key" call.
+  your_platform_cli api "repos/${REPO}/keys" -X POST \
+    -f title="$TRANSPORT_KEY_TITLE" -f key="$TRANSPORT_PUBKEY" -F read_only=false
+  echo "Transport key registered: $TRANSPORT_KEY_TITLE"
+fi
+
+# --- Step 3: the signing key is a manual, human-driven step ------------
+#
+# Automating this typically requires an account-wide credential scope
+# broader than anything else this script needs (e.g. permission to modify
+# any signing key on the account, not just this project's). If the
+# signing key persists across restarts anyway, treat registering it as a
+# rare, one-time action a human performs once per environment, not
+# something this script does for them.
+#
+# The two-tier onboarding pattern:
+#   - A persisted MARKER FILE (not a "pending" flag, not an in-memory
+#     variable) is the single source of truth for "has the human done
+#     this yet". Presence of the marker means done; absence means not
+#     done. One file, one meaning, checked by presence.
+#   - The marker lives in the same persistent storage as the keys, so it
+#     resets exactly when the keys themselves would need re-registering,
+#     and not before or after.
+
+SIGNING_REGISTERED_MARKER="$HOME/.ssh/.signing-key-registered"
+
+if [ ! -f "$SIGNING_REGISTERED_MARKER" ]; then
+  echo ""
+  echo "ACTION REQUIRED: register your SSH signing key."
+  echo "  1. Open your platform's account-level SSH key settings page."
+  echo "  2. Add a new key of type SIGNING (not authentication/transport)."
+  echo "  3. Title: $SIGNING_KEY_TITLE"
+  echo "  4. Paste the public key below."
+  echo ""
+  cat "${SIGNING_KEY_PATH}.pub"
+  echo ""
+  echo "When done, dismiss this prompt so it doesn't reappear:"
+  echo "  touch $SIGNING_REGISTERED_MARKER"
+  echo ""
+fi
+
+# --- Step 4: always re-verify the automatable check, every run ---------
+#
+# Unlike the signing key's one-time human step, the transport key's
+# liveness is cheap to re-check and its failure mode (broken push/pull)
+# is high severity and easy to miss otherwise. Re-verify it every run,
+# unconditionally, ahead of any fast-path early exit driven by the
+# signing-key marker above. Do not gate this check behind the marker.
+
+deploy_id=$(your_platform_cli api "repos/${REPO}/keys" 2>/dev/null | jq -r \
+  --arg body "$TRANSPORT_KEY_BODY" \
+  '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id' || true)
+
+if [ -z "$deploy_id" ]; then
+  echo "WARNING: transport key not found on the platform. Push/pull will fail." >&2
+fi
+
+# --- Step 5: configure git to use each key for its one purpose ---------
+
+git config --global gpg.format ssh
+git config --global user.signingkey "${SIGNING_KEY_PATH}.pub"
+git config --global commit.gpgsign true
+
+# TODO: configure your SSH client config (~/.ssh/config) to offer the
+# TRANSPORT key, and only the transport key, for the hosting platform's
+# host. Do not add the signing key there; it is never used for transport.

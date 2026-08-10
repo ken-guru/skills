@@ -1,0 +1,61 @@
+services:
+  devcontainer:
+    build: .
+
+    # --- CAPABILITIES: narrowly scoped, never `privileged: true` ----------
+    # Grant only the specific capabilities a specific nested tool needs, and
+    # comment each one with which tool needs it and why. `privileged: true`
+    # would also satisfy these tools, but it grants every capability and
+    # device the kernel has, not just the ones actually in use: a much
+    # larger blast radius if anything running inside the container is ever
+    # compromised.
+    cap_add:
+      # Needed by the container's own outbound-firewall script to manage
+      # netfilter rules (creating/editing iptables and ipset entries).
+      - NET_ADMIN
+      - NET_RAW
+      # Needed only if you run a nested process-sandboxing tool (e.g. one
+      # that creates Linux user namespaces and mounts a private filesystem
+      # tree inside them). Some container runtimes, notably ones backed by
+      # a lightweight Linux VM rather than bare-metal Linux, don't expose
+      # the usual AppArmor escape hatch that a native host would use for
+      # this, so the nested tool needs SYS_ADMIN directly instead. Omit this
+      # entirely if you have no nested sandbox with this requirement.
+      - SYS_ADMIN
+    security_opt:
+      # Paired with SYS_ADMIN above: permits the nested sandbox's namespace
+      # syscalls and its mounts/pivot_root inside the namespace it creates,
+      # without making the whole container privileged. Omit if you omitted
+      # SYS_ADMIN above.
+      - seccomp=unconfined
+      - systempaths=unconfined
+    # --- END CAPABILITIES ---------------------------------------------------
+
+    volumes:
+      # --- WORKSPACE: bind mount, tied to the host directory -------------
+      # The project source lives here. It mirrors the host filesystem
+      # exactly and disappears the moment the host directory does. This is
+      # intentional; the workspace is not meant to be independently
+      # persistent from the code you're actually editing on the host.
+      - ..:/workspace
+
+      # --- CREDENTIALS AND OTHER PERSISTENT STATE: named volumes ---------
+      # Anything that must survive a container rebuild but is NOT the
+      # project source (tool auth, tool config, shell history, generated
+      # SSH keys) belongs in its own named volume, one volume per
+      # independent concern. This makes each piece of state independently
+      # wipeable: rotating one tool's credentials never has to touch
+      # another tool's, and neither has to touch the workspace. Resist the
+      # temptation to fold multiple concerns into one shared volume; the
+      # whole point is that "wipe just this one thing" stays possible.
+      - your-app-example-tool-config:/home/appuser/.your-tool
+      - your-app-example-shell-history:/commandhistory
+      - your-app-example-ssh-keys:/home/appuser/.ssh
+      # --- END CREDENTIALS AND OTHER PERSISTENT STATE ----------------------
+
+    command: sleep infinity
+
+volumes:
+  your-app-example-tool-config:
+  your-app-example-shell-history:
+  your-app-example-ssh-keys:

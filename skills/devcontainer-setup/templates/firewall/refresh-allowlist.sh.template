@@ -1,0 +1,72 @@
+#!/bin/bash
+# Template: periodic allowlist refresh for CDN-backed domains.
+#
+# Companion to init-firewall.sh. Launched as a background loop once
+# init-firewall.sh has built the initial allowlist (e.g. from a startup
+# hook: `init-firewall.sh && refresh-allowlist.sh &`). Re-resolves every
+# domain the firewall depends on and swaps the live ipset atomically, so
+# IPs behind a rotating CDN don't go stale mid-session.
+#
+# Two rules this script exists to enforce:
+#   1. Rebuild the FULL allowlist every cycle, not just the domains that
+#      motivated adding this loop in the first place. A partial rebuild
+#      silently drops everything else the init script added.
+#   2. If a required fetch fails mid-cycle, skip the swap and keep serving
+#      the previous set. Never swap in a set built from partial data.
+
+set -euo pipefail
+
+INTERVAL=300  # seconds between refresh cycles
+
+# Optional: same manifest-derivation pattern as init-firewall.sh, kept in
+# sync by construction because both scripts source the same helper instead
+# of hand-listing these domains twice.
+TOOL_DOMAINS=()
+
+# This MUST mirror the domain list in init-firewall.sh in full. A shared
+# domain-list file or a common sourced helper is strongly preferred over
+# keeping two independent copies in sync by hand -- two independently
+# maintained copies of "the allowlist" will drift the first time someone
+# updates only one of them, and because this loop does a full rebuild each
+# cycle, that drift silently drops entries within one INTERVAL of the edit,
+# not gradually.
+DOMAINS=(
+    "registry.example-package-manager.org"
+    "api.example-provider.com"
+    "example.com"
+    "docs.example.com"
+    "${TOOL_DOMAINS[@]}"
+)
+
+while true; do
+    sleep "$INTERVAL"
+
+    ipset create allowed-domains-new hash:net 2>/dev/null || ipset flush allowed-domains-new
+
+    # Re-fetch any provider CIDR ranges into the scratch set.
+    provider_ranges=$(curl -s --connect-timeout 10 https://api.example-provider.com/meta 2>/dev/null || true)
+    if ! echo "$provider_ranges" | jq -e '.web and .api' >/dev/null 2>&1; then
+        echo "WARN: refresh-allowlist: failed to fetch example-provider ranges, skipping this cycle" >&2
+        ipset destroy allowed-domains-new 2>/dev/null || true
+        continue
+    fi
+    while read -r cidr; do
+        [[ "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || continue
+        ipset add allowed-domains-new "$cidr" -exist 2>/dev/null || true
+    done < <(echo "$provider_ranges" | jq -r '(.web + .api)[]')
+
+    # Re-resolve every plain domain into the scratch set.
+    for domain in "${DOMAINS[@]}"; do
+        ips=$(dig +noall +answer A "$domain" 2>/dev/null | awk '$4 == "A" {print $5}')
+        while read -r ip; do
+            [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || continue
+            ipset add allowed-domains-new "$ip" -exist 2>/dev/null || true
+        done < <(echo "$ips")
+    done
+
+    # Atomic swap: the live set is never empty, partial, or inconsistent
+    # from the firewall rule's point of view. Only reachable once every
+    # fetch above succeeded, thanks to the `continue` on failure above.
+    ipset swap allowed-domains-new allowed-domains
+    ipset destroy allowed-domains-new
+done

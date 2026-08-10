@@ -1,0 +1,158 @@
+#!/bin/bash
+# Template: self-bootstrapping devcontainer firewall init script.
+#
+# Runs once, early in container startup. Builds a deny-by-default outbound
+# firewall with an explicit allowlist. Structurally realistic but uses
+# placeholder domains; adapt the domain list and any provider-specific CIDR
+# fetch to your own project before use.
+#
+# Companion script: refresh-allowlist.sh (periodic re-resolution for
+# CDN-backed domains, atomic ipset swap).
+
+set -euo pipefail
+IFS=$'\n\t'
+
+# --- Step 1: reset to permissive BEFORE touching anything else -------------
+#
+# `iptables -F` flushes rules but not the default chain *policies*. If a
+# previous run of this script died after tightening OUTPUT to DROP (near the
+# end of this script) but before the allowlist was fully built, every later
+# run would inherit that DROP policy -- including this script's own
+# bootstrap network calls below, which need network access to build the
+# allowlist that would let them through. That is a permanent deadlock with
+# no way to recover except editing the rules by hand.
+#
+# Starting every run from ACCEPT guarantees the script can always bootstrap
+# itself, no matter how the previous run ended.
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+
+# Flush existing rules and any leftover allowlist set from a prior run.
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+ipset destroy allowed-domains 2>/dev/null || true
+
+# Allow DNS and loopback before any restrictions apply.
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A INPUT -p udp --sport 53 -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# --- Step 2: build the allowlist set ----------------------------------------
+
+ipset create allowed-domains hash:net
+
+# Optional: pull in a provider's published CIDR ranges instead of hand-listing
+# every IP for a host with well-known address blocks (a package registry, a
+# git forge, a cloud provider). Example shape, using a placeholder provider
+# that publishes ranges as JSON:
+echo "Fetching example-provider IP ranges..."
+provider_ranges=$(curl -s --connect-timeout 10 https://api.example-provider.com/meta)
+if [ -z "$provider_ranges" ]; then
+    echo "ERROR: failed to fetch example-provider IP ranges"
+    exit 1
+fi
+if ! echo "$provider_ranges" | jq -e '.web and .api' >/dev/null; then
+    echo "ERROR: example-provider meta response missing required fields"
+    exit 1
+fi
+while read -r cidr; do
+    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+        echo "ERROR: invalid CIDR range from example-provider meta: $cidr"
+        exit 1
+    fi
+    ipset add allowed-domains "$cidr" -exist
+done < <(echo "$provider_ranges" | jq -r '(.web + .api)[]')
+
+# Optional: derive a sub-list of domains from a manifest file instead of
+# hand-listing them here (see the "manifest-derived domain lists" pattern in
+# the accompanying skill section). Example:
+#   mapfile -t TOOL_DOMAINS < <(jq -r '.tools[].networkAllowlist[]?.host' /path/to/tool-manifest.json)
+TOOL_DOMAINS=()
+
+# Resolve and add plain domains. Replace this list with your project's own.
+for domain in \
+    "registry.example-package-manager.org" \
+    "api.example-provider.com" \
+    "example.com" \
+    "docs.example.com" \
+    "${TOOL_DOMAINS[@]}"; do
+    echo "Resolving $domain..."
+    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+    if [ -z "$ips" ]; then
+        echo "WARN: failed to resolve $domain, skipping"
+        continue
+    fi
+    while read -r ip; do
+        if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "ERROR: invalid IP from DNS for $domain: $ip"
+            exit 1
+        fi
+        ipset add allowed-domains "$ip" -exist
+    done < <(echo "$ips")
+done
+
+# --- Step 3: host and desktop-runtime bridge networks -----------------------
+
+HOST_IP=$(ip route | grep default | cut -d" " -f3)
+if [ -z "$HOST_IP" ]; then
+    echo "ERROR: failed to detect host IP"
+    exit 1
+fi
+HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
+iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
+iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
+
+# Some desktop container runtimes route port-forwarded traffic through a
+# separate host bridge (commonly resolvable via a well-known internal
+# hostname) rather than through the ordinary container bridge network used
+# above. Without a rule for it, mapped ports can be unreachable from the
+# host even though the runtime reports them as bound. This resolves that
+# bridge hostname and only adds a rule if it differs from the network
+# already detected above; on runtimes with no such bridge this is a no-op.
+BRIDGE_HOST_IP=$(dig +short host.docker.internal 2>/dev/null | grep -E '^[0-9]+\.' | tail -1)
+if [ -n "$BRIDGE_HOST_IP" ] && [ "$BRIDGE_HOST_IP" != "$HOST_IP" ]; then
+    BRIDGE_HOST_NETWORK=$(echo "$BRIDGE_HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
+    echo "Desktop runtime host bridge detected: $BRIDGE_HOST_NETWORK"
+    iptables -A INPUT -s "$BRIDGE_HOST_NETWORK" -j ACCEPT
+    iptables -A OUTPUT -d "$BRIDGE_HOST_NETWORK" -j ACCEPT
+else
+    echo "No desktop runtime host bridge detected"
+fi
+
+# --- Step 4: tighten to deny-by-default -------------------------------------
+
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m set --match-set allowed-domains dst -j ACCEPT
+iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
+
+# --- Step 5: self-verify -----------------------------------------------------
+#
+# Every individual rule-install command above can exit 0 while the net
+# effect of the rule set is still wrong (ordering mistakes, an ipset that
+# failed to populate). Close the loop with two live checks: a domain that
+# must be blocked, and a domain that must be reachable.
+echo "Verifying firewall rules..."
+if curl --connect-timeout 5 https://blocked.example.com >/dev/null 2>&1; then
+    echo "ERROR: firewall verification failed, reached a domain that should be blocked"
+    exit 1
+else
+    echo "OK: blocked domain correctly unreachable"
+fi
+
+if ! curl --connect-timeout 5 https://api.example-provider.com >/dev/null 2>&1; then
+    echo "ERROR: firewall verification failed, could not reach an allowed domain"
+    exit 1
+else
+    echo "OK: allowed domain correctly reachable"
+fi
+
+echo "Firewall configuration complete"

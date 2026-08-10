@@ -1,0 +1,62 @@
+# --- BUILD TIME: no firewall exists yet -----------------------------------
+# This stage runs during `docker build`. There is no outbound firewall at
+# this point in the container's life, so this is the correct (and only
+# fully safe) place for anything that needs broad, unpredictable network
+# access: OS package installs, anything fetched from a distribution mirror.
+#
+# Pin the exact base-image tag (a specific release codename), not a
+# floating "latest"-style alias. A floating tag can drift past a boundary
+# where one of your other tools' own vendored dependencies (a browser
+# binary, a prebuilt CLI release) has no build published for the new
+# codename yet. Re-verify that matrix deliberately when you do move the
+# pin; don't let it move on its own between rebuilds.
+FROM your-registry/your-base-image:SPECIFIC-VERSION-TAG
+
+# Anything your runtime firewall itself depends on (its own packages, its
+# own tooling) MUST be installed here, not in a runtime setup script. If
+# it's installed later, at runtime, after the firewall is already
+# enforcing, the firewall will block the package-manager request needed
+# to install the firewall's own dependencies. This is the single most
+# common way this ordering rule gets violated by accident.
+RUN your-package-manager update && your-package-manager install -y --no-install-recommends \
+    firewall-dependency-1 firewall-dependency-2 jq \
+    # Keep a general-purpose scripting runtime installed even if no script
+    # in *your* repo calls it, if an AI coding agent or another interactive
+    # user of this container is a real consumer of ad hoc inline scripting.
+    # A repo-only usage audit will never see that consumer; document why
+    # inline so a later cleanup pass doesn't remove it for looking unused.
+    general-purpose-scripting-runtime \
+    && your-package-manager clean
+
+# --- END BUILD TIME ---------------------------------------------------------
+
+
+# --- EARLY RUNTIME SETUP: still before the firewall initializes -----------
+# Your devcontainer setup likely has an early lifecycle hook (a
+# "postCreate"-style command) that runs once, before whatever later hook
+# starts the firewall. Anything placed in that early hook still has open
+# network access, so it's the second safe place for a broad-access step
+# that specifically needs a runtime-known value (target architecture, a
+# version pin you want to bump without a full image rebuild) rather than a
+# static build-time install:
+#
+#   - downloading a large versioned binary release directly from its
+#     project's release host
+#   - installing a vendored browser or runtime binary for a
+#     browser-automation or testing tool
+#
+# The property that matters is not "runs in a RUN layer" vs. "runs in a
+# shell script", it's "runs before the firewall exists." Put these in
+# whichever phase (build-time layer above, or this early setup hook) fits
+# how you want to manage the version pin.
+# --- END EARLY RUNTIME SETUP ------------------------------------------------
+
+
+# --- RUNTIME, FIREWALL ACTIVE: everything after this point is restricted --
+# Once your later lifecycle hook (a "postStart"-style command) has run the
+# firewall-initialization script, only allowlisted destinations are
+# reachable. Any step that needs network access from here on must have its
+# exact destination host added to that allowlist first: there is no safe
+# way to "temporarily" bypass the firewall for a step that runs after it
+# has started enforcing.
+# --- END RUNTIME, FIREWALL ACTIVE -------------------------------------------

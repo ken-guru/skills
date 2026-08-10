@@ -12,7 +12,9 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 ## Standalone Skills
 
-No standalone Skills are currently published.
+| Skill | Description |
+|---|---|
+| [devcontainer-setup](skills/devcontainer-setup/SKILL.md) | Set up a devcontainer for agentic coding: deny-by-default network firewalling, staged MCP server activation across multiple CLIs, age-gated CLI/tool auto-updates, dual-key SSH commit signing, build ordering and capability scoping, and DX/database niceties |
 
 ## Repository structure
 
