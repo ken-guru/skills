@@ -1,6 +1,6 @@
 ---
 name: devcontainer-setup
-description: Set up a devcontainer for agentic coding with one or more AI CLIs: deny-by-default network firewalling, staged MCP server activation, age-gated CLI/tool auto-updates, dual-key SSH commit signing, container build ordering and capability scoping, and DX/database niceties. Use when adding a devcontainer to a project, sandboxing an agent's shell and network access, wiring up MCP servers or developer CLIs safely inside a container, or bundling a database service with the dev environment.
+description: "Set up a devcontainer for agentic coding with one or more AI CLIs: deny-by-default network firewalling, staged MCP server activation, age-gated CLI/tool auto-updates, dual-key SSH commit signing, container build ordering and capability scoping, and DX/database niceties. Use when adding a devcontainer to a project, sandboxing an agent's shell and network access, wiring up MCP servers or developer CLIs safely inside a container, or bundling a database service with the dev environment."
 ---
 
 # Devcontainer Setup for Agentic Coding
