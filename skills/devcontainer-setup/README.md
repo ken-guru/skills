@@ -56,10 +56,12 @@ Retrofit Contract vocabulary this implies, and each member's own SKILL.md for
 its exact detection mechanics.
 
 Where one Skill's output feeds another's (devcontainer-agentic-clis adds
-vendor-API domains to the allowlist devcontainer-firewall owns), that
-dependency is documented on the consuming Skill, not implied by install
-order — every member still works if installed and run alone, minus whatever
-a Skill it depends on would otherwise have provided.
+vendor-API domains to the allowlist devcontainer-firewall owns), the
+consuming Skill's Feature declares an `installsAfter` soft ordering hint on
+the other, never a hard `dependsOn` — every member still works installed
+and run alone, detecting and skipping the hand-off cleanly when the Skill
+it would otherwise feed isn't present. See
+[feature-conventions.md](docs/feature-conventions.md) for why.
 
 ## External prerequisites
 
@@ -78,6 +80,7 @@ list to be present.
 
 - [devcontainer-setup domain glossary](CONTEXT.md)
 - [Suite decisions](docs/adr/)
+- [Shared conventions for Add-on Skills authored as devcontainer Features](docs/feature-conventions.md)
 
 ## Security
 
