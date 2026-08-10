@@ -42,6 +42,17 @@ Once you have more than one tool with its own separate network requirements (eac
 
 This collapses what would otherwise be a third and fourth place a given host has to be kept in sync, back down to one. It also gives you a place to record *why* each host is allowed, which a bare domain string in a firewall script cannot carry. Make the helper fail loudly (non-zero exit) if the manifest is missing or parses to zero hosts, rather than silently proceeding with an empty allowlist for that tool: an allowlist helper that fails open defeats the point of having one.
 
+This isn't just advice to follow yourself: copy
+[`templates/firewall/allowed-domains.manifest.example.json`](templates/firewall/allowed-domains.manifest.example.json)
+for the manifest shape and
+[`templates/firewall/domains-from-manifest.sh.template`](templates/firewall/domains-from-manifest.sh.template)
+for the fail-loudly helper. Both `init-firewall.sh.template` and
+`refresh-allowlist.sh.template` already source this helper for their
+per-tool domain list, so starting from those two templates gets the
+manifest-derivation pattern by construction rather than as something you
+have to remember to add later, once a hand-maintained list has already
+started drifting.
+
 ## The read-only bind-mount gotcha
 
 If your firewall scripts live in the project's version-controlled source and get bind-mounted read-only into the running container (rather than copied in at image build time), be aware that a bind mount pins the underlying inode at container start. Pulling a newer version of the script into the host checkout after the container is already running does not necessarily update what the container sees: depending on your container runtime and how the edit was made, a mid-session re-run of the mounted script can execute a stale or even truncated copy.

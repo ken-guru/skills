@@ -67,11 +67,15 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr" -exist
 done < <(echo "$provider_ranges" | jq -r '(.web + .api)[]')
 
-# Optional: derive a sub-list of domains from a manifest file instead of
-# hand-listing them here (see the "manifest-derived domain lists" pattern in
-# the accompanying skill section). Example:
-#   mapfile -t TOOL_DOMAINS < <(jq -r '.tools[].networkAllowlist[]?.host' /path/to/tool-manifest.json)
-TOOL_DOMAINS=()
+# Derive the per-tool domain list from a shared manifest instead of
+# hand-listing them here, so this list and refresh-allowlist.sh's copy can
+# never drift apart -- both scripts source the same helper. See
+# allowed-domains.manifest.example.json and domains-from-manifest.sh.template
+# for the manifest shape and helper. domains-from-manifest.sh fails loudly
+# (non-zero exit) if the manifest is missing or empty, which this script lets
+# propagate via `set -e` rather than silently continuing with no tool domains.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+mapfile -t TOOL_DOMAINS < <("$SCRIPT_DIR/domains-from-manifest.sh")
 
 # Resolve and add plain domains. Replace this list with your project's own.
 for domain in \

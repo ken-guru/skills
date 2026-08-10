@@ -111,6 +111,28 @@ determine_age_gated_target() {
     fi
 }
 
+# self-updating tools (a CLI with its own built-in updater the container
+# can't see or stop): there is no update decision to gate here, so this is
+# NOT another branch of determine_age_gated_target. The job changes from
+# "decide when to update" to "detect that the tool already updated itself
+# outside this container's control, and say so." Compares the installed
+# binary's actual reported version against the baseline recorded in the
+# manifest when the tool was first wired up; a mismatch is drift, not an
+# error, and gets logged as a warning rather than held or installed.
+check_self_updating() {
+    local key=$1 binary=$2 baseline installed_version
+    baseline=$(manifest_value "m.$key.baselineVersion")
+    installed_version=$("$binary" --version 2>/dev/null) || {
+        echo "WARN $key: could not read installed version from '$binary --version'"
+        return
+    }
+    if [ "$installed_version" != "$baseline" ]; then
+        echo "DRIFT $key: baseline $baseline, now $installed_version (self-updated outside this container's control)"
+    else
+        echo "OK $key: matches recorded baseline $baseline"
+    fi
+}
+
 # Example driver for one tool. In a real script this loops over every
 # manifest entry, but the fail-safe branch is the part to preserve exactly:
 # a lookup failure (non-zero from determine_age_gated_target) HELDs, it never

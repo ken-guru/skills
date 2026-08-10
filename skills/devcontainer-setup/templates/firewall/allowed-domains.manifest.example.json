@@ -1,0 +1,21 @@
+{
+  "_comment": "One entry per tool/service with its own network needs. Both init-firewall.sh and refresh-allowlist.sh derive their domain list from this file via domains-from-manifest.sh, so a domain only ever needs to be added in one place. Record WHY each host is needed and where that requirement is documented upstream; a bare domain string in a firewall script can't carry that context, and the next person editing the allowlist needs it to know whether a domain is still needed at all.",
+
+  "tools": {
+    "<tool-a-key>": {
+      "domains": ["registry.example-package-manager.org"],
+      "reason": "Resolves and downloads packages this tool installs at runtime.",
+      "docs": "https://<link-to-upstream-docs-or-issue>"
+    },
+    "<tool-b-key>": {
+      "domains": ["api.example-vendor.com", "downloads.example-vendor.com"],
+      "reason": "API calls plus release-binary downloads for this CLI's self-update check.",
+      "docs": "https://<link-to-upstream-docs-or-issue>"
+    },
+    "<tool-c-key>": {
+      "domains": ["example.com", "docs.example.com"],
+      "reason": "Project's own git forge and documentation host.",
+      "docs": "https://<link-to-upstream-docs-or-issue>"
+    }
+  }
+}

@@ -9,8 +9,9 @@ once.
 | CLI | Config file location | Auto-detected by cwd? | Non-interactive mode quirks | Verified against version | Verification command used |
 |---|---|---|---|---|---|
 | Claude Code | | | | | |
-| Codex-style CLI | | | | | |
-| Antigravity-style CLI | | | | | |
+| Codex | | | | | |
+| Gemini CLI | | | | | |
+| Cursor CLI | | | | | |
 | (add more as needed) | | | | | |
 
 ## Checklist per CLI

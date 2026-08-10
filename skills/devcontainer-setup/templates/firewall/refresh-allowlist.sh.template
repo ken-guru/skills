@@ -18,25 +18,18 @@ set -euo pipefail
 
 INTERVAL=300  # seconds between refresh cycles
 
-# Optional: same manifest-derivation pattern as init-firewall.sh, kept in
-# sync by construction because both scripts source the same helper instead
-# of hand-listing these domains twice.
-TOOL_DOMAINS=()
-
-# This MUST mirror the domain list in init-firewall.sh in full. A shared
-# domain-list file or a common sourced helper is strongly preferred over
-# keeping two independent copies in sync by hand -- two independently
-# maintained copies of "the allowlist" will drift the first time someone
-# updates only one of them, and because this loop does a full rebuild each
-# cycle, that drift silently drops entries within one INTERVAL of the edit,
-# not gradually.
-DOMAINS=(
-    "registry.example-package-manager.org"
-    "api.example-provider.com"
-    "example.com"
-    "docs.example.com"
-    "${TOOL_DOMAINS[@]}"
-)
+# Same manifest-derivation pattern as init-firewall.sh, using the same
+# helper, kept in sync by construction rather than by hand: both scripts
+# source domains-from-manifest.sh instead of maintaining two independent
+# domain lists. Two hand-maintained copies of "the allowlist" drift the
+# first time someone updates only one of them, and because this loop does a
+# full rebuild each cycle, that drift silently drops entries within one
+# INTERVAL of the edit, not gradually. Any host that isn't in the manifest
+# (a CIDR-range provider fetched separately below, for instance) still
+# needs to be hand-listed here AND in init-firewall.sh, kept in sync the
+# same deliberate way.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+mapfile -t DOMAINS < <("$SCRIPT_DIR/domains-from-manifest.sh")
 
 while true; do
     sleep "$INTERVAL"

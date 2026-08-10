@@ -10,12 +10,15 @@ filesystem, and (usually) network access. The container itself has to be
 the security boundary, not just a convenience wrapper, because the thing
 running inside it can execute arbitrary commands on its own initiative.
 This skill collects the patterns that keep such a container both safe and
-pleasant to work in, across six areas that compound on each other. Work
+pleasant to work in, across seven areas that compound on each other. Work
 through the sections below roughly in build order: image and capabilities
 first, then network policy, then the tools that live inside that policy
 (MCP servers, CLI lifecycle, signing), then the smaller DX and database
-niceties. Each section below is a short summary; the full lessons,
-gotchas, and reasoning for each live in a linked root-level doc.
+niceties, then verification. Each section below is a short summary; the
+full lessons, gotchas, and reasoning for each live in a linked root-level
+doc. None of it is confirmed working until section 7's build-and-run step
+actually happens: every gotcha named in sections 1-6 was found by running
+the container, not by reading the generated files.
 
 ## 1. Container build ordering and capability scoping
 
@@ -34,14 +37,24 @@ needs instead of `privileged: true`.
 
 Copy [`templates/build/Dockerfile.skeleton`](templates/build/Dockerfile.skeleton)
 to your project's `Dockerfile` and fill in the placeholder base image,
-package manager calls, and firewall-dependency list. Copy
+package manager calls, and firewall-dependency list; it also creates the
+non-root user, pre-creates and chowns the paths any home-directory named
+volumes will mount into, points npm's global-install prefix somewhere that
+user can write to, and mirrors `PATH` into `/etc/profile.d` so it survives
+login shells too. Copy
 [`templates/build/docker-compose.skeleton.yml`](templates/build/docker-compose.skeleton.yml)
-to your compose file and adapt the `cap_add`/`security_opt` block to the
-capabilities your own firewall and any nested sandbox actually require,
-and split persistent state into one named volume per independent concern.
+to your compose file, set an explicit `name:` (Compose otherwise defaults
+to your `.devcontainer` directory's basename, which collides across every
+project that follows this same layout), adapt the `cap_add`/`security_opt`
+block to the capabilities your own firewall and any nested sandbox actually
+require, and split persistent state into one named volume per independent
+concern, keeping its home-directory mount paths in sync with the
+Dockerfile's `mkdir`+`chown` block.
 
-Full writeup, including the floating-base-image-tag trap and the
-scripting-runtime-for-the-agent gotcha: see
+Full writeup, including the floating-base-image-tag trap, the
+scripting-runtime-for-the-agent gotcha, named-volume ownership (and why a
+volume nested under the workspace bind mount needs a different fix), the
+npm global-install prefix, and the Debian login-shell `PATH` reset: see
 [BUILD-ORDERING-CAPABILITIES.md](BUILD-ORDERING-CAPABILITIES.md).
 
 ## 2. Network firewall: self-bootstrapping deny-by-default allowlist
@@ -58,14 +71,17 @@ rebuilt allowlist each cycle, never a partial one, and never by mutating
 the live set in place.
 
 Copy [`templates/firewall/init-firewall.sh.template`](templates/firewall/init-firewall.sh.template)
-to `.devcontainer/init-firewall.sh` and fill in your own allowed domains
-and any provider-specific CIDR fetch. If any of your allowed domains sit
-behind a CDN with rotating IPs, also copy
+to `.devcontainer/init-firewall.sh`, [`templates/firewall/allowed-domains.manifest.example.json`](templates/firewall/allowed-domains.manifest.example.json)
+to `.devcontainer/allowed-domains.manifest.json`, and
+[`templates/firewall/domains-from-manifest.sh.template`](templates/firewall/domains-from-manifest.sh.template)
+to `.devcontainer/domains-from-manifest.sh`, then fill in your own
+per-tool domains in the manifest and any provider-specific CIDR fetch in
+the init script. If any of your allowed domains sit behind a CDN with
+rotating IPs, also copy
 [`templates/firewall/refresh-allowlist.sh.template`](templates/firewall/refresh-allowlist.sh.template)
-to `.devcontainer/refresh-allowlist.sh`, keeping its domain list in exact
-sync with the init script's (a shared manifest file is the safer long-term
-fix once you have more than a couple of tools with their own network
-needs).
+to `.devcontainer/refresh-allowlist.sh`; it sources the same manifest
+helper as the init script, so the two never need their domain lists
+reconciled by hand.
 
 Full writeup, including the read-only bind-mount gotcha and the
 desktop-runtime host-bridge networking gotcha: see
@@ -97,8 +113,10 @@ and fill in one row per agentic CLI your project integrates, confirming
 config location, auto-detection, and non-interactive behavior directly
 against each CLI rather than from memory.
 
-Full writeup, including the version-skew trap and a comparison table of
-where three popular agentic CLIs read MCP config from: see
+Full writeup, including the version-skew trap, a comparison table of where
+three popular agentic CLIs read MCP config from, and a note on installing
+the CLI binaries themselves (a companion need with its own npm-prefix
+gotcha, distinct from installing their MCP servers): see
 [MCP-MULTI-CLI-WIRING.md](MCP-MULTI-CLI-WIRING.md).
 
 ## 4. CLI lifecycle: age-gating auto-updated tooling
@@ -114,9 +132,14 @@ never treat uncertainty as a pass. Tools distributed through a full
 version-history registry can fall back to an older, still-eligible release
 instead of freezing entirely; tools with no historical download endpoint
 (only "whatever the vendor calls latest right now") can't, and that's an
-honest asymmetry to document, not a bug to work around. Health checks that
-gate a privileged operation should exercise the real operation, not a
-proxy signal like "the binary is on PATH".
+honest asymmetry to document, not a bug to work around. A third case needs
+a different response altogether: a tool with its own self-updater the
+container can't see or stop makes age-gating moot, since it updates on its
+own schedule regardless of what the gate decides; the gate's job there
+becomes detecting and reporting version drift against a recorded baseline,
+not deciding when to update. Health checks that gate a privileged operation
+should exercise the real operation, not a proxy signal like "the binary is
+on PATH".
 
 Copy [`templates/cli-lifecycle/manifest.example.json`](templates/cli-lifecycle/manifest.example.json)
 as the shape for your own per-tool update manifest (pinned baseline
@@ -126,7 +149,9 @@ as the skeleton for the check itself, including the three distinct "held"
 outcomes worth surfacing separately in your update-cycle output.
 
 Full writeup, including the graceful-fallback asymmetry across distribution
-channels and the probe-the-real-operation health-check principle: see
+channels, the self-updating-tool case where the gate's job becomes
+drift-detection instead of a hold/install decision, and the
+probe-the-real-operation health-check principle: see
 [CLI-LIFECYCLE-AGE-GATING.md](CLI-LIFECYCLE-AGE-GATING.md).
 
 ## 5. Dual-key SSH signing for git transport and commits
@@ -181,3 +206,30 @@ ready-to-adapt snippets (a compose healthcheck block, a symlink-bridging
 shell function, an `initializeCommand` wiring example) inline.
 
 Full writeup: see [DX-AND-DATABASE-NICETIES.md](DX-AND-DATABASE-NICETIES.md).
+
+## 7. Verify by actually building and running it
+
+None of the six sections above are done just because the generated
+Dockerfile, compose file, and scripts read correctly. Volume-ownership
+gotchas, shell-invocation-mode PATH differences, and a global npm install
+failing under a non-root user are all invisible from reading the files;
+they only surface once the image is actually built and exercised. Treat
+this as a mandatory closing step, not an optional nicety:
+
+- Build the image (`docker compose build`, or equivalent) and start the
+  container from a clean state, no volumes already populated by a prior
+  successful run, so first-mount ownership behavior actually gets tested.
+- Exec into the container and smoke-test every installed tool under both
+  a non-login shell (`docker exec ... bash -c "<tool> --version"`) and a
+  login shell (`docker exec ... bash -l -c "<tool> --version"`). The two
+  can disagree, most commonly on `PATH`, even when only one of them was
+  ever tested during development.
+- Run one real build or test cycle for the project itself inside the
+  container, not just a version check for each tool, so a working binary
+  that still fails on the project's actual build (a permission error on a
+  cache directory, for instance) gets caught before the devcontainer is
+  considered finished.
+
+A devcontainer that has never been built and run this way should be
+treated as unverified, regardless of how complete the underlying files
+look.

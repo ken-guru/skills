@@ -45,5 +45,13 @@
     "versionCheck": {
       "registry": "https://<package-registry-host>"
     }
+  },
+
+  "<tool-d-key>": {
+    "binary": "<tool-d-binary-name>",
+    "installer": "self-updating",
+    "_comment": "This tool ships its own updater with no discoverable disable flag and no way for this container to control update timing. minimumReleaseAgeDays does not apply: there is no update decision to gate, only drift to detect. baselineVersion is recorded once at wiring time; the age-gate check compares it against '<binary> --version' every cycle and logs a warning on mismatch instead of holding or installing anything.",
+    "versionPolicy": "detect-drift",
+    "baselineVersion": "<version-recorded-when-first-wired-up>"
   }
 }

@@ -28,6 +28,56 @@ RUN your-package-manager update && your-package-manager install -y --no-install-
     general-purpose-scripting-runtime \
     && your-package-manager clean
 
+# --- NON-ROOT USER, HOME-DIRECTORY PATHS, AND SHELL ENVIRONMENT -----------
+# Create the non-root user the container runs as, and pre-create every path
+# a named volume in docker-compose.yml mounts under that user's home
+# directory, owned by that user, before any volume is ever attached. A
+# named volume's first mount copies ownership from whatever already exists
+# at that exact path in the image; if the path doesn't exist yet, Docker
+# creates it as root on first mount, and the non-root user gets EACCES the
+# first time a tool tries to write its own config there. This block and the
+# volumes list in docker-compose.yml must stay in sync: every home-directory
+# mount target there needs a matching path in this mkdir line. (This does
+# NOT cover a named volume nested under the /workspace bind mount -- that
+# needs a runtime chown instead; see the comment in docker-compose.yml.)
+# Matches the mount paths in docker-compose.skeleton.yml's named-volume
+# block; keep both files' username and paths in sync if you rename either.
+ARG USERNAME=appuser
+RUN useradd --create-home --shell /bin/bash "$USERNAME" \
+    && mkdir -p \
+        /home/$USERNAME/.your-tool \
+        /home/$USERNAME/.ssh \
+        /commandhistory \
+    && chown -R "$USERNAME:$USERNAME" /home/$USERNAME /commandhistory
+
+# npm's default global-install prefix (typically under /usr/lib/node_modules)
+# is only writable by root. `npm install -g <package>` as the non-root user
+# above fails immediately with EACCES on the very first global install
+# unless the prefix is repointed somewhere that user owns. Do this before
+# any global npm install, whether it happens later in this file or in a
+# runtime setup hook -- this covers installing an agentic CLI's own binary
+# globally, a different case from the scoped `--prefix` staging installs
+# MCP servers use (see MCP-MULTI-CLI-WIRING.md).
+ENV NPM_CONFIG_PREFIX=/home/$USERNAME/.npm-global
+ENV PATH=/home/$USERNAME/.npm-global/bin:$PATH
+RUN mkdir -p /home/$USERNAME/.npm-global \
+    && chown -R "$USERNAME:$USERNAME" /home/$USERNAME/.npm-global
+
+# `ENV PATH` only reliably reaches non-login, non-interactive shells (a
+# `docker exec bash -c "..."`, for instance). Debian and Ubuntu base images
+# set PATH unconditionally for non-root users in /etc/profile, with no
+# check for a pre-existing value, which silently discards whatever `ENV
+# PATH` set the moment anything invokes a login shell (`bash -l`, and some
+# terminal/IDE integrations that default to one). This is easy to miss
+# because ordinary `docker exec` testing never triggers it. Write the same
+# PATH additions to a profile.d script (sourced by both login and most
+# interactive non-login shells) so they survive every invocation mode, not
+# just the one you happened to test with.
+RUN echo 'export PATH=/home/'"$USERNAME"'/.npm-global/bin:$PATH' \
+        > /etc/profile.d/npm-global-path.sh \
+    && chmod +x /etc/profile.d/npm-global-path.sh
+# --- END NON-ROOT USER, HOME-DIRECTORY PATHS, AND SHELL ENVIRONMENT -------
+
 # --- END BUILD TIME ---------------------------------------------------------
 
 

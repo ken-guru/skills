@@ -1,5 +1,11 @@
 # Staged activation for MCP servers, and multi-CLI config wiring
 
+## Installing the agentic CLIs themselves is a different case from installing their MCP servers
+
+Everything below covers installing and updating *MCP servers* a CLI connects to. Installing the *CLI binaries themselves* (Claude Code, Codex, Gemini CLI, Cursor CLI, or similar, via `npm install -g <package>`) is a related but distinct need, and it's a very likely companion step whenever a devcontainer wires up agentic tooling at all, since a container that talks to MCP servers almost always needs at least one CLI installed to drive them.
+
+It hits a different failure mode than anything the stage/verify/swap pattern below addresses: `npm install -g` as the container's non-root user fails immediately with `EACCES`, because the default global-install prefix on most base images is writable only by root. The staged per-server installs described below sidestep this already, since they use a scoped `--prefix` pointed at a private staging directory, but a plain `npm install -g` for the CLI binary itself has no such scoping unless you add it. Set `NPM_CONFIG_PREFIX` to a directory under the non-root user's home directory, and put that directory's `bin` subdirectory on `PATH`, before any global npm install runs, whether that's in the Dockerfile or a runtime setup hook. See the non-root-user block in [`Dockerfile.skeleton`](templates/build/Dockerfile.skeleton) and the npm-prefix gotcha in [BUILD-ORDERING-CAPABILITIES.md](BUILD-ORDERING-CAPABILITIES.md) for the concrete fix.
+
 ## The reliability technique: stage, verify, atomic-swap
 
 When a development container wires up Model Context Protocol (MCP) servers for one or more agentic coding CLIs, the naive approach is to let the CLI resolve the server package at launch time, often via `npx <package>` or an equivalent "just fetch and run" mechanism. This works until it doesn't: `npx` resolves whatever the npm cache or registry hands back at that exact moment, which means the server version an agent gets is effectively unpinned and unreviewable. A supply-chain compromise of the package, or simply a breaking release landing between two sessions, becomes something the agent discovers by failing mid-task rather than something a maintainer reviewed and approved in advance.
