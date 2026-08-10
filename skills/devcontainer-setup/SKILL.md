@@ -1,6 +1,6 @@
 ---
 name: devcontainer-setup
-description: Set up a devcontainer for agentic coding with one or more AI CLIs, covering deny-by-default network firewalling, staged MCP server activation across multiple CLIs, age-gated CLI/tool auto-updates, dual-key SSH commit signing, container build ordering and capability scoping, and DX/database niceties. Use when the user wants to add a devcontainer to a project, sandbox an agent's shell and network access, wire up MCP servers or developer CLIs safely inside a container, or bundle a database service with the dev environment.
+description: Set up a devcontainer for agentic coding with one or more AI CLIs: deny-by-default network firewalling, staged MCP server activation, age-gated CLI/tool auto-updates, dual-key SSH commit signing, container build ordering and capability scoping, and DX/database niceties. Use when adding a devcontainer to a project, sandboxing an agent's shell and network access, wiring up MCP servers or developer CLIs safely inside a container, or bundling a database service with the dev environment.
 ---
 
 # Devcontainer Setup for Agentic Coding
@@ -10,18 +10,12 @@ filesystem, and (usually) network access. The container itself has to be
 the security boundary, not just a convenience wrapper, because the thing
 running inside it can execute arbitrary commands on its own initiative.
 This skill collects the patterns that keep such a container both safe and
-pleasant to work in, learned across six areas that compound on each other:
-what the container can reach on the network, which tool binaries and MCP
-servers it trusts and how those get updated, how it proves commits came
-from a real, authorized session, how the image itself gets built without
-tripping over its own later restrictions, and the smaller conveniences
-that make day-to-day use less annoying.
-
-Work through the sections below roughly in build order: image and
-capabilities first, then network policy, then the tools that live inside
-that policy (MCP servers, CLI lifecycle, signing), then the smaller DX and
-database niceties. Each section below is a short summary; the full
-lessons, gotchas, and reasoning for each live in a linked root-level doc.
+pleasant to work in, across six areas that compound on each other. Work
+through the sections below roughly in build order: image and capabilities
+first, then network policy, then the tools that live inside that policy
+(MCP servers, CLI lifecycle, signing), then the smaller DX and database
+niceties. Each section below is a short summary; the full lessons,
+gotchas, and reasoning for each live in a linked root-level doc.
 
 ## 1. Container build ordering and capability scoping
 
@@ -131,7 +125,9 @@ version, minimum release age, installer type), and
 as the skeleton for the check itself, including the three distinct "held"
 outcomes worth surfacing separately in your update-cycle output.
 
-Full writeup: see [CLI-LIFECYCLE-AGE-GATING.md](CLI-LIFECYCLE-AGE-GATING.md).
+Full writeup, including the graceful-fallback asymmetry across distribution
+channels and the probe-the-real-operation health-check principle: see
+[CLI-LIFECYCLE-AGE-GATING.md](CLI-LIFECYCLE-AGE-GATING.md).
 
 ## 5. Dual-key SSH signing for git transport and commits
 
