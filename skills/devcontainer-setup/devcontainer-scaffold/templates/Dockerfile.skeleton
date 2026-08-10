@@ -1,0 +1,85 @@
+# --- BUILD TIME: no firewall exists yet -----------------------------------
+# This stage runs during `docker build`. There is no outbound firewall at
+# this point in the container's life, so this is the correct (and only
+# fully safe) place for anything that needs broad, unpredictable network
+# access: OS package installs, anything fetched from a distribution mirror.
+#
+# Pin the exact base-image tag (a specific release codename), not a
+# floating "latest"-style alias. A floating tag can drift past a boundary
+# where one of your other tools' own vendored dependencies (a browser
+# binary, a prebuilt CLI release) has no build published for the new
+# codename yet. Re-verify that matrix deliberately when you do move the
+# pin; don't let it move on its own between rebuilds.
+FROM your-registry/your-base-image:SPECIFIC-VERSION-TAG
+
+# A firewall Feature (devcontainer-firewall), if you install one, installs
+# its OWN dependencies (iptables/ipset-equivalents) inside its own
+# install.sh -- Features apply additively at build time too, so this
+# ordering discipline still holds without this Skill having to anticipate
+# or pre-install anything on a sibling Feature's behalf.
+RUN your-package-manager update && your-package-manager install -y --no-install-recommends \
+    jq \
+    # Keep a general-purpose scripting runtime installed even if no script
+    # in *your* repo calls it, if an AI coding agent or another interactive
+    # user of this container is a real consumer of ad hoc inline scripting.
+    # A repo-only usage audit will never see that consumer, because its
+    # usage is by design never committed anywhere. Document why inline so
+    # a later cleanup pass doesn't remove it for looking unused.
+    general-purpose-scripting-runtime \
+    && your-package-manager clean
+
+# --- NON-ROOT USER AND HOME-DIRECTORY PATHS --------------------------------
+# Create the non-root user the container runs as, and pre-create every path
+# a named volume in docker-compose.yml mounts under that user's home
+# directory, owned by that user, before any volume is ever attached. A
+# named volume's first mount copies ownership from whatever already exists
+# at that exact path in the image; if the path doesn't exist yet, Docker
+# creates it as root on first mount, and the non-root user gets EACCES the
+# first time a tool tries to write its own config there. This block and the
+# volumes list in docker-compose.yml must stay in sync: every home-directory
+# mount target there needs a matching path in this mkdir line. (This does
+# NOT cover a named volume nested under the /workspace bind mount -- that
+# needs a runtime chown instead; see the comment in docker-compose.yml.)
+# Matches the mount paths in docker-compose.skeleton.yml's named-volume
+# block; keep both files' username and paths in sync if you rename either.
+ARG USERNAME=appuser
+RUN useradd --create-home --shell /bin/bash "$USERNAME" \
+    && mkdir -p \
+        /home/$USERNAME/.your-tool \
+        /home/$USERNAME/.ssh \
+        /commandhistory \
+    && chown -R "$USERNAME:$USERNAME" /home/$USERNAME /commandhistory
+# --- END NON-ROOT USER AND HOME-DIRECTORY PATHS ----------------------------
+
+# --- END BUILD TIME ---------------------------------------------------------
+
+
+# --- EARLY RUNTIME SETUP: still before any firewall Feature initializes ---
+# Your devcontainer setup likely has an early lifecycle hook (a
+# "postCreate"-style command) that runs once, before whatever later hook
+# starts a firewall, if one is installed. Anything placed in that early
+# hook still has open network access, so it's the second safe place for a
+# broad-access step that specifically needs a runtime-known value (target
+# architecture, a version pin you want to bump without a full image
+# rebuild) rather than a static build-time install:
+#
+#   - downloading a large versioned binary release directly from its
+#     project's release host
+#   - installing a vendored browser or runtime binary for a
+#     browser-automation or testing tool
+#
+# The property that matters is not "runs in a RUN layer" vs. "runs in a
+# shell script", it's "runs before a firewall exists." Put these in
+# whichever phase (build-time layer above, or this early setup hook) fits
+# how you want to manage the version pin.
+# --- END EARLY RUNTIME SETUP ------------------------------------------------
+
+
+# --- RUNTIME, IF A FIREWALL FEATURE IS INSTALLED: traffic gets restricted -
+# Once devcontainer-firewall's own lifecycle hook has run its
+# firewall-initialization script, only allowlisted destinations are
+# reachable. Any step that needs network access from here on must have its
+# exact destination host added to that allowlist first: there is no safe
+# way to "temporarily" bypass an active firewall for a step that runs
+# after it started enforcing.
+# --- END RUNTIME, FIREWALL ACTIVE -------------------------------------------

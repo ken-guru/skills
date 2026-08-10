@@ -1,0 +1,36 @@
+{
+  // Not present in this suite's original single-skill form -- required now
+  // that Add-on Skills install as devcontainer Features, which only get
+  // resolved and layered by devcontainer-CLI-compliant tooling (the
+  // `devcontainer` CLI itself, VS Code Dev Containers, GitHub Codespaces)
+  // reading exactly this file. A raw `docker compose up` against the
+  // compose file alone never resolves the "features" block below.
+  "name": "your-project-example-devcontainer",
+
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+
+  // Matches the non-root user Dockerfile.skeleton creates. Every Feature's
+  // own install.sh still runs as root regardless of this setting -- this
+  // only controls which user an interactive shell or lifecycle hook not
+  // supplied by a Feature runs as.
+  "remoteUser": "appuser",
+
+  // Empty on purpose. Nothing needs pre-wiring here: any devcontainer
+  // Feature you install (a sibling Add-on Skill, or a third-party Feature
+  // from the wider ecosystem) adds its own entry, e.g.
+  //   "features": {
+  //     "./devcontainer-firewall": {}
+  //   }
+  // and the devcontainer CLI runs every Feature's own lifecycle commands
+  // before whatever "postCreateCommand"/"postStartCommand" this file
+  // declares below -- composition is the spec's job, not something this
+  // skeleton has to engineer.
+  "features": {}
+
+  // Add "postCreateCommand"/"postStartCommand" here only for setup that's
+  // genuinely this project's own, not a concern any Add-on Skill's Feature
+  // already owns (each Feature's own lifecycle commands cover its own
+  // setup automatically once installed).
+}

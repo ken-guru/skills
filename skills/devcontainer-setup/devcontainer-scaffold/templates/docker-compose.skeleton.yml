@@ -1,0 +1,87 @@
+# Compose defaults the project name to the basename of the directory that
+# holds this file. Since this suite's own recommended path is
+# `.devcontainer/docker-compose.yml`, every project that follows that layout
+# defaults to the SAME project name ("devcontainer"), and Compose namespaces
+# containers, networks, and this file's own volumes by project name. Two
+# unrelated repos on the same machine then collide in that shared namespace,
+# so a `docker compose down -v` queued for one project can hit the other's
+# containers and volumes. Set this explicitly, per project.
+name: your-project-example-devcontainer
+
+services:
+  devcontainer:
+    build: .
+
+    # This skeleton grants NO capabilities of its own. A capability like
+    # NET_ADMIN/NET_RAW (needed by devcontainer-firewall to manage its own
+    # netfilter rules) or SYS_ADMIN (needed by a nested process-sandboxing
+    # tool) belongs to whichever Feature actually requires it -- a
+    # devcontainer Feature declares its own capAdd/securityOpt in its
+    # devcontainer-feature.json, and the devcontainer CLI merges every
+    # installed Feature's grants into the final container automatically.
+    # If you ever add a capability by hand outside the Features mechanism,
+    # comment it inline with which tool needs it and why, and never reach
+    # for `privileged: true` as a shortcut -- it grants every capability
+    # and device the kernel has, not just the two or three actually in
+    # use, and widens the blast radius of anything that gets compromised.
+
+    volumes:
+      # --- WORKSPACE: bind mount, tied to the host directory -------------
+      # The project source lives here. It mirrors the host filesystem
+      # exactly and disappears the moment the host directory does. This is
+      # intentional; the workspace is not meant to be independently
+      # persistent from the code you're actually editing on the host.
+      - ..:/workspace
+
+      # --- CREDENTIALS AND OTHER PERSISTENT STATE: named volumes ---------
+      # Anything that must survive a container rebuild but is NOT the
+      # project source (tool auth, tool config, shell history, generated
+      # SSH keys) belongs in its own named volume, one volume per
+      # independent concern. This makes each piece of state independently
+      # wipeable: rotating one tool's credentials never has to touch
+      # another tool's, and neither has to touch the workspace. Resist the
+      # temptation to fold multiple concerns into one shared volume; the
+      # whole point is that "wipe just this one thing" stays possible.
+      #
+      # Every path mounted here must already exist in the image, owned by
+      # the container's non-root user, BEFORE this volume is first
+      # attached -- see the matching `mkdir`+`chown` block in
+      # Dockerfile.skeleton. A named volume's first mount copies ownership
+      # from whatever already exists at that exact path; if nothing exists
+      # there, Docker creates it as root, and the non-root user gets
+      # EACCES the first time a tool tries to write its own config there
+      # (a fresh CLI writing its project registry on first run is a common
+      # way to discover this). Keep this list and the Dockerfile's
+      # mkdir+chown list in sync. A Feature that needs its own persistent
+      # volume declares and mounts it itself; it isn't pre-declared here.
+      - your-app-example-tool-config:/home/appuser/.your-tool
+      - your-app-example-shell-history:/commandhistory
+      - your-app-example-ssh-keys:/home/appuser/.ssh
+      # --- END CREDENTIALS AND OTHER PERSISTENT STATE ----------------------
+
+      # --- OPTIONAL: build/dependency cache NESTED under the workspace ---
+      # A named volume mounted *inside* the workspace bind mount (for
+      # example, caching a build tool's output directory) is a different
+      # case from the home-directory volumes above, and the Dockerfile-side
+      # mkdir+chown fix does NOT apply to it. Because /workspace itself is
+      # a bind mount from the host, Docker resolves "what ownership does
+      # this nested volume copy on first mount" against the live host
+      # directory at container start, not against anything baked into the
+      # image at build time. Fixing the ownership here needs a RUNTIME
+      # chown (a postCreate/postStart hook, after both mounts are live),
+      # not a build-time one. Prefer pointing the build tool at a cache
+      # directory OUTSIDE /workspace instead, if the tool supports it (an
+      # env var like a language's "override the build-output directory"
+      # setting) -- it sidesteps this distinction entirely. Uncomment only
+      # if you've added the runtime chown step or redirected the tool
+      # elsewhere:
+      # - your-app-example-build-cache:/workspace/target
+      # --- END OPTIONAL BUILD/DEPENDENCY CACHE ------------------------------
+
+    command: sleep infinity
+
+volumes:
+  your-app-example-tool-config:
+  your-app-example-shell-history:
+  your-app-example-ssh-keys:
+  # your-app-example-build-cache:
