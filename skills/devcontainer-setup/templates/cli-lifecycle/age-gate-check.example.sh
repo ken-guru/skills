@@ -7,6 +7,19 @@
 # channel supports installing something other than "whatever is currently
 # latest." Replace the registry/vendor-specific lookups with real calls
 # before use; the fetch_releases_* functions below are stubs.
+#
+# When you fill in fetch_releases_registry_package: a real package's full
+# version/timestamp history can be large enough to exceed the OS's ARG_MAX
+# limit on execve() argument size, and that limit scales with how often the
+# TARGET package releases, not with anything here -- a gate that passes
+# review against a slow-moving package can fail months later with no code
+# change on this side, purely because the package started shipping more
+# often. Route the registry response through a pipe (stdin) or a temp file
+# into whatever parses it; never through argv (`jq --argjson`, `jq --arg`,
+# or an inline script's own arguments all count). The failure mode if you
+# get this wrong ("Argument list too long") gives no hint that size is the
+# cause. Only small, bounded values (a single version string, an age
+# threshold) belong in argv.
 set -uo pipefail
 
 MANIFEST=${MANIFEST_PATH:-"./tool-manifest.json"}
@@ -43,9 +56,16 @@ version_compare() {
 # latest").
 fetch_releases_registry_package() {
     local key=$1
-    # Replace with a real registry query, e.g.:
-    #   registry_view "$(manifest_value "m.$key.package")" versions-and-timestamps
-    # emitting "<version> <epoch>\n" lines sorted newest first.
+    # Replace with a real registry query PIPED into whatever parses it, not
+    # captured into a shell variable and passed as an argument, e.g.:
+    #   registry_view "$(manifest_value "m.$key.package")" versions-and-timestamps \
+    #     | node -e 'process.stdin... ' \
+    #     > /tmp/releases.$$  # or straight into a while-read loop via a pipe
+    # emitting "<version> <epoch>\n" lines sorted newest first. Keep the
+    # response on a pipe or in a temp file end to end; never assign it to a
+    # variable that later gets interpolated into `--argjson`, `--arg`, or an
+    # inline script's own argv, since a real package's full version history
+    # can be large enough to exceed ARG_MAX.
     return 1
 }
 

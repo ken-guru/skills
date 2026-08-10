@@ -60,6 +60,19 @@ if ! echo "$provider_ranges" | jq -e '.web and .api' >/dev/null; then
     exit 1
 fi
 while read -r cidr; do
+    # The ipset this populates is IPv4-only (hash:net, default family inet),
+    # and this script installs no ip6tables rules, so an IPv6 CIDR is never
+    # usable here regardless of how well-formed it is. Some providers mix
+    # IPv6 ranges into the same array as IPv4 ranges without warning (GitHub's
+    # `api.github.com/meta` started doing exactly this) -- skip those
+    # silently rather than treating "not IPv4" as a fatal parse error, and
+    # reserve the hard failure below for a genuinely malformed IPv4-shaped
+    # entry. Getting this wrong the other way means the very first IPv6
+    # entry a provider ever returns aborts firewall init entirely, on every
+    # container start, with no allowlist ever getting built.
+    if [[ "$cidr" == *:* ]]; then
+        continue
+    fi
     if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
         echo "ERROR: invalid CIDR range from example-provider meta: $cidr"
         exit 1
@@ -77,6 +90,32 @@ done < <(echo "$provider_ranges" | jq -r '(.web + .api)[]')
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mapfile -t TOOL_DOMAINS < <("$SCRIPT_DIR/domains-from-manifest.sh")
 
+# A single DNS query against most domains (a single-IP host, or a small,
+# stable CDN anycast pool -- Cloudflare, Fastly) returns the complete
+# answer, and resolving once here is correct. A domain backed by a large,
+# rotating pool of IPs instead (an AWS-ELB-style name behind a CNAME chain,
+# common for a vendor SaaS API reached via 8+ backend IPs) returns only a
+# subset per query, not the full pool -- a single `dig` call at init time
+# then permanently misses whichever IPs it didn't happen to get back,
+# producing intermittent "No route to host" failures against that domain
+# for the life of the container. Querying several times in quick succession
+# and unioning the results catches more of the pool, though never
+# guaranteed complete; it's a mitigation, not a fix. Prefer the provider's
+# published CIDR range instead, if one exists (the pattern used for
+# example-provider above), for any domain known to sit behind a large pool.
+resolve_domain() {
+    local domain=$1 attempts=${2:-1} i
+    for ((i = 0; i < attempts; i++)); do
+        dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}'
+    done | sort -u
+}
+
+# Domains known or suspected to sit behind a large, rotating IP pool rather
+# than a small stable one: add them here instead of the plain list below so
+# they get the repeated-query treatment. Leave empty if none of your
+# domains fit this shape.
+MULTI_QUERY_DOMAINS=()
+
 # Resolve and add plain domains. Replace this list with your project's own.
 for domain in \
     "registry.example-package-manager.org" \
@@ -84,8 +123,12 @@ for domain in \
     "example.com" \
     "docs.example.com" \
     "${TOOL_DOMAINS[@]}"; do
-    echo "Resolving $domain..."
-    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+    attempts=1
+    for multi_domain in "${MULTI_QUERY_DOMAINS[@]}"; do
+        [ "$domain" = "$multi_domain" ] && attempts=4 && break
+    done
+    echo "Resolving $domain (attempts=$attempts)..."
+    ips=$(resolve_domain "$domain" "$attempts")
     if [ -z "$ips" ]; then
         echo "WARN: failed to resolve $domain, skipping"
         continue

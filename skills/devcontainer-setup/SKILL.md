@@ -83,8 +83,13 @@ to `.devcontainer/refresh-allowlist.sh`; it sources the same manifest
 helper as the init script, so the two never need their domain lists
 reconciled by hand.
 
-Full writeup, including the read-only bind-mount gotcha and the
-desktop-runtime host-bridge networking gotcha: see
+Full writeup, including the read-only bind-mount gotcha, the
+desktop-runtime host-bridge networking gotcha, a provider CIDR feed
+silently mixing in unusable IPv6 ranges, and why a domain backed by a
+large rotating IP pool (a vendor API behind an ELB-style name, for
+instance) needs different handling than a small stable CDN pool, since
+this section's own full-rebuild refresh design actively worsens the
+rotating-pool case rather than just leaving it incomplete: see
 [NETWORK-FIREWALL.md](NETWORK-FIREWALL.md).
 
 ## 3. MCP server wiring across multiple agentic CLIs
@@ -114,9 +119,12 @@ config location, auto-detection, and non-interactive behavior directly
 against each CLI rather than from memory.
 
 Full writeup, including the version-skew trap, a comparison table of where
-three popular agentic CLIs read MCP config from, and a note on installing
-the CLI binaries themselves (a companion need with its own npm-prefix
-gotcha, distinct from installing their MCP servers): see
+three popular agentic CLIs read MCP config from, a note on installing the
+CLI binaries themselves (a companion need with its own npm-prefix gotcha,
+distinct from installing their MCP servers), and why each CLI also needs
+its own vendor API/auth domains allowlisted, distinct from and in addition
+to whatever registry installed it, or it comes up fully wired and unable
+to serve a single prompt: see
 [MCP-MULTI-CLI-WIRING.md](MCP-MULTI-CLI-WIRING.md).
 
 ## 4. CLI lifecycle: age-gating auto-updated tooling
@@ -150,8 +158,10 @@ outcomes worth surfacing separately in your update-cycle output.
 
 Full writeup, including the graceful-fallback asymmetry across distribution
 channels, the self-updating-tool case where the gate's job becomes
-drift-detection instead of a hold/install decision, and the
-probe-the-real-operation health-check principle: see
+drift-detection instead of a hold/install decision, the `ARG_MAX` trap in
+feeding a large registry version-history response through a command-line
+argument instead of a pipe or temp file, and the probe-the-real-operation
+health-check principle: see
 [CLI-LIFECYCLE-AGE-GATING.md](CLI-LIFECYCLE-AGE-GATING.md).
 
 ## 5. Dual-key SSH signing for git transport and commits
@@ -210,11 +220,17 @@ Full writeup: see [DX-AND-DATABASE-NICETIES.md](DX-AND-DATABASE-NICETIES.md).
 ## 7. Verify by actually building and running it
 
 None of the six sections above are done just because the generated
-Dockerfile, compose file, and scripts read correctly. Volume-ownership
-gotchas, shell-invocation-mode PATH differences, and a global npm install
-failing under a non-root user are all invisible from reading the files;
-they only surface once the image is actually built and exercised. Treat
-this as a mandatory closing step, not an optional nicety:
+Dockerfile, compose file, and scripts read correctly. "Builds and boots
+cleanly" and "actually exercised" are different bars, and gotchas cluster
+at each one differently: some only need the container to start once,
+others only show up after it's been kept running and used the way a real
+session would use it. Treat both tiers as mandatory closing steps, not an
+optional nicety, and don't stop at the first one because the second is
+more work.
+
+**Tier 1: build and boot.** Catches volume-ownership gotchas,
+shell-invocation-mode `PATH` differences, and a global npm install failing
+under a non-root user, none of which are visible from reading the files.
 
 - Build the image (`docker compose build`, or equivalent) and start the
   container from a clean state, no volumes already populated by a prior
@@ -227,9 +243,33 @@ this as a mandatory closing step, not an optional nicety:
 - Run one real build or test cycle for the project itself inside the
   container, not just a version check for each tool, so a working binary
   that still fails on the project's actual build (a permission error on a
-  cache directory, for instance) gets caught before the devcontainer is
-  considered finished.
+  cache directory, for instance) gets caught before moving on.
 
-A devcontainer that has never been built and run this way should be
-treated as unverified, regardless of how complete the underlying files
-look.
+**Tier 2: actually exercise it.** A container that passes every Tier 1
+check can still have a firewall that silently never finished initializing,
+a backgrounded update-check that's been failing every single run since the
+first container start, or a vendor integration that "works" on a single
+quick test and then fails unpredictably partway through a real session.
+None of these show up from a clean exit code; they show up from watching
+what actually happens over a running session.
+
+- Bring the container up as it would actually run (a long-lived service,
+  not a one-shot build-and-exit), and read the firewall init script's and
+  refresh loop's own log output for warnings and errors instead of
+  inferring success from "the container is still running."
+- Make several live connection attempts, not one, against every
+  allowlisted domain that isn't a single stable IP; a domain backed by a
+  large rotating IP pool can pass a single spot-check and still fail
+  intermittently over a real session (see the rotating-pool gotcha in
+  [NETWORK-FIREWALL.md](NETWORK-FIREWALL.md)).
+- Actually run a prompt through each installed agentic CLI from inside the
+  built, firewalled container, not just a version check, to confirm it can
+  reach its own vendor API (see [MCP-MULTI-CLI-WIRING.md](MCP-MULTI-CLI-WIRING.md)).
+- Watch a full cycle of any backgrounded age-gate or update-check job's
+  actual output, not just that the process started, since a job that's
+  been silently failing every run looks identical to one that's correctly
+  holding at the pinned version unless you read what it logged.
+
+A devcontainer that has never been built, run, and exercised this way
+should be treated as unverified, regardless of how complete the underlying
+files look.

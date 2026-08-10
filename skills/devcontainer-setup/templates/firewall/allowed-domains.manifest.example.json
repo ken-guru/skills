@@ -16,6 +16,16 @@
       "domains": ["example.com", "docs.example.com"],
       "reason": "Project's own git forge and documentation host.",
       "docs": "https://<link-to-upstream-docs-or-issue>"
+    },
+    "<agentic-cli-d-key>-install": {
+      "domains": ["registry.npmjs.org"],
+      "reason": "npm registry this agentic CLI's own binary is installed and updated from.",
+      "docs": "https://<link-to-upstream-docs-or-issue>"
+    },
+    "<agentic-cli-d-key>-vendor-api": {
+      "domains": ["api.<agentic-cli-d-vendor>.com", "auth.<agentic-cli-d-vendor>.com"],
+      "reason": "This CLI's own inference/auth backend -- distinct from the npm registry entry above, which only gets the binary installed. Without this entry the CLI installs and MCP-wires cleanly but cannot serve a single prompt once the firewall is active.",
+      "docs": "https://<link-to-upstream-docs-or-issue>"
     }
   }
 }

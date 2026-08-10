@@ -6,13 +6,28 @@ empirically against the actual installed version before relying on it,
 non-interactive/scripted behavior in particular has surprised us more than
 once.
 
-| CLI | Config file location | Auto-detected by cwd? | Non-interactive mode quirks | Verified against version | Verification command used |
-|---|---|---|---|---|---|
-| Claude Code | | | | | |
-| Codex | | | | | |
-| Gemini CLI | | | | | |
-| Cursor CLI | | | | | |
-| (add more as needed) | | | | | |
+| CLI | Config file location | Auto-detected by cwd? | Non-interactive mode quirks | Verified against version | Verification command used | Vendor API/auth domains needed |
+|---|---|---|---|---|---|---|
+| Claude Code | | | | | | |
+| Codex | | | | | | |
+| Gemini CLI | | | | | | |
+| Cursor CLI | | | | | | |
+| (add more as needed) | | | | | | |
+
+The last column is easy to skip entirely, and skipping it produces a
+container that looks complete (every CLI installed, pinned, and MCP-wired)
+but can't actually serve a single prompt once the firewall from
+[NETWORK-FIREWALL.md](../../NETWORK-FIREWALL.md) is in place, because
+nothing else in this checklist asks the question. A CLI needs outbound
+access to its own vendor's inference/auth API to function at all, and
+that's a different, usually larger, domain list (often several hosts:
+separate auth, telemetry, and API subdomains are common) than whatever
+package registry was needed to install the CLI in the first place. Fill
+this column in for every CLI in this table, and add those domains to your
+firewall's allowlist manifest (see
+[`templates/firewall/allowed-domains.manifest.example.json`](../firewall/allowed-domains.manifest.example.json))
+as their own entry, distinct from the entry for the package registry the
+CLI was installed from.
 
 ## Checklist per CLI
 
@@ -27,6 +42,7 @@ For each agentic CLI your project integrates with MCP servers:
 - [ ] Confirm tool **invocation** in non-interactive mode, and note exactly which flag or trust configuration was required to get past the approval gate. Reserve that flag for deliberate one-off verification, don't bake it into routine automation, since it commonly bypasses other safety gates (sandboxing, exec policy) at the same time.
 - [ ] Record the CLI version tested against. Trust-scoping behavior is exactly the kind of thing that changes across releases without a prominent changelog entry.
 - [ ] Re-verify this row after any major version bump of that CLI, not just at initial setup.
+- [ ] Identify this CLI's own vendor API/auth domains (distinct from whatever package registry installed it) and confirm they're in the firewall's allowlist. Test this for real: run a prompt through the CLI inside the built, firewalled container, not just a version check, since a wiring-complete CLI that can't reach its own backend fails in a way none of the checks above would catch.
 
 ## Notes template (copy per CLI)
 
