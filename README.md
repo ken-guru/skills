@@ -9,6 +9,7 @@ A Collection of agent Skills and cohesive Skill Suites.
 | Suite | Description |
 |---|---|
 | [Presentation](skills/presentation/README.md) | Seven Skills for discovering, structuring, generating, rendering, and proofreading presentations |
+| [devcontainer-setup](skills/devcontainer-setup/README.md) | Six Skills for scaffolding and hardening a devcontainer for agentic coding — install as a suite or one Skill at a time, retrofittable onto an existing devcontainer |
 
 ## Standalone Skills
 
@@ -22,7 +23,8 @@ No standalone Skills are currently published.
 - Skill nesting stops at one suite level.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for ownership and contribution rules and
-[CONTEXT-MAP.md](CONTEXT-MAP.md) for the Collection and Presentation glossaries.
+[CONTEXT-MAP.md](CONTEXT-MAP.md) for the Collection, Presentation, and
+devcontainer-setup glossaries.
 
 ## License
 
