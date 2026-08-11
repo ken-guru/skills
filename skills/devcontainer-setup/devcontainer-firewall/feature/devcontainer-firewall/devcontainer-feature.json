@@ -1,0 +1,10 @@
+{
+  "id": "devcontainer-firewall",
+  "version": "1.0.0",
+  "name": "devcontainer-firewall",
+  "description": "Deny-by-default outbound network firewall with a self-bootstrapping, manifest-derived allowlist.",
+
+  "capAdd": ["NET_ADMIN", "NET_RAW"],
+
+  "postStartCommand": "bash \"${containerWorkspaceFolder}/.devcontainer/devcontainer-firewall/feature/devcontainer-firewall/files/start.sh\""
+}

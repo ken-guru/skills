@@ -45,31 +45,42 @@ suite-authored Feature is copied into the target once, at install time,
 with no auto-update path of its own — there's nothing for age-gating to
 apply to. Don't route Feature version bumps through that machinery.
 
-## `dependsOn` vs. `installsAfter` for cross-Skill hand-offs
+## `dependsOn` vs. `installsAfter` — for build-time install.sh ordering only
 
-Where one Add-on Skill's Feature needs another to have run first (the
-running example: `devcontainer-agentic-clis` patching vendor-API domains
-into the allowed-domains manifest `devcontainer-firewall` owns), use
+Where one Add-on Skill's `install.sh` genuinely needs another's to have run
+first at *build* time (a shared package-manager step, for instance), use
 `installsAfter`, never `dependsOn`:
 
 - **`dependsOn` is a hard requirement** — it force-installs the named
-  Feature even if the user never asked for it. Using it here would mean
-  installing `devcontainer-agentic-clis` alone always drags
-  `devcontainer-firewall` in with it, silently contradicting this suite's
-  entire reason for existing as independently-installable Skills (see
+  Feature even if the user never asked for it. Using it for a soft
+  preference would mean installing one Skill alone silently drags another
+  in with it, contradicting this suite's entire reason for existing as
+  independently-installable Skills (see
   [ADR-0001](adr/0001-focused-installation.md)).
 - **`installsAfter` is a soft ordering hint** — it only affects ordering
-  among Features *already* queued to install. Declare it, and if
-  `devcontainer-firewall` happens to also be installed, your Feature runs
-  after it; if not, `installsAfter` is simply inert.
+  among Features *already* queued to install, and only at build time. If
+  the other Feature isn't installed, `installsAfter` is simply inert.
 
-Because `installsAfter` never guarantees the other Feature is present,
-every dependent Feature's `install.sh` must still detect whether what it
-depends on is actually there (does the allowed-domains manifest file
-exist?) and skip that part of its own work cleanly if not — this is the
-Retrofit Contract from [CONTEXT.md](../CONTEXT.md) applied to a sibling
-Feature's output the same way it applies to anything else pre-existing in
-the Target Devcontainer: detect, don't assume.
+**This does not cover a runtime hand-off between two Features' data** (the
+allowed-domains manifest patch, `devcontainer-agentic-clis` into
+`devcontainer-firewall`'s manifest) — `installsAfter` only orders
+`install.sh` execution during `docker build`, and every local-path
+Feature's bundled files are ordinary project source under `.devcontainer/`,
+reachable at runtime through the workspace bind mount regardless of
+`install.sh` order. For a hand-off like that, rely on the devcontainer
+lifecycle's own phase guarantee instead: **every Feature's
+`postCreateCommand` completes, across the whole container, before any
+Feature's `postStartCommand` runs.** Put the "produce/patch data" side of a
+hand-off in the earlier Feature's `postCreateCommand` and the "consume it"
+side in the later Feature's `postStartCommand`; the ordering is then
+correct by construction, without either Feature needing to know whether
+the other is even installed at build time. The consuming side must still
+detect whether the data it wants is actually present (does the manifest
+file exist? does it have the section this Feature expects?) and skip
+cleanly if not — the Retrofit Contract from [CONTEXT.md](../CONTEXT.md)
+applied to a sibling Feature's runtime output the same way it applies to
+anything else pre-existing in the Target Devcontainer: detect, don't
+assume.
 
 ## Testing: `devcontainer features test`, as a fast first stage
 

@@ -1,0 +1,97 @@
+#!/bin/bash
+# Periodic allowlist refresh for CDN-backed domains, part of the
+# devcontainer-firewall Feature. Off by default -- start.sh only launches
+# this if you've opted in; see this Skill's SKILL.md.
+#
+# Companion to init-firewall.sh. Launched as a background loop once
+# init-firewall.sh has built the initial allowlist. Re-resolves every
+# domain the firewall depends on and swaps the live ipset atomically, so
+# IPs behind a rotating CDN don't go stale mid-session.
+#
+# Two rules this script exists to enforce:
+#   1. Rebuild the FULL allowlist every cycle, not just the domains that
+#      motivated adding this loop in the first place. A partial rebuild
+#      silently drops everything else the init script added.
+#   2. If a required fetch fails mid-cycle, skip the swap and keep serving
+#      the previous set. Never swap in a set built from partial data.
+
+set -euo pipefail
+
+INTERVAL=300  # seconds between refresh cycles
+
+# Same manifest-derivation pattern as init-firewall.sh, using the same
+# helper, kept in sync by construction rather than by hand: both scripts
+# source domains-from-manifest.sh instead of maintaining two independent
+# domain lists. Two hand-maintained copies of "the allowlist" drift the
+# first time someone updates only one of them, and because this loop does a
+# full rebuild each cycle, that drift silently drops entries within one
+# INTERVAL of the edit, not gradually. Any host that isn't in the manifest
+# (a CIDR-range provider fetched separately below, for instance) still
+# needs to be hand-listed here AND in init-firewall.sh, kept in sync the
+# same deliberate way.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+mapfile -t DOMAINS < <("$SCRIPT_DIR/domains-from-manifest.sh")
+
+# Domains known or suspected to sit behind a large, rotating IP pool (an
+# AWS-ELB-style vendor API, for instance) rather than a small, stable CDN
+# anycast pool. This is exactly where this script's own full-rebuild-every-
+# cycle design, correct for the stable-pool case this loop was written for,
+# becomes actively harmful rather than merely incomplete: a single `dig`
+# query per cycle only returns a subset of the full backing pool, so IPs
+# learned in one cycle get unconditionally discarded on the next cycle's
+# swap unless that cycle's query happens to return them again.
+# Connectivity to a domain like this doesn't just start incomplete, it can
+# come and go across every refresh interval, indefinitely, never
+# converging. Add such domains here so they get resolved with several
+# queries unioned together each cycle instead of one; this is a mitigation,
+# not a guarantee of completeness. Prefer the vendor's published CIDR range
+# instead, where one exists.
+MULTI_QUERY_DOMAINS=()
+
+while true; do
+    sleep "$INTERVAL"
+
+    ipset create allowed-domains-new hash:net 2>/dev/null || ipset flush allowed-domains-new
+
+    # Re-fetch any provider CIDR ranges into the scratch set.
+    provider_ranges=$(curl -s --connect-timeout 10 https://api.example-provider.com/meta 2>/dev/null || true)
+    if ! echo "$provider_ranges" | jq -e '.web and .api' >/dev/null 2>&1; then
+        echo "WARN: refresh-allowlist: failed to fetch example-provider ranges, skipping this cycle" >&2
+        ipset destroy allowed-domains-new 2>/dev/null || true
+        continue
+    fi
+    while read -r cidr; do
+        [[ "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || continue
+        ipset add allowed-domains-new "$cidr" -exist 2>/dev/null || true
+    done < <(echo "$provider_ranges" | jq -r '(.web + .api)[]')
+
+    # Re-resolve every plain domain into the scratch set. Domains listed in
+    # MULTI_QUERY_DOMAINS above get queried several times and unioned, to
+    # better cover a large rotating IP pool a single query would only
+    # partially see; every other domain gets the usual single query, which
+    # is already complete for a single-IP host or a small stable CDN pool.
+    for domain in "${DOMAINS[@]}"; do
+        attempts=1
+        for multi_domain in "${MULTI_QUERY_DOMAINS[@]}"; do
+            [ "$domain" = "$multi_domain" ] && attempts=4 && break
+        done
+        ips=""
+        for ((i = 0; i < attempts; i++)); do
+            ips+=$'\n'$(dig +noall +answer A "$domain" 2>/dev/null | awk '$4 == "A" {print $5}')
+        done
+        ips=$(echo "$ips" | sort -u)
+        while read -r ip; do
+            # IPv4-only ipset (hash:net, default family inet); a mixed-in
+            # IPv6 answer is skipped here the same way, silently, not
+            # treated as a resolution failure.
+            [[ "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || continue
+            ipset add allowed-domains-new "$ip" -exist 2>/dev/null || true
+        done < <(echo "$ips")
+    done
+
+    # Atomic swap: the live set is never empty, partial, or inconsistent
+    # from the firewall rule's point of view. Only reachable once every
+    # fetch above succeeded, thanks to the `continue` on failure above.
+    ipset swap allowed-domains-new allowed-domains
+    ipset destroy allowed-domains-new
+done
