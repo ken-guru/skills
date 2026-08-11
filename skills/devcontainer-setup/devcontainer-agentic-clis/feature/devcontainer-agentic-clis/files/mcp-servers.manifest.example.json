@@ -1,0 +1,13 @@
+{
+  "_comment": "One entry per MCP server this project wires up. install.sh baseline-installs each key at build time via stage/verify/atomic-swap (staged-install-handshake-atomic-swap.sh install <key>). devcontainer-cli-lifecycle, if installed, owns deciding when a newer, age-eligible version exists and calls `... update <key> <target-version>` on the same script to apply it -- this manifest's minimumReleaseAgeDays field is what that decision reads, not something this Skill's own install.sh consults.",
+
+  "servers": {
+    "<server-key>": {
+      "package": "<npm-package-name>",
+      "version": "<pinned-reviewed-version>",
+      "reviewedIntegrity": "<sha512-... from: npm view <package>@<version> dist.integrity>",
+      "binary": "<binary-name-under-node_modules/.bin>",
+      "minimumReleaseAgeDays": 3
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "_comment": "Per installed agentic CLI: the vendor API/auth domains that CLI itself needs reachable to function, distinct from whatever registry installed its binary. patch-firewall-domains.sh merges each entry into devcontainer-firewall's allowed-domains manifest (as '<key>-vendor-api') at postCreateCommand time, if devcontainer-firewall is installed. Skipping an entry here is the single most common way a container ends up fully installed and MCP-wired but unable to serve a single prompt -- see per-cli-mcp-config-checklist.md's own 'Vendor API/auth domains needed' column, which this file is the machine-readable counterpart to.",
+
+  "claude-code": {
+    "domains": ["api.anthropic.com"],
+    "reason": "Claude Code's own inference/auth backend.",
+    "docs": "https://docs.claude.com/en/docs/claude-code"
+  },
+  "<other-cli-key>": {
+    "domains": ["api.<vendor>.com", "auth.<vendor>.com"],
+    "reason": "This CLI's own inference/auth backend -- often more than one host (separate auth, telemetry, or CDN subdomains are common).",
+    "docs": "https://<link-to-vendor-docs>"
+  }
+}

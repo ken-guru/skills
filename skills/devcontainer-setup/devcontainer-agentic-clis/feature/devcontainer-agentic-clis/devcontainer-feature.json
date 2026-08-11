@@ -1,0 +1,8 @@
+{
+  "id": "devcontainer-agentic-clis",
+  "version": "1.0.0",
+  "name": "devcontainer-agentic-clis",
+  "description": "Install agentic coding CLI binaries and wire their MCP servers via stage/verify/atomic-swap.",
+
+  "postCreateCommand": "bash \"${containerWorkspaceFolder}/.devcontainer/devcontainer-agentic-clis/feature/devcontainer-agentic-clis/files/patch-firewall-domains.sh\" \"${containerWorkspaceFolder}\""
+}
