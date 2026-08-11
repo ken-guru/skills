@@ -1,0 +1,8 @@
+{
+  "id": "devcontainer-cli-lifecycle",
+  "version": "1.0.0",
+  "name": "devcontainer-cli-lifecycle",
+  "description": "Age-gate auto-updated CLI binaries and MCP servers against a minimum release age, failing safe on uncertainty.",
+
+  "postStartCommand": "bash \"${containerWorkspaceFolder}/.devcontainer/devcontainer-cli-lifecycle/feature/devcontainer-cli-lifecycle/files/start.sh\" \"${containerWorkspaceFolder}\""
+}

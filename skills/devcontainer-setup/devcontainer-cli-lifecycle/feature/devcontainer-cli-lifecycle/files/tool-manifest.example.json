@@ -1,0 +1,36 @@
+{
+  "_comment": "Age-gating policy for agentic CLI binaries devcontainer-agentic-clis installs globally via npm. One entry per binary; run-age-gate.sh reads this file directly. Replace every <placeholder> before use. MCP servers are NOT listed here -- their age-policy already lives in devcontainer-agentic-clis' own mcp-servers.manifest.json (minimumReleaseAgeDays per server), read directly by run-age-gate.sh at the fixed path documented in this Skill's SKILL.md.",
+
+  "startupUpdate": {
+    "timeoutSeconds": 120
+  },
+
+  "<cli-key>": {
+    "binary": "<cli-binary-name>",
+    "package": "<npm-package-name>",
+    "installer": "registry-package",
+    "version": "<pinned-baseline-version>",
+    "versionPolicy": "auto-update",
+    "minimumReleaseAgeDays": 3,
+    "versionCheck": {
+      "registry": "https://registry.npmjs.org"
+    }
+  },
+
+  "<pinned-release-cli-key>": {
+    "binary": "<cli-binary-name>",
+    "installer": "pinned-release",
+    "version": "<pinned-baseline-version>",
+    "versionPolicy": "auto-update",
+    "minimumReleaseAgeDays": 3,
+    "releaseManifest": "https://<vendor-host>/manifests/{platform}.json"
+  },
+
+  "<self-updating-cli-key>": {
+    "binary": "<cli-binary-name>",
+    "installer": "self-updating",
+    "_comment": "This CLI ships its own updater with no discoverable disable flag and no way for this container to control update timing. minimumReleaseAgeDays does not apply: there is no update decision to gate, only drift to detect. baselineVersion is recorded once when the CLI is first wired up; run-age-gate.sh compares it against '<binary> --version' every cycle and logs a warning on mismatch instead of holding or installing anything.",
+    "versionPolicy": "detect-drift",
+    "baselineVersion": "<version-recorded-when-first-wired-up>"
+  }
+}
