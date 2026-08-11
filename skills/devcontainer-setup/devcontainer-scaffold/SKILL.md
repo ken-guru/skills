@@ -15,9 +15,13 @@ layered on top of what this Skill produces, or onto any other pre-existing
 devcontainer — this Skill's own job stops at producing a correct, minimal
 foundation, not at anticipating which Features will land on it.
 
-Copy the three templates in [`templates/`](templates/) into your project's
+Copy the four templates in [`templates/`](templates/) into your project's
 `.devcontainer/` directory (`Dockerfile`, `docker-compose.yml`,
-`devcontainer.json`) and fill in every placeholder before building.
+`devcontainer.json`, `.env.example`) and fill in every placeholder before
+building. Add `.devcontainer/.env` to your project's `.gitignore` — the
+compose skeleton's `env_file` stanza reads it for secrets (a Skill that
+needs one, like `devcontainer-git-auth`'s `GH_TOKEN`, documents its own
+line in `.env.example`; this Skill doesn't need any itself).
 
 ## 1. Pin the base image, don't float it
 
@@ -109,6 +113,14 @@ Named volumes for credentials and other persistent state (tool config, SSH
 keys, shell history) each get their own volume — one per independent
 concern, so rotating one thing never has to touch another. Resist folding
 multiple concerns into one shared volume.
+
+The `env_file` stanza at the top of the `devcontainer` service reads
+`.devcontainer/.env` (gitignored) for secrets, the same "no capabilities
+of its own" logic applied to environment variables: this skeleton doesn't
+know in advance which Skill will need one. Copy
+[`templates/.env.example`](templates/.env.example) to
+`.devcontainer/.env.example` — a Skill that needs a secret documents its
+own key there.
 
 ## 5. devcontainer.json ties it together — and needs no special wiring for later Features
 

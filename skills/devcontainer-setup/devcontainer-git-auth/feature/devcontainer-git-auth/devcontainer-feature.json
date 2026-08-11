@@ -1,0 +1,13 @@
+{
+  "id": "devcontainer-git-auth",
+  "version": "1.0.0",
+  "name": "devcontainer-git-auth",
+  "description": "Deploy key, commit-signing key, and gh CLI API authentication for a devcontainer.",
+
+  "mounts": [
+    "source=devcontainer-git-auth-ssh,target=/home/appuser/.ssh,type=volume"
+  ],
+
+  "postCreateCommand": "bash \"${containerWorkspaceFolder}/.devcontainer/devcontainer-git-auth/feature/devcontainer-git-auth/files/setup-keys.sh\" \"${containerWorkspaceFolder}\"",
+  "postAttachCommand": "bash \"${containerWorkspaceFolder}/.devcontainer/devcontainer-git-auth/feature/devcontainer-git-auth/files/verify-and-remind.sh\" \"${containerWorkspaceFolder}\""
+}

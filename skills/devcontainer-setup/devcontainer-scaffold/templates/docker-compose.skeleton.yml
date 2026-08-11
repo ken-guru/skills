@@ -12,6 +12,21 @@ services:
   devcontainer:
     build: .
 
+    # Foundational, project-wide mechanism for secrets any Skill might
+    # need (devcontainer-git-auth's GH_TOKEN is the first consumer, not
+    # the only intended one): every KEY=value line in a gitignored
+    # `.devcontainer/.env` becomes a container environment variable.
+    # `required: false` means Compose won't fail if the file is absent,
+    # which matters before a project has any secrets to put in it yet.
+    # Copy `.env.example` to `.env` and fill in real values; keep `.env`
+    # itself out of version control. A Skill that needs a secret appends
+    # its own key to `.env.example` rather than replacing it -- this file
+    # has no single narrow owner the way most of this suite's artifacts
+    # do, since more than one Skill can genuinely need a line in it.
+    env_file:
+      - path: .env
+        required: false
+
     # This skeleton grants NO capabilities of its own. A capability like
     # NET_ADMIN/NET_RAW (needed by devcontainer-firewall to manage its own
     # netfilter rules) or SYS_ADMIN (needed by a nested process-sandboxing
