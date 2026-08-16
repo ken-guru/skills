@@ -47,6 +47,7 @@ RUN useradd --create-home --shell /bin/bash "$USERNAME" \
     && mkdir -p \
         /home/$USERNAME/.your-tool \
         /home/$USERNAME/.ssh \
+        /home/$USERNAME/.npm-global \
         /commandhistory \
     && chown -R "$USERNAME:$USERNAME" /home/$USERNAME /commandhistory
 # --- END NON-ROOT USER AND HOME-DIRECTORY PATHS ----------------------------

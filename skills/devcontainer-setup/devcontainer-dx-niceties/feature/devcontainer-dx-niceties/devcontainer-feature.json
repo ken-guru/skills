@@ -1,6 +1,6 @@
 {
   "id": "devcontainer-dx-niceties",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "devcontainer-dx-niceties",
   "description": "Statusline, config-directory symlink bridging, host-sleep prevention, and database/secrets wiring patterns for a devcontainer."
 }

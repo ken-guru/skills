@@ -36,17 +36,16 @@ your `devcontainer.json`'s `features` block —
 }
 ```
 
-— and rebuild. This installs `jq` and wires the statusline into the
-non-root user's `.bashrc`, idempotently (a marker comment guards against
-double-appending on rebuild). Everything else below needs the specific
+— and rebuild. This installs `jq`, copies the statusline to
+`/usr/local/bin/statusline.sh` (the Feature source cache may disappear after
+build), and wires it into the non-root user's `.bashrc`, idempotently (a
+marker comment guards against double-appending on rebuild). Everything else below needs the specific
 manual step its own section describes.
 
-**Scope limitation, not a bug:** the statusline only reaches interactive,
-non-login shells (`.bashrc` is what a plain `docker exec -it ... bash`
-sources) — the same category of gap as the Debian-login-shell `PATH`-reset
-gotcha documented elsewhere in this suite. Not solved here for the same
-reason: it's a known, bounded limitation of relying on `.bashrc` alone,
-not something worth a heavier fix for a purely cosmetic feature.
+The hook reaches interactive shells that source `.bashrc` (including the
+usual `docker exec -it ... bash` path). The executable itself is kept at
+`/usr/local/bin/statusline.sh`, so it remains available after Feature source
+cache cleanup.
 
 ## Keeping the host awake with `initializeCommand`
 

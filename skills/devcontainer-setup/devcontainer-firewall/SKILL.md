@@ -33,7 +33,7 @@ CLI needs — see [devcontainer-agentic-clis](../devcontainer-agentic-clis/SKILL
 if you're using it). Rebuild.
 
 `install.sh` installs this Feature's own OS-level dependencies
-(`iptables`, `ipset`, `jq`, `dnsutils`, `curl`) at build time, before any
+(`iptables`, `ipset`, `iproute2`, `jq`, `dnsutils`, `curl`) at build time, before any
 firewall exists to block that install — the one safe time to do it,
 regardless of whether a nested build-time step you add later needs the
 same discipline. `capAdd: [NET_ADMIN, NET_RAW]` in

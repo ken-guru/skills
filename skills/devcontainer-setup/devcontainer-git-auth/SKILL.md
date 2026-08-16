@@ -34,9 +34,8 @@ no account-level permissions needed>` to your project's
 haven't already; this Skill's own line is already in it). Rebuild.
 
 This Feature declares its own named volume for `~/.ssh`
-(`devcontainer-git-auth-ssh`, mounted at `/home/appuser/.ssh` — update
-this in [`devcontainer-feature.json`](feature/devcontainer-git-auth/devcontainer-feature.json)
-if you renamed the non-root user) rather than assuming
+(`devcontainer-git-auth-ssh`, mounted at the resolved remote user's
+`$HOME/.ssh`) rather than assuming
 `devcontainer-scaffold` declared one for it, and `install.sh` pre-creates
 and `chown`s that path so the volume doesn't come up root-owned on first
 mount — the Retrofit Contract applied to this Skill's own state, not just

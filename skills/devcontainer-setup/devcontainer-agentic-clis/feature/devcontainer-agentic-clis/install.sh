@@ -31,7 +31,7 @@ USER_HOME="${_REMOTE_USER_HOME:-$HOME}"
 USER_NAME="${_REMOTE_USER:-$(id -un)}"
 NPM_GLOBAL_DIR="$USER_HOME/.npm-global"
 mkdir -p "$NPM_GLOBAL_DIR"
-chown -R "$USER_NAME" "$NPM_GLOBAL_DIR" 2>/dev/null || true
+chown -R "$USER_NAME:$USER_NAME" "$NPM_GLOBAL_DIR" 2>/dev/null || true
 export NPM_CONFIG_PREFIX="$NPM_GLOBAL_DIR"
 export PATH="$NPM_GLOBAL_DIR/bin:$PATH"
 {
@@ -52,7 +52,10 @@ CLI_PACKAGES=(
 )
 for package in "${CLI_PACKAGES[@]}"; do
     echo "Installing $package globally..."
-    npm install -g "$package"
+    # Feature install.sh runs as root, but the installed CLI must be usable
+    # and upgradeable by the configured non-root runtime user.
+    su - "$USER_NAME" -s /bin/bash -c \
+        "NPM_CONFIG_PREFIX=$(printf '%q' "$NPM_GLOBAL_DIR") PATH=$(printf '%q' "$NPM_GLOBAL_DIR/bin:$PATH") npm install -g $(printf '%q' "$package")"
 done
 
 # Baseline-install every MCP server listed in the manifest (copied from
@@ -63,7 +66,8 @@ MANIFEST="$SCRIPT_DIR/files/mcp-servers.manifest.json"
 if [ -f "$MANIFEST" ]; then
     while read -r key; do
         echo "Installing MCP server: $key..."
-        MCP_MANIFEST="$MANIFEST" bash "$SCRIPT_DIR/files/staged-install-handshake-atomic-swap.sh" install "$key"
+        su - "$USER_NAME" -s /bin/bash -c \
+            "HOME=$(printf '%q' "$USER_HOME") MCP_MANIFEST=$(printf '%q' "$MANIFEST") MCP_INSTALL_ROOT=$(printf '%q' "$USER_HOME/.local/share/devcontainer-agentic-clis-mcp") bash $(printf '%q' "$SCRIPT_DIR/files/staged-install-handshake-atomic-swap.sh") install $(printf '%q' "$key")"
     done < <(jq -r '.servers | keys[]' "$MANIFEST")
 else
     echo "No mcp-servers.manifest.json found -- copy mcp-servers.manifest.example.json and fill it in to install MCP servers." >&2

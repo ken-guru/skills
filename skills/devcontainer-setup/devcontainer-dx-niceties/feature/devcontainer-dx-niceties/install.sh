@@ -20,13 +20,14 @@ USER_NAME="${_REMOTE_USER:-$(id -un)}"
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 STATUSLINE_PATH="$SCRIPT_DIR/files/statusline.sh"
 
-# Interactive, non-login shells only (a plain `docker exec -it ... bash`,
-# the common case for attaching to a running devcontainer) -- .bashrc is
-# not sourced for login shells or non-interactive ones. Documented as a
-# known scope limitation in this Skill's SKILL.md rather than solved here,
-# the same way the Debian-login-shell-PATH-reset gotcha elsewhere in this
-# suite is a known, documented limitation of ENV PATH rather than
-# something every Feature re-solves.
+# Feature source directories may be removed after image build. Copy the
+# runtime script to a stable system path before wiring it into the shell.
+install -Dm755 "$STATUSLINE_PATH" /usr/local/bin/statusline.sh
+STATUSLINE_PATH=/usr/local/bin/statusline.sh
+
+# Interactive shells source this hook through the user's .bashrc. The
+# runtime script itself lives outside the disposable Feature source cache,
+# so it remains available after image build cleanup.
 BASHRC="$USER_HOME/.bashrc"
 touch "$BASHRC"
 MARKER="# devcontainer-dx-niceties statusline"

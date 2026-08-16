@@ -1,6 +1,6 @@
 {
   "id": "devcontainer-agentic-clis",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "devcontainer-agentic-clis",
   "description": "Install agentic coding CLI binaries and wire their MCP servers via stage/verify/atomic-swap.",
 

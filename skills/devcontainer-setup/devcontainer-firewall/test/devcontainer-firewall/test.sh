@@ -15,6 +15,7 @@ source dev-container-features-test-lib
 
 check "iptables installed" bash -c "command -v iptables"
 check "ipset installed" bash -c "command -v ipset"
+check "iproute2 installed" bash -c "command -v ip"
 check "jq installed" bash -c "command -v jq"
 check "dig installed" bash -c "command -v dig"
 check "curl installed" bash -c "command -v curl"

@@ -1,6 +1,6 @@
 {
   "id": "devcontainer-firewall",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "devcontainer-firewall",
   "description": "Deny-by-default outbound network firewall with a self-bootstrapping, manifest-derived allowlist.",
 

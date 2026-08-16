@@ -13,6 +13,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
     iptables \
     ipset \
+    iproute2 \
     jq \
     dnsutils \
     curl

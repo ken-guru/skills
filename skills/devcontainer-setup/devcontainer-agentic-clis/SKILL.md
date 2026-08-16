@@ -51,9 +51,10 @@ domains allowlisted" below. Rebuild.
 installs `jq` itself, repoints `npm`'s global-install prefix under the
 non-root user's home directory (mirrored into `/etc/profile.d` so it
 survives login shells too — moved here from `devcontainer-scaffold` since
-this is the only Skill that actually installs npm-based CLIs), then
-installs each CLI package and baseline-installs every MCP server in the
-manifest.
+this is the only Skill that actually installs npm-based CLIs), then runs
+both CLI and MCP installs as that non-root user so the persistent prefix and
+staged MCP roots are not left root-owned. It installs each CLI package and
+baseline-installs every MCP server in the manifest.
 
 ## The reliability technique: stage, verify, atomic-swap
 

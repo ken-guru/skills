@@ -33,10 +33,10 @@ iptables -P OUTPUT ACCEPT
 iptables -P FORWARD ACCEPT
 
 # Flush existing rules and any leftover allowlist set from a prior run.
+# Do not flush the nat table: Docker's embedded DNS resolver is routed
+# through 127.0.0.11 by rules in that table.
 iptables -F
 iptables -X
-iptables -t nat -F
-iptables -t nat -X
 ipset destroy allowed-domains 2>/dev/null || true
 
 # Allow DNS and loopback before any restrictions apply.

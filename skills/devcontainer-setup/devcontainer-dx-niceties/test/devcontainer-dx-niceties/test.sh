@@ -17,6 +17,7 @@ source dev-container-features-test-lib
 BASHRC="${_REMOTE_USER_HOME:-$HOME}/.bashrc"
 
 check "jq installed" bash -c "command -v jq"
+check "statusline copied to persistent runtime path" bash -c "test -x /usr/local/bin/statusline.sh"
 check "statusline wired into .bashrc" bash -c "grep -qF 'devcontainer-dx-niceties statusline' '$BASHRC'"
 # Fixed-string match on the literal, single-quoted PS1 assignment --
 # confirms the command substitution was NOT expanded at write time (which
