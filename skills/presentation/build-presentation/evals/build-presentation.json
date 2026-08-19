@@ -47,5 +47,26 @@
     "query": "is my presentation complete?",
     "precondition": "PRESENTASJON.md and PRESENTASJON.html exist but PRESENTASJON.pdf is missing",
     "expected": "orchestrator treats Generation as incomplete and routes back to generate-slides"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "what should I do next?",
+    "precondition": "Generation is done, IMAGE_SPEC.md exists, and phases.images.status is pending",
+    "expected": "orchestrator offers generate-images before Proofread"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "is my presentation complete?",
+    "precondition": "Presentation outputs exist, both media phases are done or skipped, and Proofread is pending",
+    "expected": "orchestrator offers proofread-presentation"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "continue the presentation",
+    "precondition": "PROJECT.json is malformed or has an ambiguous phase state",
+    "expected": "orchestrator reports the ambiguity and pauses before mutation"
   }
 ]

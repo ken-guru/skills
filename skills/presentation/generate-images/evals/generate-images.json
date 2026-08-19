@@ -1,0 +1,11 @@
+[
+  {"skill":"generate-images","type":"positive","query":"render the presentation images","precondition":"IMAGE_SPEC.md exists","expected":"skill loads"},
+  {"skill":"generate-images","type":"positive","query":"generate the image for slide 3","precondition":"IMAGE_SPEC.md exists","expected":"skill loads and supports a focused image scope"},
+  {"skill":"generate-images","type":"negative","query":"render the presentation diagrams","precondition":"DIAGRAM_SPEC.md exists","expected":"skill does NOT load — generate-diagrams should handle this"},
+  {"skill":"generate-images","type":"boundary","query":"generate the presentation images","precondition":"IMAGE_SPEC.md is missing","expected":"skill loads only for an explicit image request, then reports the missing specification without writes"},
+  {"skill":"generate-images","type":"negative","query":"generate the slides","precondition":"AGENDA.md exists","expected":"skill does NOT load — generate-slides or build-presentation should handle this"},
+  {"skill":"generate-images","type":"boundary","query":"stop rendering after the current image","precondition":"Interactive image rendering is active","expected":"skill keeps generated assets, leaves phases.images pending, and preserves unrelated phase records"},
+  {"skill":"generate-images","type":"boundary","query":"render the remaining images","precondition":"One selected image fails","expected":"skill reports the failure and leaves phases.images pending"},
+  {"skill":"generate-images","type":"boundary","query":"render the visuals","precondition":"Both IMAGE_SPEC.md and DIAGRAM_SPEC.md exist and the request does not name a media type","expected":"skill asks for an explicit media type or routes through build-presentation"
+  }
+]
