@@ -45,6 +45,11 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
 
 Written by `discover-presentation` and updated by subsequent phase skills.
 
+The lifecycle phases are Discovery, Structure, Generation, and Proofread. Images
+and Diagrams are independently invokable media phases with their own state
+records; they are associated with the Structure-to-Generation flow rather than
+being additional lifecycle phases.
+
 ```json
 {
   "projectType": "presentation",
@@ -113,6 +118,8 @@ Expected sections:
 | `PROJECT.json` missing | Nothing started |
 | `PROJECT.json` exists, `phases.discovery.status == "done"` | Discovery complete |
 | `AGENDA.md` exists, `phases.structure.status == "done"` | Structure complete |
-| `IMAGE_SPEC.md` exists | Image spec generated (sub-step of Structure) |
 | `PRESENTASJON.md`, `PRESENTASJON.html`, and `PRESENTASJON.pdf` exist, `phases.generation.status == "done"` | Generation complete |
+| Generation is complete, `IMAGE_SPEC.md` exists, and `phases.images.status` is neither `"done"` nor `"skipped"` | Images pending |
+| Generation is complete, `DIAGRAM_SPEC.md` exists, and `phases.diagrams.status` is neither `"done"` nor `"skipped"` | Diagrams pending |
+| `phases.images.status == "done" or "skipped"`, and `phases.diagrams.status == "done" or "skipped"` | Media complete |
 | `phases.proofread.status == "done" or "skipped"` | Proofread complete |

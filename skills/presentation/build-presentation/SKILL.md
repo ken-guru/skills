@@ -5,154 +5,63 @@ description: "Orchestrator for the installed presentation skill suite. Use when 
 
 # Build Presentation (Orchestrator)
 
-Coordinates the full presentation pipeline. Detects what has already been done and guides the user to the next step.
+Coordinates the Presentation Skill Suite by routing from Project Folder state to
+the next valid action. It does not contain phase capabilities; each Phase Skill
+remains independently callable.
 
 ## Installation boundary
 
-This skill orchestrates `discover-presentation`, `structure-agenda`, `generate-slides`, `generate-images`, `generate-diagrams`, and `proofread-presentation`; it does not contain those capabilities itself. Install it together with that suite. The phase skills remain separately useful for focused work in an existing project folder.
-
-## Gotchas
-- Advance phases only when the current exit criteria are fully satisfied.
-- Require structure to be complete before calling `generate-slides`. Process requests sequentially; always build the agenda first.
+Install this Orchestrator with the complete Presentation Skill Suite. The suite
+distribution contract keeps each member independently usable after installation.
 
 ## Startup
 
-Before proceeding:
-1. Confirm the project folder is readable.
-2. If it already exists, require `PROJECT.json` to identify a Presentation Project.
-3. From the project folder, run `git rev-parse --is-inside-work-tree`. If it
-   succeeds, enable Git checkpoints for this run. If it fails, tell the user
-   before making presentation changes that they will not be able to revisit
-   persisted states from the development cycle, then continue without commits.
+1. Confirm the Project Folder is readable.
+2. If it exists, require `PROJECT.json` with `projectType: "presentation"`.
+3. Read the Project Folder state and named artifacts directly.
+4. When state is ambiguous or corrupt, report the ambiguity and pause before
+   mutation. Direct the user to inspect or repair the Project Folder.
 
-Each invoked phase owns the preflight for the external tools it actually uses.
+When the Project Folder is Git-backed, load the conditional
+[Git checkpoint protocol](GIT_CHECKPOINTS.md) before invoking a Phase Skill.
 
-## Git checkpoints
+## Routing interface
 
-When Git checkpoints are enabled, snapshot the project folder's Git status
-before invoking a phase. After a phase completes, inspect the status again.
-If that phase changed presentation files, stage only the files it changed and
-create one commit before offering or invoking the next phase. Use a message
-that names the completed phase, for example:
+Detect the first incomplete state in this order:
 
-```
-presentation: complete discovery
-presentation: complete agenda structure
-presentation: complete slide generation
-presentation: complete image generation
-presentation: complete diagram generation
-presentation: complete proofreading
-```
+| State | Condition | Next action |
+|---|---|---|
+| Nothing started | `PROJECT.json` is missing | Offer `discover-presentation` |
+| Discovery pending | Discovery is not done | Complete or redo `discover-presentation` |
+| Structure pending | Discovery is done and Structure is not done | Offer `structure-agenda` |
+| Generation pending | Structure is done and required presentation outputs are incomplete | Offer `generate-slides` |
+| Media pending | A Media Spec exists and its owned media phase is not done or skipped | Offer the matching Media Renderer |
+| Proofread pending | Presentation and required media are complete, Proofread is pending | Offer `proofread-presentation` |
+| Complete | Proofread is done or skipped | Report completion and offer an explicit rerun path |
 
-Never stage pre-existing, unrelated, or secret-bearing changes. A phase that
-makes no changes creates no commit. If Git cannot create a checkpoint, report
-the exact failure and do not advance to a later phase until the user has chosen
-how to proceed without that persisted state.
+Use the detailed state-specific dialogue and recovery options in
+[routing guidance](ROUTING.md) only for the detected branch.
 
-When a rewrite sends the project back to an earlier phase, finish the restart
-guard and commit its confirmed file changes before re-invoking that phase. Make
-the reset evident in the message, for example:
-
-```
-presentation: reset to agenda structure — revise narrative
-```
-
-Then checkpoint the re-run phase on completion, as usual. In a non-Git project,
-repeat the persistence limitation whenever a restart is confirmed.
-
-## State detection
-
-Read `PROJECT.json` and the named project artifacts directly. Require
-`projectType: "presentation"` whenever state exists:
-
-| State | Condition |
-|-------|-----------|
-| Nothing started | `PROJECT.json` missing |
-| Discovery done | `PROJECT.json` exists, `phases.discovery.status == "done"` |
-| Structure done | `AGENDA.md` exists, `phases.structure.status == "done"` |
-| Generation done | `PRESENTASJON.md`, `PRESENTASJON.html`, and `PRESENTASJON.pdf` exist, `phases.generation.status == "done"` |
-| Media done | Media specs exist and corresponding `phases.images.status` and/or `phases.diagrams.status` are "done" or "skipped" |
-| Proofread done | `phases.proofread.status == "done"` |
-
-## User guidance (based on state)
-
-### Nothing started
-> "This looks like a new project. Would you like to start by gathering requirements? (discover-presentation)"
-
-→ Call `discover-presentation`, then continue.
-
-Before advancing to structure-agenda, verify [exit criteria](EXIT_CRITERIA.md#discovery-exit-criteria).
-
-### Discovery done, no agenda
-> "Discovery is complete. Would you like to build the agenda now? (structure-agenda)"
-
-Options:
-- **Yes** — call `structure-agenda`
-- **Redo discovery** — call `discover-presentation` again. `discover-presentation` will invoke the restart guard, prompting the user to clean up stale downstream files before re-running.
-
-Before advancing to generate-slides, verify [exit criteria](EXIT_CRITERIA.md#agenda-exit-criteria).
-
-### Structure done, no slides
-> "The agenda is approved. Would you like to generate the presentation now? (generate-slides)"
-
-Estimated token cost: **~high** (fetches sources, writes all slides)
-
-Options:
-- **Yes** — call `generate-slides`
-- **Continue editing agenda** — call `structure-agenda` again. `structure-agenda` will invoke the restart guard, prompting the user to clean up stale generation outputs before re-running.
-
-### Generation done, media pending
-
-> "The presentation slides have been generated. I see media specifications that haven't been rendered yet."
-
-Check which specs exist and aren't done:
-- If `IMAGE_SPEC.md` exists and `phases.images.status != "done"`, offer: **Generate AI Images** (call `generate-images`)
-- If `DIAGRAM_SPEC.md` exists and `phases.diagrams.status != "done"`, offer: **Generate D2 Diagrams** (call `generate-diagrams`). If D2 is unavailable, that skill offers a consented installation or lets the user install it themselves before rendering.
-
-Options:
-- **Generate** — call the respective skill(s). After successful generation, mark the corresponding phase status as "done" in `PROJECT.json`.
-- **Skip** — mark the media phase(s) as "skipped".
-
-### Media done, not proofread
-> "The presentation and its media have been generated. Would you like to run a proofreading pass now?"
-
-Options:
-- **Yes** — call `proofread-presentation` to run the proofreading pass against the existing `PRESENTASJON.md`, report all findings, and mark `phases.proofread.status = "done"` in `PROJECT.json`
-- **Skip** — mark proofread as skipped (not recommended — warn the user)
-
-### Proofread done
-> "The presentation is complete ✅"
-
-Options:
-- **Regenerate** — re-run `generate-slides` from existing agenda. `generate-slides` will invoke the restart guard to handle any existing media files before regenerating.
-- **Revise agenda** — go back to `structure-agenda`. `structure-agenda` will invoke the restart guard, prompting the user to clean up stale generation outputs before re-running.
-- **Start over** — call `discover-presentation`. `discover-presentation` will invoke the restart guard, giving the user the option to delete all generated files before starting fresh.
+Before advancing from Discovery to Structure or Structure to Generation, verify
+the applicable [Exit Criteria](EXIT_CRITERIA.md). Advance only after every
+condition passes and the user has chosen the next action where approval is
+required.
 
 ## Sequential invocation
 
-When calling phase skills in sequence, pass the project folder path. Each skill reads `DISCOVERY.json` and `PROJECT.json` to find all paths and settings.
+When the user chooses a next action, pass the Project Folder path to the selected
+Skill. Each Skill reads `DISCOVERY.json` and `PROJECT.json` and owns its own
+preflight, Restart Guard, writes, and completion rule.
 
-After each successful phase invocation, apply the Git checkpoint protocol before
-continuing the pipeline. This includes `discover-presentation`,
-`structure-agenda`, `generate-slides`, `generate-images`,
-`generate-diagrams`, and `proofread-presentation`.
+After a successful Phase Skill invocation, apply the Git checkpoint protocol when
+enabled, then read state again before offering the next action. Preserve every
+unrelated phase record.
 
-The full pipeline is:
+The supported sequence is:
+
+```text
+discover-presentation → structure-agenda → generate-slides →
+generate-images/diagrams → proofread-presentation
 ```
-discover-presentation → structure-agenda → generate-slides → generate-images/diagrams → proofread-presentation
-```
 
-Do not advance to the next phase until the current phase's exit criteria are satisfied (see guidance sections above).
-
-## Token cost hints
-
-Display estimated effort before calling expensive operations:
-
-| Operation | Estimated cost |
-|-----------|---------------|
-| `discover-presentation` | Low — conversational only |
-| `structure-agenda` | Low-medium — iterative drafting |
-| `generate-slides` | High — source fetching + full slide generation |
-| `generate-images` | High — API image generation (if not skipped) |
-| `generate-diagrams` | Low — local D2 rendering |
-| Proofread pass | Low — reads existing files only |
+Media phases may be skipped or run independently when their Media Specs exist.

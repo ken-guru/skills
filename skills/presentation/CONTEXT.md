@@ -9,12 +9,16 @@ _Avoid_: pipeline skill, workflow step
 
 ## Phase
 
-One logical step in the content creation pipeline. Current phases:
+One logical step in the content creation pipeline. The lifecycle phases are:
 
 1. **Discovery** — gather requirements from the user (topic, audience, duration, language, occasion)
 2. **Structure** — build and iterate on the content outline
 3. **Generation** — render the final output files
 4. **Proofread** — quality check the generated output; skippable but recommended
+
+**Media phases** — independently invokable Presentation Skills for producing
+images and diagrams. They have their own Project Folder state and completion
+rules, but remain media work associated with the Structure-to-Generation flow.
 
 ## Project Type
 
@@ -55,26 +59,6 @@ _Avoid_: activation condition, routing description
 
 ---
 
-## Example dialogue
-
-> **Dev:** I want to add a new phase skill for translating a finished presentation into another language. Where does it fit?
->
-> **Domain expert:** It'd be a phase skill — it reads from the project folder and writes back to it. You'd add a fifth phase after Proofread, with its own exit criteria.
->
-> **Dev:** Does it need a restart guard?
->
-> **Domain expert:** Only if running it again would make downstream files stale. If it just overwrites the translated output in place, the guard isn't needed.
->
-> **Dev:** And how does the orchestrator know when to offer it?
->
-> **Domain expert:** It checks the phase status in `PROJECT.json`. Once proofread is done, it offers the translation step as the next logical action.
->
-> **Dev:** What trigger should I write for the skill?
->
-> **Domain expert:** Something like "Load when the user wants to translate an existing presentation into another language." Keep it narrow — the trigger competes with every other skill's trigger, so vague language causes wrong routing.
-
----
-
 ## Presentation-specific terminology
 
 **Slide** — One page in the final rendered output.
@@ -110,6 +94,13 @@ _Avoid_: image shape, layout direction
 
 **Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number.
 _Avoid_: image set, generation targets
+
+**Media Renderer** — A Presentation Skill that turns an approved Media Spec into
+media assets and updates the corresponding media phase in the Project Folder.
+Image and Diagram Media Renderers share the scope, review, reporting, and state
+preservation protocol while retaining distinct provider behavior.
+
+_Avoid_: media generator, rendering helper
 
 **Generation Mode** — How media (images or diagrams) is produced within a run. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
 _Avoid_: run mode, output mode, step-by-step mode

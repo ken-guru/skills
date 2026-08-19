@@ -1,11 +1,15 @@
 ---
 name: generate-images
-description: "Renderer. Use when generating or rendering presentation images, when IMAGE_SPEC.md exists, or after generate-slides has completed."
+description: "Media Renderer. Load when IMAGE_SPEC.md exists or the user explicitly requests presentation image rendering."
 ---
 
-# Generate Images
+# Generate Images (Media Renderer)
 
-Phase skill that follows `generate-slides`. Reads `IMAGE_SPEC.md`, submits each entry's prompt to an AI image generation API, and saves the resulting PNG files to the project's `images/` folder.
+Reads `IMAGE_SPEC.md`, submits each entry's prompt to an AI image generation API, and saves the resulting PNG files to the project's `images/` folder.
+
+Protocol: resolve Media Scope, choose Generation Mode, review and report results,
+update only the owned media phase, leave it pending on cancellation or failure,
+and preserve unrelated phase records. Gemini setup remains local.
 
 ## Startup
 
@@ -13,7 +17,7 @@ Before proceeding:
 
 1. Resolve the project folder: check `DISCOVERY.json` for the `paths.imageSpec` field, or ask if ambiguous.
 2. Check `IMAGE_SPEC.md` exists. If not:
-   > ❌ `IMAGE_SPEC.md` not found. Run `generate-slides` first to create image specifications.
+   > ❌ `IMAGE_SPEC.md` not found. Create and approve an image specification before rendering images.
    Abort.
 3. Check `GEMINI_API_KEY` is set: `echo "$GEMINI_API_KEY"`. If empty, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
 4. Check `node` is available: `which node`. If not found, abort: ❌ `node` not installed.

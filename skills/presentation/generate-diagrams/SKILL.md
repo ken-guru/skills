@@ -1,11 +1,15 @@
 ---
 name: generate-diagrams
-description: "Renderer. Use when rendering presentation diagrams, when DIAGRAM_SPEC.md exists, or after generate-slides has completed."
+description: "Media Renderer. Load when DIAGRAM_SPEC.md exists or the user explicitly requests presentation diagram rendering."
 ---
 
-# Generate Diagrams
+# Generate Diagrams (Media Renderer)
 
-Phase skill that follows `generate-slides`. Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves the resulting SVG files to the project's `images/` folder.
+Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves the resulting SVG files to the project's `images/` folder.
+
+Protocol: resolve Media Scope, choose Generation Mode, review and report results,
+update only the owned media phase, leave it pending on cancellation or failure,
+and preserve unrelated phase records. D2 setup remains local.
 
 ## Startup
 
@@ -13,7 +17,7 @@ Before proceeding:
 
 1. Resolve the project folder: check `DISCOVERY.json` for paths, or ask if ambiguous.
 2. Check `DIAGRAM_SPEC.md` exists. If not:
-   > ❌ `DIAGRAM_SPEC.md` not found. Run `generate-slides` first to create diagram specifications.
+   > ❌ `DIAGRAM_SPEC.md` not found. Create and approve a diagram specification before rendering diagrams.
    Abort.
 3. Check `d2` is available: `which d2`. If it is not found, explain that D2 is required to render these diagrams and offer:
 
