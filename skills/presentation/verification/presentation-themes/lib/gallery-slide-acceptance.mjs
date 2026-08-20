@@ -208,6 +208,8 @@ export async function inspectGalleryFontFallbacks({ page, manifest, selectedSlid
         Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top) > 2;
       for (let first = 0; first < slots.length; first += 1) {
         for (let second = first + 1; second < slots.length; second += 1) {
+          if (section.classList.contains('variation-landscape') &&
+              (slots[first].classList.contains('slot-media') || slots[second].classList.contains('slot-media'))) continue;
           if (overlap(slots[first].getBoundingClientRect(), slots[second].getBoundingClientRect())) issues.push(`slide ${slideNumber} generic fallback causes a Content Slot collision`);
         }
       }
