@@ -92,6 +92,7 @@ underlying artistic style.
 ## Active documentation
 
 - [Presentation domain glossary](CONTEXT.md)
+- [Human-output guidance](../unslop/SKILL.md)
 - [Project Folder state schema](docs/state-schema.md)
 - [Presentation Theme guide and gallery](docs/presentation-themes.md)
 - [Version 1.1 source-path migration](docs/migration-1.1.md)

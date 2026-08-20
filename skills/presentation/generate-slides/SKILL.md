@@ -7,6 +7,14 @@ description: "Generator. Use when generating or regenerating presentation slides
 
 Renders the final presentation from an approved `AGENDA.md` using one locked Presentation Theme.
 
+## Output voice
+
+Apply a lightweight human-voice pass when generating slide copy, presenter
+notes, glossary text, and user-facing reports. Presentation content must remain
+concise, specific, accessible, and within Content Capacity. Keep Markdown, HTML,
+commands, semantic classes, and project state exact. Use the standalone `unslop`
+Skill for a deliberate full editorial pass.
+
 ## Gotchas
 
 - Resolve and validate the selected Theme Package before changing project outputs.

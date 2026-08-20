@@ -8,6 +8,14 @@ description: "Run quality validation and proofreading passes..."
 
 Validate an existing themed `PRESENTASJON.md`, safely fix mechanical issues, report content concerns, and update Proofread state only when blocking checks pass.
 
+## Output voice
+
+Apply a lightweight human-voice pass to proofreading reports, warnings, and
+user-facing remediation. Be specific about the observed issue and the next
+action. Preserve quotations, accessibility text unless clarity requires a
+correction, project state, commands, and semantic markup contracts. Use the
+standalone `unslop` Skill for a deliberate full editorial pass.
+
 ## Startup
 
 Require `DISCOVERY.json`, `PROJECT.json`, `PRESENTASJON.md`, Node.js, and Marp CLI. Read the project-local `themes/theme-lock.json`, its selected Theme Manifest, declared CSS, and assets. Recompute the lock's SHA-256 fingerprints and validate the manifest contract described below before changing anything. A missing, modified, or incompatible Theme Package is fatal. Do not depend on another phase skill being installed.

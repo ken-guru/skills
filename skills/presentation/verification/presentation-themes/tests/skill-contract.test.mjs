@@ -55,3 +55,10 @@ test('Media Renderer evals cover trigger ambiguity and incomplete outcomes', asy
     assert.ok(evals.some((item) => item.precondition.includes('One selected')));
   }
 });
+
+test('Compact Signal pagination shows only the current slide number', async () => {
+  const compactSignal = await read('skills/presentation/generate-slides/themes/compact-signal/theme.css');
+
+  assert.match(compactSignal, /content:\s*attr\(data-marpit-pagination\);/);
+  assert.doesNotMatch(compactSignal, /counter\(marpit-slide/);
+});

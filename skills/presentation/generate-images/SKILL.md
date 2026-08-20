@@ -7,6 +7,13 @@ description: "Media Renderer. Load when IMAGE_SPEC.md exists or the user explici
 
 Reads `IMAGE_SPEC.md`, submits each entry's prompt to an AI image generation API, and saves the resulting PNG files to the project's `images/` folder.
 
+## Output voice
+
+Apply a lightweight human-voice pass to scope questions, review prompts, and
+result reports. Keep prompts and user-provided Media Intent intact when
+transporting them, and keep filenames, paths, commands, and state values exact.
+Use the standalone `unslop` Skill for a deliberate full editorial pass.
+
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,
 and preserve unrelated phase records. Gemini setup remains local.
