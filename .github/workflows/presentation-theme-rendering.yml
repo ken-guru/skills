@@ -72,9 +72,17 @@ jobs:
             const path = 'skills/presentation/verification/presentation-themes/reports/acceptance.json';
             const marker = '<!-- presentation-theme-visual-review -->';
             const baseSha = context.payload.pull_request.base.sha;
+            const headSha = context.payload.pull_request.head.sha;
             const artifactId = '${{ steps.acceptance-reports.outputs.artifact-id }}';
             const artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${artifactId}`;
-            const baselineUrl = (filename) => `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${baseSha}/skills/presentation/verification/presentation-themes/baselines/${filename}`;
+            const rawUrl = (sha, path) => `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${sha}/${path}`;
+            const baselineUrl = (filename) => rawUrl(baseSha, `skills/presentation/verification/presentation-themes/baselines/${filename}`);
+            const galleryArchetypes = { 1: 'title', 3: 'text-only', 4: 'text-plus-image', 5: 'full-image', 6: 'data', 8: 'quotation' };
+            const prSampleUrl = (theme, filename) => {
+              const slide = Number(filename.match(/slide-(\d+)\.png$/)?.[1]);
+              const archetype = galleryArchetypes[slide];
+              return archetype ? rawUrl(headSha, `skills/presentation/docs/assets/presentation-themes/${theme}-${archetype}.png`) : null;
+            };
             let report;
             try {
               report = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -84,11 +92,12 @@ jobs:
             const warnings = report.flatMap((theme) => (theme.visualIssues ?? []).map((issue) => {
               const filename = issue.match(/([a-z-]+-(?:html|pdf)-slide-\d+\.png)/)?.[1];
               const baseLink = filename ? `[base image](${baselineUrl(filename)})` : 'base image unavailable';
-              const headLink = filename ? `[PR image: ${filename}](${artifactUrl})` : `[PR reports](${artifactUrl})`;
+              const prImage = filename ? prSampleUrl(theme.themeId, filename) : null;
+              const headLink = prImage ? `[PR image](${prImage})` : `[PR reports](${artifactUrl})`;
               return `| **${theme.themeId}** | ${filename ?? 'visual check'} | ${baseLink} | ${headLink} | ${issue} |`;
             }));
             const body = warnings.length
-              ? `${marker}\n## Presentation theme visual review\n\nAutomated pixel comparisons found potential visual differences for human review. These warnings do not block the PR.\n\n| Theme | Asset | Base branch | PR render | Finding |\n|---|---|---|---|---|\n${warnings.join('\n')}\n\nThe base links open the approved baseline directly. The PR links open the acceptance artifact; the named PNGs and contact sheets are inside it. Please decide whether the differences are intentional.`
+              ? `${marker}\n## Presentation theme visual review\n\nAutomated pixel comparisons found potential visual differences for human review. These warnings do not block the PR.\n\n| Theme | Asset | Base branch | PR branch | Finding |\n|---|---|---|---|---|\n${warnings.join('\n')}\n\nThe links open the committed comparison images from each branch. The exact generated HTML/PDF captures and contact sheets are available in the [acceptance artifact](${artifactUrl}) for closer review. Please decide whether the differences are intentional.`
               : `${marker}\n## Presentation theme visual review\n\nNo visual baseline differences were detected.`;
             const { owner, repo } = context.repo;
             const comments = await github.paginate(github.rest.issues.listComments, {
