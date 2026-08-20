@@ -32,7 +32,7 @@ manifest update in the same PR as the lockfile update. The generated `reports/` 
 
 ## Full render tier
 
-The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, and checks accessibility, geometry, type size, safe margins, collisions, export parity, and approved visual baselines.
+The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, and checks accessibility, geometry, type size, safe margins, collisions, export parity, and approved visual baselines. The production gallery check also generates review screenshots and checks their structure and accessibility; it does not gate on browser-dependent pixel comparisons.
 
 ```sh
 npm run test:full
