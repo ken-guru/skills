@@ -6,3 +6,4 @@ skills/presentation/verification/presentation-themes/node_modules/
 
 # Wayfinder planning is temporary; preserve historical tracked files but ignore new ones.
 wayfinder/**
+.scratch/**
