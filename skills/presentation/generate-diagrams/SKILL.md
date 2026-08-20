@@ -9,10 +9,10 @@ Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves 
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) to scope questions,
-review prompts, and result reports. Preserve user-provided Media Intent and D2
-source when transporting them, and keep filenames, paths, commands, and state
-values exact.
+Apply a lightweight human-voice pass to scope questions, review prompts, and
+result reports. Preserve user-provided Media Intent and D2 source when
+transporting them, and keep filenames, paths, commands, and state values exact.
+Use the standalone `unslop` Skill for a deliberate full editorial pass.
 
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,

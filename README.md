@@ -16,6 +16,12 @@ A Collection of agent Skills and cohesive Skill Suites.
 |---|---|
 | [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, and structured output |
 
+Install the standalone Skill directly:
+
+```bash
+npx skills@latest add ken-guru/skills --skill unslop
+```
+
 ## Repository structure
 
 - `skills/<name>/SKILL.md` is a Standalone Skill.

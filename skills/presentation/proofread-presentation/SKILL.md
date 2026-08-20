@@ -10,10 +10,11 @@ Validate an existing themed `PRESENTASJON.md`, safely fix mechanical issues, rep
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) to proofreading reports,
-warnings, and user-facing remediation. Be specific about the observed issue and
-the next action. Preserve quotations, accessibility text unless clarity requires
-a correction, project state, commands, and semantic markup contracts.
+Apply a lightweight human-voice pass to proofreading reports, warnings, and
+user-facing remediation. Be specific about the observed issue and the next
+action. Preserve quotations, accessibility text unless clarity requires a
+correction, project state, commands, and semantic markup contracts. Use the
+standalone `unslop` Skill for a deliberate full editorial pass.
 
 ## Startup
 

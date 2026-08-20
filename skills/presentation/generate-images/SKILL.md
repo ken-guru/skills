@@ -9,10 +9,10 @@ Reads `IMAGE_SPEC.md`, submits each entry's prompt to an AI image generation API
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) to scope questions,
-review prompts, and result reports. Keep prompts and user-provided Media Intent
-intact when transporting them, and keep filenames, paths, commands, and state
-values exact.
+Apply a lightweight human-voice pass to scope questions, review prompts, and
+result reports. Keep prompts and user-provided Media Intent intact when
+transporting them, and keep filenames, paths, commands, and state values exact.
+Use the standalone `unslop` Skill for a deliberate full editorial pass.
 
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,

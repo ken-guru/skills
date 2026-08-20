@@ -12,8 +12,8 @@ Before:
 
 After:
 
-> This change moves the workflow into the next phase. Users can continue
-> without restarting their project.
+> This change moves the workflow into the next phase. Users can navigate to
+> the next phase.
 
 Review for concrete effects, plain language, and preserved meaning.
 

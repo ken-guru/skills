@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: "Edit prose to remove AI tells while preserving meaning, tone, technical precision, and structured output."
+description: "Load when the user asks to edit prose for a more natural voice while preserving meaning, tone, technical precision, and structured output."
 ---
 
 # Unslop

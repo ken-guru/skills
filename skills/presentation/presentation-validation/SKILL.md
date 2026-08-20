@@ -16,10 +16,11 @@ The dispatcher never installs tools, acquires credentials, changes project files
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) to human-readable
-validation reports. Name the failing check, affected artifact, and remediation
-without puffery. Preserve JSON output, exact paths, commands, error identifiers,
-and machine-readable report contracts.
+Apply a lightweight human-voice pass to human-readable validation reports. Name
+the failing check, affected artifact, and remediation without puffery. Preserve
+JSON output, exact paths, commands, error identifiers, and machine-readable
+report contracts. Use the standalone `unslop` Skill for a deliberate full
+editorial pass.
 
 Use `--format json` when another agent or process needs structured findings. Use `--report <path>` only when a persistent report is explicitly requested.
 

@@ -9,10 +9,11 @@ Renders the final presentation from an approved `AGENDA.md` using one locked Pre
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) when generating slide
-copy, presenter notes, glossary text, and user-facing reports. Presentation
-content must remain concise, specific, accessible, and within Content Capacity.
-Keep Markdown, HTML, commands, semantic classes, and project state exact.
+Apply a lightweight human-voice pass when generating slide copy, presenter
+notes, glossary text, and user-facing reports. Presentation content must remain
+concise, specific, accessible, and within Content Capacity. Keep Markdown, HTML,
+commands, semantic classes, and project state exact. Use the standalone `unslop`
+Skill for a deliberate full editorial pass.
 
 ## Gotchas
 

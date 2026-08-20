@@ -11,10 +11,11 @@ remains independently callable.
 
 ## Output voice
 
-Apply the [human-output guidance](../../unslop/SKILL.md) to routing explanations,
-decision summaries, and completion reports. Keep the guidance lightweight:
-prefer concrete state and next actions, preserve the user's requested tone, and
-leave Project Folder paths, commands, and state names exact.
+Apply a lightweight human-voice pass to routing explanations, decision
+summaries, and completion reports. Prefer concrete state and next actions,
+preserve the user's requested tone, and leave Project Folder paths, commands,
+and state names exact. Use the standalone `unslop` Skill for a deliberate full
+editorial pass.
 
 ## Installation boundary
 
