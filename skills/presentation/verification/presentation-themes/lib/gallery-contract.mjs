@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 
 export const gallerySlides = Object.freeze([
   { archetype: 'title', slideNumber: 1 },
+  { archetype: 'text-only', slideNumber: 3 },
   { archetype: 'text-plus-image', slideNumber: 4 },
+  { archetype: 'full-image', slideNumber: 5 },
   { archetype: 'data', slideNumber: 6 },
   { archetype: 'quotation', slideNumber: 8 },
 ]);

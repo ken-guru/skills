@@ -31,7 +31,8 @@ section {
 
 section.variation-default,
 section.variation-portrait,
-section.variation-landscape { isolation: isolate; }
+section.variation-landscape,
+section.variation-full-image { isolation: isolate; }
 section.tone-light,
 section.tone-dark,
 section.tone-accent { --theme-tone-present: 1; }
@@ -172,7 +173,7 @@ section.archetype-text-only .slot-body li { position: relative; padding: 10px 0 
 section.archetype-text-only .slot-body li::before { position: absolute; left: 0; content: "→"; color: var(--field-coral); font-weight: 800; }
 
 section.archetype-text-plus-image {
-  grid-template: auto 1fr auto / minmax(0, 48%) minmax(0, 52%);
+  grid-template: auto 1fr auto / minmax(0, 42%) minmax(0, 58%);
   gap: 26px 48px;
 }
 section.archetype-text-plus-image .slot-heading { grid-column: 2; }
@@ -198,6 +199,12 @@ section.archetype-text-plus-image.variation-landscape .slot-body { grid-column: 
 section.archetype-text-plus-image.variation-landscape .slot-body { align-self: start; columns: 2; column-gap: 50px; }
 section.archetype-text-plus-image.variation-landscape .slot-media { grid-row: 3; grid-column: 1; width: 100%; height: 145px; padding: 12px; transform: rotate(0.5deg); }
 section.archetype-text-plus-image.variation-landscape .slot-caption { grid-row: 4; grid-column: 1; width: 100%; transform: none; }
+section.archetype-text-plus-image.variation-full-image { display: block; padding: 0; background: var(--field-ink); color: var(--field-light); }
+section.archetype-text-plus-image.variation-full-image .slot-media { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; padding: 0; background: var(--field-sage); box-shadow: none; transform: none; }
+section.archetype-text-plus-image.variation-full-image .slot-media img { filter: brightness(.58) saturate(.76) sepia(.1); }
+section.archetype-text-plus-image.variation-full-image .slot-heading { position: absolute; z-index: 1; left: 62px; bottom: 58px; max-width: 820px; padding: 20px 28px; border-left: 6px solid var(--field-coral); background: rgb(46 61 49 / 88%); font-size: 64px; }
+section.archetype-text-plus-image.variation-full-image .slot-body,
+section.archetype-text-plus-image.variation-full-image .slot-caption { display: none; }
 
 section.archetype-data {
   grid-template: auto 1fr auto / 40% 1fr;

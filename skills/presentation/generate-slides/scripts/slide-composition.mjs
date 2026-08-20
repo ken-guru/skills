@@ -63,8 +63,8 @@ function selectedVariation(definition, slide, archetype) {
   if (archetype !== 'text-plus-image') return definition.variations[0];
   const intended = slide.visual.intendedOrientation?.toLowerCase();
   const actual = slide.visual.actualOrientation?.toLowerCase();
-  if (!['portrait', 'landscape'].includes(intended)) {
-    throw new Error('Picture slides require portrait or landscape Intended Media Orientation.');
+  if (!['portrait', 'landscape', 'full-image'].includes(intended)) {
+    throw new Error('Picture slides require portrait, landscape, or full-image Intended Media Orientation.');
   }
   if (actual && actual !== intended) {
     const error = new Error(

@@ -32,6 +32,24 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 
 ![Field Notes title slide on textured cream paper with a green serif headline, red handwritten label, gold underline, and loosely taped portrait print](assets/presentation-themes/field-notes-title.png)
 
+### Plan with bullet points
+
+#### Editorial
+
+![Editorial text-only slide with a large serif heading and a wider numbered bullet list](assets/presentation-themes/editorial-text-only.png)
+
+#### Signal
+
+![Signal text-only slide with a bold condensed heading and a wide numbered bullet list on a dark grid](assets/presentation-themes/signal-text-only.png)
+
+#### Compact Signal
+
+![Compact Signal text-only slide with a compact serif heading and a wide numbered bullet list](assets/presentation-themes/compact-signal-text-only.png)
+
+#### Field Notes
+
+![Field Notes text-only slide with a natural serif heading and a wide arrow-led bullet list on textured paper](assets/presentation-themes/field-notes-text-only.png)
+
 ### Text plus image
 
 #### Editorial
@@ -49,6 +67,24 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 #### Field Notes
 
 ![Field Notes text-plus-image slide with a taped portrait print on the left, serif heading and bullets on the right, and a handwritten-style caption beneath the image](assets/presentation-themes/field-notes-text-plus-image.png)
+
+### Full-bleed image
+
+#### Editorial
+
+![Editorial full-image slide with a serif title over a full-bleed landscape image and a warm coral overlay](assets/presentation-themes/editorial-full-image.png)
+
+#### Signal
+
+![Signal full-image slide with an uppercase title over a full-bleed landscape image, dark grid, and acid rule](assets/presentation-themes/signal-full-image.png)
+
+#### Compact Signal
+
+![Compact Signal full-image slide with a serif title over a full-bleed landscape image and dark blue overlay](assets/presentation-themes/compact-signal-full-image.png)
+
+#### Field Notes
+
+![Field Notes full-image slide with a serif title over a full-bleed landscape image and natural green overlay](assets/presentation-themes/field-notes-full-image.png)
 
 ### Data
 
