@@ -9,6 +9,9 @@
   "dependencies": {
     "@google/genai": "1.52.0"
   },
+  "overrides": {
+    "protobufjs": "7.6.5"
+  },
   "devDependencies": {
     "esbuild": "0.25.12"
   }
