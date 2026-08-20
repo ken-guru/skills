@@ -1,6 +1,6 @@
 # Presentation themes
 
-Editorial, Signal, and Field Notes are presentation-wide visual systems for the same semantic slide content. They make presentations recognizably different without changing their message, Media Intent, or reading order.
+Editorial, Signal, Compact Signal, and Field Notes are presentation-wide visual systems for the same semantic slide content. They make presentations recognizably different without changing their message, Media Intent, or reading order.
 
 ## How Presentation Themes behave
 
@@ -24,6 +24,10 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 
 ![Signal title slide on a near-black technical grid with a condensed uppercase headline, cyan label, pink rule, and sharply angled portrait panel](assets/presentation-themes/signal-title.png)
 
+#### Compact Signal
+
+![Compact Signal title slide on a dark blue canvas with a compact serif headline, yellow label, teal rule, and supportive portrait panel](assets/presentation-themes/compact-signal-title.png)
+
 #### Field Notes
 
 ![Field Notes title slide on textured cream paper with a green serif headline, red handwritten label, gold underline, and loosely taped portrait print](assets/presentation-themes/field-notes-title.png)
@@ -37,6 +41,10 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 #### Signal
 
 ![Signal text-plus-image slide with an uppercase heading and neon rule on the left, a dark grid canvas, and a tall angled portrait treatment on the right](assets/presentation-themes/signal-text-plus-image.png)
+
+#### Compact Signal
+
+![Compact Signal text-plus-image slide with a tightly packed sans-serif bullet list, teal rule, and narrow supportive image panel](assets/presentation-themes/compact-signal-text-plus-image.png)
 
 #### Field Notes
 
@@ -52,6 +60,10 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 
 ![Signal data slide with a fluorescent yellow canvas, condensed black heading, and four near-black metric cards separated by cyan and pink accents](assets/presentation-themes/signal-data.png)
 
+#### Compact Signal
+
+![Compact Signal data slide with a dark blue canvas, four compact white metric cards, and blue chart panel](assets/presentation-themes/compact-signal-data.png)
+
 #### Field Notes
 
 ![Field Notes data slide with a green serif heading, gold underline, italic takeaway, and four softly colored hand-drawn oval metrics](assets/presentation-themes/field-notes-data.png)
@@ -65,6 +77,10 @@ The sample artwork was AI-generated for this comparison and is reused unchanged 
 #### Signal
 
 ![Signal quotation slide with a dark grid, oversized condensed white quotation, cyan label, pale vertical bar, and a vivid pink attribution strip](assets/presentation-themes/signal-quotation.png)
+
+#### Compact Signal
+
+![Compact Signal quotation slide with a dark blue canvas, compact white serif quotation, blue context label, and red attribution strip](assets/presentation-themes/compact-signal-quotation.png)
 
 #### Field Notes
 
@@ -81,6 +97,10 @@ Warm, typographic, and composed like a modern magazine. Choose it for polished n
 ### Signal
 
 Bold, high-contrast, and structured for energy, systems, and data. Choose it for energetic launches, system explanations, and data-forward stories.
+
+### Compact Signal
+
+Compact, clear, and high-contrast, with smaller type, tight spacing, supportive side imagery, and full-bleed options. Choose it for dense briefings, operational updates, and content that needs more information per slide.
 
 ### Field Notes
 
@@ -110,7 +130,7 @@ The gallery portrait is a committed comparison fixture, not a theme-owned asset 
 
 ## Select or change a theme
 
-New presentations choose Editorial, Signal, or Field Notes during Discovery immediately after visual preference. Theme names and identifiers remain stable even when their descriptions are translated into the presentation language.
+New presentations choose Editorial, Signal, Compact Signal, or Field Notes during Discovery immediately after visual preference. Theme names and identifiers remain stable even when their descriptions are translated into the presentation language.
 
 For an existing presentation, rerun Discovery to select another theme. A theme change can regenerate Media Specs and presentation outputs, so the workflow reports every affected artifact and asks for confirmation before invalidating it. Use the skills rather than manually editing `DISCOVERY.json`, theme locks, project snapshots, or project-local CSS.
 

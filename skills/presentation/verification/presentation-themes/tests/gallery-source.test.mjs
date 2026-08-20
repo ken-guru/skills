@@ -3,14 +3,14 @@ import test from 'node:test';
 
 import { resolveGallerySource } from '../lib/gallery-contract.mjs';
 
-const themes = ['editorial', 'signal', 'field-notes'];
+const themes = ['editorial', 'signal', 'compact-signal', 'field-notes'];
 const sourceFiles = [
   { path: 'themes/editorial/theme.css', bytes: Buffer.from('editorial') },
   { path: 'fixtures/gallery/media/collaboration-portrait.png', bytes: Buffer.from('portrait') },
   { path: 'fixtures/gallery/deck.mjs', bytes: Buffer.from('deck') },
 ];
 
-test('gallery source resolution returns the twelve semantic documentation assets deterministically', () => {
+test('gallery source resolution returns the sixteen semantic documentation assets deterministically', () => {
   const first = resolveGallerySource({ themes, sourceFiles, sampleMediaPresent: true, sampleMediaBytes: Buffer.from('portrait') });
   const second = resolveGallerySource({
     themes,
@@ -28,6 +28,10 @@ test('gallery source resolution returns the twelve semantic documentation assets
     'signal-text-plus-image.png',
     'signal-data.png',
     'signal-quotation.png',
+    'compact-signal-title.png',
+    'compact-signal-text-plus-image.png',
+    'compact-signal-data.png',
+    'compact-signal-quotation.png',
     'field-notes-title.png',
     'field-notes-text-plus-image.png',
     'field-notes-data.png',

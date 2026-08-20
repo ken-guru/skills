@@ -7,7 +7,7 @@ Before advancing from discover-presentation to structure-agenda, verify:
 - [ ] Persona identified with at least 3 of 4 depth dimensions (experience level, goal, concerns, takeaways)
 - [ ] Duration and slide count estimated and confirmed by user
 - [ ] Top 3 takeaways documented in `DISCOVERY.json`
-- [ ] `theme.id` is one of `editorial`, `signal`, or `field-notes`
+- [ ] `theme.id` is one of `editorial`, `signal`, `compact-signal`, or `field-notes`
 - [ ] `theme.fontOverride` is null or contains an exact explicitly requested family
 
 ## Agenda exit criteria

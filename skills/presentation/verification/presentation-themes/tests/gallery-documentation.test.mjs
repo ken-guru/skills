@@ -70,7 +70,7 @@ test('documentation validation reports generic alternatives, missing disclosure,
   assert.ok(issues.some((issue) => issue.includes('generic alternative text')));
   assert.ok(issues.some((issue) => issue.includes('does not resolve')));
   assert.ok(issues.some((issue) => issue.includes('portable Markdown')));
-  assert.ok(issues.some((issue) => issue.includes('expected twelve gallery images')));
+  assert.ok(issues.some((issue) => issue.includes('expected 6 gallery images')));
 });
 
 test('documentation validation requires the exact README and gallery image reference sets', () => {
@@ -86,6 +86,6 @@ test('documentation validation requires the exact README and gallery image refer
     expectedAssets,
     existingPaths: new Set([...expectedAssets.map(asset), asset('unexpected.png')]),
   });
-  assert.ok(issues.some((issue) => issue.includes('exactly the three expected title images')));
-  assert.ok(issues.some((issue) => issue.includes('exactly the expected twelve gallery images')));
+  assert.ok(issues.some((issue) => issue.includes('exactly the 3 expected title images')));
+  assert.ok(issues.some((issue) => issue.includes('exactly the expected 6 gallery images')));
 });

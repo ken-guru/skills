@@ -12,6 +12,10 @@
       "package": "signal"
     },
     {
+      "id": "compact-signal",
+      "package": "compact-signal"
+    },
+    {
       "id": "field-notes",
       "package": "field-notes"
     }
