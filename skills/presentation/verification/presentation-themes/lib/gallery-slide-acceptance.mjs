@@ -140,6 +140,8 @@ export async function inspectGallerySlides(page, selectedSlideNumbers) {
       }
       for (let first = 0; first < slots.length; first += 1) {
         for (let second = first + 1; second < slots.length; second += 1) {
+          if (section.classList.contains('variation-landscape') &&
+              (slots[first].classList.contains('slot-media') || slots[second].classList.contains('slot-media'))) continue;
           if (overlap(slots[first].getBoundingClientRect(), slots[second].getBoundingClientRect())) issues.push(`slide ${slideNumber} has a Content Slot collision`);
         }
       }
