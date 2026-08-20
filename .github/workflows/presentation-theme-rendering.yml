@@ -53,6 +53,16 @@ jobs:
       - name: Run HTML, PDF, and gallery acceptance
         run: npm run test:full
 
+      - name: Upload acceptance reports
+        if: always()
+        id: acceptance-reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: presentation-theme-acceptance-reports
+          path: skills/presentation/verification/presentation-themes/reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Comment visual review warnings on pull request
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
@@ -61,17 +71,24 @@ jobs:
             const fs = require('node:fs');
             const path = 'skills/presentation/verification/presentation-themes/reports/acceptance.json';
             const marker = '<!-- presentation-theme-visual-review -->';
+            const baseSha = context.payload.pull_request.base.sha;
+            const artifactId = '${{ steps.acceptance-reports.outputs.artifact-id }}';
+            const artifactUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${artifactId}`;
+            const baselineUrl = (filename) => `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${baseSha}/skills/presentation/verification/presentation-themes/baselines/${filename}`;
             let report;
             try {
               report = JSON.parse(fs.readFileSync(path, 'utf8'));
             } catch {
               return;
             }
-            const warnings = report.flatMap((theme) =>
-              (theme.visualIssues ?? []).map((issue) => `- **${theme.themeId}**: ${issue}`),
-            );
+            const warnings = report.flatMap((theme) => (theme.visualIssues ?? []).map((issue) => {
+              const filename = issue.match(/([a-z-]+-(?:html|pdf)-slide-\d+\.png)/)?.[1];
+              const baseLink = filename ? `[base image](${baselineUrl(filename)})` : 'base image unavailable';
+              const headLink = filename ? `[PR image: ${filename}](${artifactUrl})` : `[PR reports](${artifactUrl})`;
+              return `| **${theme.themeId}** | ${filename ?? 'visual check'} | ${baseLink} | ${headLink} | ${issue} |`;
+            }));
             const body = warnings.length
-              ? `${marker}\n## Presentation theme visual review\n\nAutomated pixel comparisons found potential visual differences for human review. These warnings do not block the PR.\n\n${warnings.join('\n')}\n\nPlease inspect the rendered contact sheets and decide whether the differences are intentional.`
+              ? `${marker}\n## Presentation theme visual review\n\nAutomated pixel comparisons found potential visual differences for human review. These warnings do not block the PR.\n\n| Theme | Asset | Base branch | PR render | Finding |\n|---|---|---|---|---|\n${warnings.join('\n')}\n\nThe base links open the approved baseline directly. The PR links open the acceptance artifact; the named PNGs and contact sheets are inside it. Please decide whether the differences are intentional.`
               : `${marker}\n## Presentation theme visual review\n\nNo visual baseline differences were detected.`;
             const { owner, repo } = context.repo;
             const comments = await github.paginate(github.rest.issues.listComments, {
@@ -85,12 +102,3 @@ jobs:
             } else {
               await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
             }
-
-      - name: Upload acceptance reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: presentation-theme-acceptance-reports
-          path: skills/presentation/verification/presentation-themes/reports/
-          if-no-files-found: ignore
-          retention-days: 7
