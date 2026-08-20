@@ -14,9 +14,10 @@ changing any public Skill name or the `presentation-skills` Claude plugin name.
 | `skills/generate-images/` | `skills/presentation/generate-images/` |
 | `skills/generate-diagrams/` | `skills/presentation/generate-diagrams/` |
 | `skills/proofread-presentation/` | `skills/presentation/proofread-presentation/` |
+| `skills/presentation-validation/` | `skills/presentation/presentation-validation/` |
 
 Old source paths have no redirect or compatibility shim. Install the complete suite
-by selecting the Presentation group or all seven stable names. Individual member
+by selecting the Presentation group or all eight stable names. Individual member
 selection may be exposed by an installer but is unsupported.
 
 ## Other active paths

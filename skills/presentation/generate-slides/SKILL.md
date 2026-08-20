@@ -98,6 +98,8 @@ Only after Media Specs are approved, follow [SLIDE_GENERATION.md](SLIDE_GENERATI
 
 Apply the generation-time checks in [SLIDE_GENERATION.md](SLIDE_GENERATION.md) and [STYLING.md](STYLING.md). Fix safe generation issues and block on package, overflow, collision, orientation, or media-legibility failures. The separately installable `proofread-presentation` phase performs the independent content and accessibility review after media rendering; do not invoke it from this phase skill.
 
+Before marking Generation complete, invoke the complete-suite `presentation-validation` dispatcher with the `generation` profile and the Project Folder. Treat exit status `1` as a blocking validation failure; leave Generation pending and preserve artifacts. The validator is read-only and does not replace this Skill's state update.
+
 ### Step 6: Build required outputs
 
 Use the Project Folder configuration:

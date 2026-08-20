@@ -21,6 +21,7 @@
     "./skills/presentation/generate-slides",
     "./skills/presentation/generate-images",
     "./skills/presentation/generate-diagrams",
-    "./skills/presentation/proofread-presentation"
+    "./skills/presentation/proofread-presentation",
+    "./skills/presentation/presentation-validation"
   ]
 }
