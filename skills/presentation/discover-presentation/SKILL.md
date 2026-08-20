@@ -7,6 +7,13 @@ description: "Interview the user. Use when starting a new presentation or updati
 
 Gathers presentation requirements through a conversational interview. Writes results to `DISCOVERY.json` and `PROJECT.json` in the project folder.
 
+## Output voice
+
+Apply the [human-output guidance](../../unslop/SKILL.md) to interview questions,
+assumption summaries, and confirmation prompts. Keep the conversation specific
+and warm without forced enthusiasm. Preserve user wording when it is being
+recorded as project content, and keep JSON field names and values exact.
+
 ## Gotchas
 - Advance to Step 2 only after at least 3 of 4 persona dimensions are known — thin personas produce generic slides
 - Infer language from how the user writes; ask explicitly only if ambiguous

@@ -14,6 +14,13 @@ presentation-validation check all --project-dir <project> --profile proofread
 
 The dispatcher never installs tools, acquires credentials, changes project files, or updates `PROJECT.json`. The phase-owning Skill remains responsible for state changes after validation succeeds.
 
+## Output voice
+
+Apply the [human-output guidance](../../unslop/SKILL.md) to human-readable
+validation reports. Name the failing check, affected artifact, and remediation
+without puffery. Preserve JSON output, exact paths, commands, error identifiers,
+and machine-readable report contracts.
+
 Use `--format json` when another agent or process needs structured findings. Use `--report <path>` only when a persistent report is explicitly requested.
 
 Full validation is supported as part of the complete Presentation Skill Suite. A consumer Skill may explain that this Skill is unavailable, but focused installation is not a supported full-validation mode.

@@ -9,6 +9,13 @@ Coordinates the Presentation Skill Suite by routing from Project Folder state to
 the next valid action. It does not contain phase capabilities; each Phase Skill
 remains independently callable.
 
+## Output voice
+
+Apply the [human-output guidance](../../unslop/SKILL.md) to routing explanations,
+decision summaries, and completion reports. Keep the guidance lightweight:
+prefer concrete state and next actions, preserve the user's requested tone, and
+leave Project Folder paths, commands, and state names exact.
+
 ## Installation boundary
 
 Install this Orchestrator with the complete Presentation Skill Suite. The suite

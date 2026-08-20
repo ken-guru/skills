@@ -1,0 +1,22 @@
+[
+  {
+    "skill": "unslop",
+    "query": "make this explanation sound more natural",
+    "expected": "skill applies the clarity core, preserves meaning and tone, and audits the revised prose for remaining AI tells"
+  },
+  {
+    "skill": "unslop",
+    "query": "polish this presentation copy",
+    "expected": "skill applies Presentation content constraints, including brevity, hierarchy, accessibility, and Content Capacity"
+  },
+  {
+    "skill": "unslop",
+    "query": "rewrite this code comment and JSON output to sound human",
+    "expected": "skill protects code and machine-readable output while optionally editing surrounding explanatory prose"
+  },
+  {
+    "skill": "unslop",
+    "query": "rewrite this quotation in your own words",
+    "expected": "skill preserves quotations and asks for a separate paraphrase when that is the user's intent"
+  }
+]

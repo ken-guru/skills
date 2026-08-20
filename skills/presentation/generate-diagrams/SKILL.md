@@ -7,6 +7,13 @@ description: "Media Renderer. Load when DIAGRAM_SPEC.md exists or the user expli
 
 Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves the resulting SVG files to the project's `images/` folder.
 
+## Output voice
+
+Apply the [human-output guidance](../../unslop/SKILL.md) to scope questions,
+review prompts, and result reports. Preserve user-provided Media Intent and D2
+source when transporting them, and keep filenames, paths, commands, and state
+values exact.
+
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,
 and preserve unrelated phase records. D2 setup remains local.

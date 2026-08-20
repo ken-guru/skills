@@ -12,7 +12,9 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 ## Standalone Skills
 
-No standalone Skills are currently published.
+| Skill | Description |
+|---|---|
+| [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, and structured output |
 
 ## Repository structure
 

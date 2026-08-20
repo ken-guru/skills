@@ -7,6 +7,13 @@ description: "Drafting. Use when structuring presentation content, or after disc
 
 Builds and refines `AGENDA.md` through collaborative iteration with the user.
 
+## Output voice
+
+Apply the [human-output guidance](../../unslop/SKILL.md) to agenda alternatives,
+narrative explanations, and collaboration prompts. Keep Presentation content
+concise and concrete, preserve the user's intended tone, and do not rewrite
+approved wording merely to make it sound more conversational.
+
 ## Gotchas
 - Write AGENDA.md only after the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration
 - When the user says "update a slide", iterate on the in-memory draft only; commit to disk only on approval
