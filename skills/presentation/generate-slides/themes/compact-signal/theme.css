@@ -7,6 +7,7 @@
   --compact-bright-blue: #009fe3;
   --compact-teal: #00ab84;
   --compact-red: #e83f53;
+  --compact-red-strong: #b4233a;
   --compact-yellow: #f7b715;
   --compact-paper: #f7f7f7;
   --compact-white: #ffffff;
@@ -82,7 +83,7 @@ section.archetype-text-only .slot-label { grid-column: 2; }
 section.archetype-text-only .slot-body { grid-column: 2; }
 section.archetype-text-only .slot-body ul, section.archetype-text-only .slot-body ol { padding: 0; list-style: none; counter-reset: compact-step; }
 section.archetype-text-only .slot-body li { display: grid; grid-template-columns: 36px 1fr; min-height: 48px; margin: 0; padding: 7px 0; border-bottom: 1px solid #c5d3dc; counter-increment: compact-step; }
-section.archetype-text-only .slot-body li::before { content: counter(compact-step, decimal-leading-zero); color: var(--compact-red); font-size: 14px; font-weight: 700; }
+section.archetype-text-only .slot-body li::before { content: counter(compact-step, decimal-leading-zero); color: var(--compact-red-strong); font-size: 14px; font-weight: 700; }
 
 section.archetype-text-plus-image { grid-template: auto 1fr auto / minmax(0, 56%) minmax(0, 44%); gap: 16px 26px; }
 section.archetype-text-plus-image .slot-heading { grid-column: 1; padding-bottom: 10px; border-bottom: 4px solid var(--compact-teal); }
@@ -119,6 +120,6 @@ section.archetype-diagram .slot-media img, section.archetype-diagram .slot-media
 section.archetype-quotation { place-content: center; padding: 58px 80px 94px; background: var(--compact-blue); color: var(--compact-white); }
 section.archetype-quotation::after { color: var(--compact-yellow); }
 section.archetype-quotation .slot-context { color: var(--compact-bright-blue); }
-section.archetype-quotation .slot-quote { max-width: 1030px; margin-top: 18px; font-size: 58px; line-height: 1.04; }
+section.archetype-quotation .slot-quote { max-width: 1030px; margin-top: 18px; color: var(--compact-white); font-size: 58px; line-height: 1.04; }
 section.archetype-quotation .slot-quote mark { padding: 0 7px; background: var(--compact-yellow); color: var(--compact-blue); }
-section.archetype-quotation .slot-attribution { position: absolute; right: 0; bottom: 0; left: 0; padding: 20px 42px; background: var(--compact-red); color: var(--compact-white); }
+section.archetype-quotation .slot-attribution { position: absolute; right: 0; bottom: 0; left: 0; padding: 20px 42px; background: var(--compact-red-strong); color: var(--compact-white); }

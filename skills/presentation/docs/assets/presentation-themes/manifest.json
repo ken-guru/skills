@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "fixtureVersion": 1,
-  "sourceFingerprint": "408fbe202a4b5b3097ddb4f8221df66d3705c33fe4ba77dba38618d7991cdd66",
+  "sourceFingerprint": "acd1498db17354a2cc8a8b528e86a9149be2dd7f3eba09b974df013ec9094509",
   "sourceMedia": {
     "sha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb"
   },
@@ -152,8 +152,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 42110,
-      "sha256": "ec979d99f91099e044ec6a1abbf9ccff309ce74c1ffcee3bb8833c92696d00ba"
+      "bytes": 54982,
+      "sha256": "3b6e4980298d8abd0c1988af9535c331ec3aa32837fa52d6e5b78e3337a0c161"
     },
     "field-notes-title.png": {
       "theme": "field-notes",
