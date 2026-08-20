@@ -17,9 +17,13 @@
     "test:fast": "npm test",
     "test:full": "npm run acceptance && npm run acceptance:gallery && npm run check-gallery-docs"
   },
+  "overrides": {
+    "js-yaml": "4.3.1",
+    "puppeteer-core": "25.8.0"
+  },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",
-    "@marp-team/marp-cli": "4.4.0",
+    "@marp-team/marp-cli": "4.5.0",
     "markdown-it": "14.2.0",
     "playwright-core": "1.55.0",
     "pngjs": "7.0.0"
