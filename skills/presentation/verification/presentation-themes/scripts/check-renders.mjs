@@ -7,8 +7,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { chromium } from 'playwright-core';
 import AxeBuilder from '@axe-core/playwright';
-import pixelmatch from 'pixelmatch';
-import { PNG } from 'pngjs';
 
 import { themeIds } from '../lib/theme-catalog.mjs';
 
@@ -17,7 +15,6 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const suiteDirectory = path.resolve(scriptDirectory, '..');
 const generatedDirectory = path.join(suiteDirectory, '.generated');
 const reportsDirectory = path.join(suiteDirectory, 'reports');
-const baselinesDirectory = path.join(suiteDirectory, 'baselines');
 const browserCandidates = [
   process.env.PRESENTATION_THEME_BROWSER,
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
@@ -31,41 +28,6 @@ if (!executablePath) throw new Error('No supported browser found for rendered-de
 await mkdir(reportsDirectory, { recursive: true });
 const browser = await chromium.launch({ executablePath, headless: true });
 const summary = [];
-
-async function compareWithBaseline(actual, baselineName, visualIssues, slide) {
-  let baseline;
-  try {
-    baseline = PNG.sync.read(
-      await readFile(path.join(baselinesDirectory, baselineName)),
-    );
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      visualIssues.push(`Slide ${slide}: missing approved visual baseline ${baselineName}.`);
-      return;
-    }
-    throw error;
-  }
-  if (actual.width !== baseline.width || actual.height !== baseline.height) {
-    visualIssues.push(
-      `Slide ${slide}: ${baselineName} changed from ${baseline.width}×${baseline.height} to ${actual.width}×${actual.height}.`,
-    );
-    return;
-  }
-  const changedPixels = pixelmatch(
-    actual.data,
-    baseline.data,
-    null,
-    actual.width,
-    actual.height,
-    { threshold: 0.2 },
-  );
-  const changeRatio = changedPixels / (actual.width * actual.height);
-  if (changeRatio > 0.015) {
-    visualIssues.push(
-      `Slide ${slide}: ${baselineName} differs from its approved baseline by ${(changeRatio * 100).toFixed(1)}%.`,
-    );
-  }
-}
 
 async function createContactSheet(context, imagePaths, outputPath) {
   const sources = await Promise.all(
@@ -409,7 +371,6 @@ try {
       };
     });
 
-    result.visualIssues = [];
     result.issues.push(...projectContractIssues);
 
     if (result.slideCount !== 8) {
@@ -574,45 +535,6 @@ try {
       pdfPath,
     ]);
 
-    for (let index = 0; index < result.slideCount; index += 1) {
-      const htmlPng = PNG.sync.read(await readFile(htmlSlideImages[index]));
-      const pdfPng = PNG.sync.read(
-        await readFile(path.join(reportsDirectory, `${themeId}-pdf-slide-${index + 1}.png`)),
-      );
-      await compareWithBaseline(
-        htmlPng,
-        `${themeId}-html-slide-${index + 1}.png`,
-        result.visualIssues,
-        index + 1,
-      );
-      await compareWithBaseline(
-        pdfPng,
-        `${themeId}-pdf-slide-${index + 1}.png`,
-        result.visualIssues,
-        index + 1,
-      );
-      if (htmlPng.width !== pdfPng.width || htmlPng.height !== pdfPng.height) {
-        result.visualIssues.push(
-          `Slide ${index + 1}: HTML image is ${htmlPng.width}×${htmlPng.height} but PDF image is ${pdfPng.width}×${pdfPng.height}.`,
-        );
-        continue;
-      }
-      const differingPixels = pixelmatch(
-        htmlPng.data,
-        pdfPng.data,
-        null,
-        htmlPng.width,
-        htmlPng.height,
-        { threshold: 0.2 },
-      );
-      const differenceRatio = differingPixels / (htmlPng.width * htmlPng.height);
-      if (differenceRatio > 0.12) {
-        result.visualIssues.push(
-          `Slide ${index + 1}: HTML/PDF visual difference is ${(differenceRatio * 100).toFixed(1)}%.`,
-        );
-      }
-    }
-
     const pdfSlideImages = Array.from({ length: result.slideCount }, (_, index) =>
       path.join(reportsDirectory, `${themeId}-pdf-slide-${index + 1}.png`),
     );
@@ -643,15 +565,9 @@ await writeFile(
 const failures = summary.flatMap((theme) =>
   theme.issues.map((issue) => `${theme.themeId}: ${issue}`),
 );
-const visualWarnings = summary.flatMap((theme) =>
-  theme.visualIssues.map((issue) => `${theme.themeId}: ${issue}`),
-);
-if (visualWarnings.length > 0) {
-  process.stdout.write(`Visual review warnings recorded: ${visualWarnings.length}. See reports/acceptance.json and the PR review comment.\n`);
-}
 if (failures.length > 0) {
   process.stderr.write(`${failures.join('\n')}\n`);
   process.exitCode = 1;
 } else {
-  process.stdout.write('All 24 rendered capacity slides passed geometry and parity checks.\n');
+  process.stdout.write('All 24 rendered capacity slides passed geometry and export checks.\n');
 }

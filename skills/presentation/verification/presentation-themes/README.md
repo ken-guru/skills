@@ -32,7 +32,7 @@ manifest update in the same PR as the lockfile update. The generated `reports/` 
 
 ## Full render tier
 
-The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, and checks accessibility, geometry, type size, safe margins, collisions, export parity, and approved visual baselines. Pixel-baseline differences are recorded as human-review warnings in `reports/acceptance.json` and, on pull requests, posted as a non-blocking review comment. Structural and accessibility violations remain blocking. The production gallery check also generates review screenshots and checks their structure and accessibility; it does not gate on browser-dependent pixel comparisons.
+The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, and checks accessibility, geometry, type size, safe margins, collisions, PDF page count, and exported text parity. Structural and accessibility violations are blocking. Rendered slide images and contact sheets are retained as local/CI artifacts for human review, but browser-dependent pixel comparisons are deliberately not automated. The production gallery check also generates review screenshots and checks their structure and accessibility.
 
 ```sh
 npm run test:full
@@ -40,8 +40,4 @@ npm run test:full
 
 Set `PRESENTATION_THEME_MARP` to a Marp CLI executable when the local CLI cannot launch the installed browser. Set `PRESENTATION_THEME_BROWSER` to a Chromium-family browser executable when Edge or Chrome is not in its standard macOS location.
 
-Generated decks, screenshots, contact sheets, and reports are ignored. Baselines are never changed by tests. After deliberate CSS or composition changes, inspect all three HTML and PDF contact sheets, then explicitly replace the reviewed baselines:
-
-```sh
-npm run approve-baselines -- --approve
-```
+Generated decks, screenshots, contact sheets, and reports are ignored. When a theme or composition changes, inspect the generated contact sheets as part of human review.
