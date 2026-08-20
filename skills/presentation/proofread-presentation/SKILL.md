@@ -14,6 +14,8 @@ Require `DISCOVERY.json`, `PROJECT.json`, `PRESENTASJON.md`, Node.js, and Marp C
 
 Read the locked Theme Manifest and validate against its interface rather than hard-coding Editorial, Signal, or Field Notes behavior.
 
+When the complete Presentation Skill Suite is installed, invoke the read-only `presentation-validation` dispatcher with the `proofread` profile before completion. If it is unavailable, report that full validation cannot run under the suite installation contract; do not install it automatically.
+
 ## Safe mechanical fixes
 
 - Add missing purpose-based `alt` text to meaningful media when intent is unambiguous from the Agenda and Media Specs.
@@ -83,3 +85,5 @@ When HTML and PDF exist, confirm equal slide counts, 16:9 dimensions, text, medi
 Report fixed issues, blocking failures, warnings, and reference results. Mark `phases.proofread.status = "done"` with a timestamp only when no blocking issue remains. Otherwise keep it pending.
 Require `PROJECT.json` to have `projectType: "presentation"` and preserve every
 unrelated phase record when updating Proofread.
+
+The validation dispatcher must return zero before Proofread may be marked complete. A zero validator result is necessary but does not replace this Skill's mechanical-fix, user-review, and state-preservation requirements.

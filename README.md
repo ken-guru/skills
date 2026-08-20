@@ -8,7 +8,7 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Suite | Description |
 |---|---|
-| [Presentation](skills/presentation/README.md) | Seven Skills for discovering, structuring, generating, rendering, and proofreading presentations |
+| [Presentation](skills/presentation/README.md) | Eight Skills for discovering, structuring, generating, validating, rendering, and proofreading presentations |
 
 ## Standalone Skills
 

@@ -1,0 +1,29 @@
+[
+  {
+    "skill": "presentation-validation",
+    "type": "positive",
+    "query": "validate this presentation project",
+    "precondition": "A Presentation Project Folder exists",
+    "expected": "skill loads and invokes a read-only validation profile"
+  },
+  {
+    "skill": "presentation-validation",
+    "type": "positive",
+    "query": "check the presentation with JSON output",
+    "precondition": "A Presentation Project Folder exists",
+    "expected": "skill loads and returns stable machine-readable findings"
+  },
+  {
+    "skill": "presentation-validation",
+    "type": "boundary",
+    "query": "validate the generated presentation",
+    "precondition": "Required tools or Project Folder artifacts are missing",
+    "expected": "skill aggregates prerequisites, reports blocking findings, and explains skipped dependent checks without writing files"
+  },
+  {
+    "skill": "presentation-validation",
+    "type": "negative",
+    "query": "generate the presentation",
+    "expected": "skill does NOT own generation; generate-slides or build-presentation should handle this"
+  }
+]

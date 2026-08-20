@@ -1,0 +1,23 @@
+[
+  {
+    "skill": "proofread-presentation",
+    "type": "positive",
+    "query": "proofread this presentation",
+    "precondition": "Generated outputs and required media exist",
+    "expected": "skill loads and runs the proofread validation profile before completion"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "mark the presentation proofread",
+    "precondition": "The validation profile has a blocking finding",
+    "expected": "skill keeps Proofread pending and preserves artifacts"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread this presentation",
+    "precondition": "The complete suite validator is unavailable",
+    "expected": "skill explains that full validation cannot run and does not install anything automatically"
+  }
+]

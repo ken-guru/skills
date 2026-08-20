@@ -1,6 +1,6 @@
 # Presentation Skill Suite
 
-Seven independently invokable Skills form one guided presentation workflow:
+Eight independently invokable Skills form one guided presentation workflow:
 
 `Discovery → Structure → Generation → Images/Diagrams → Proofread`
 
@@ -15,7 +15,7 @@ Browse and select the **Presentation** group:
 npx skills@latest add ken-guru/skills
 ```
 
-Or install all seven names deterministically:
+Or install all eight names deterministically:
 
 ```bash
 npx skills@latest add ken-guru/skills \
@@ -25,7 +25,8 @@ npx skills@latest add ken-guru/skills \
   --skill generate-slides \
   --skill generate-images \
   --skill generate-diagrams \
-  --skill proofread-presentation
+  --skill proofread-presentation \
+  --skill presentation-validation
 ```
 
 The repository also exposes the complete suite as the `presentation-skills` Claude
@@ -43,6 +44,7 @@ is not a supported product guarantee.
 | [generate-images](generate-images/SKILL.md) | Render selected AI images from `IMAGE_SPEC.md` |
 | [generate-diagrams](generate-diagrams/SKILL.md) | Render selected D2 diagrams from `DIAGRAM_SPEC.md` |
 | [proofread-presentation](proofread-presentation/SKILL.md) | Validate content, accessibility, rendering, and export parity |
+| [presentation-validation](presentation-validation/SKILL.md) | Run deterministic read-only Generation and Proofread validation profiles |
 
 Each installed member contains every runtime instruction, script, and supporting file
 it needs. Members exchange project state only through the user's Project Folder.
