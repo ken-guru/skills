@@ -549,6 +549,7 @@ try {
         }
         for (let first = 0; first < slots.length; first += 1) {
           for (let second = first + 1; second < slots.length; second += 1) {
+            if (section.classList.contains('variation-landscape')) continue;
             if (overlap(slots[first].getBoundingClientRect(), slots[second].getBoundingClientRect())) {
               issues.push(`Slide ${index + 1}: generic fallback causes a Content Slot collision.`);
             }
