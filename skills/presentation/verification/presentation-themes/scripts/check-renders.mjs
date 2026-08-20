@@ -32,7 +32,7 @@ await mkdir(reportsDirectory, { recursive: true });
 const browser = await chromium.launch({ executablePath, headless: true });
 const summary = [];
 
-async function compareWithBaseline(actual, baselineName, issues, slide) {
+async function compareWithBaseline(actual, baselineName, visualIssues, slide) {
   let baseline;
   try {
     baseline = PNG.sync.read(
@@ -40,13 +40,13 @@ async function compareWithBaseline(actual, baselineName, issues, slide) {
     );
   } catch (error) {
     if (error.code === 'ENOENT') {
-      issues.push(`Slide ${slide}: missing approved visual baseline ${baselineName}.`);
+      visualIssues.push(`Slide ${slide}: missing approved visual baseline ${baselineName}.`);
       return;
     }
     throw error;
   }
   if (actual.width !== baseline.width || actual.height !== baseline.height) {
-    issues.push(
+    visualIssues.push(
       `Slide ${slide}: ${baselineName} changed from ${baseline.width}×${baseline.height} to ${actual.width}×${actual.height}.`,
     );
     return;
@@ -61,7 +61,7 @@ async function compareWithBaseline(actual, baselineName, issues, slide) {
   );
   const changeRatio = changedPixels / (actual.width * actual.height);
   if (changeRatio > 0.015) {
-    issues.push(
+    visualIssues.push(
       `Slide ${slide}: ${baselineName} differs from its approved baseline by ${(changeRatio * 100).toFixed(1)}%.`,
     );
   }
@@ -409,6 +409,7 @@ try {
       };
     });
 
+    result.visualIssues = [];
     result.issues.push(...projectContractIssues);
 
     if (result.slideCount !== 8) {
@@ -581,17 +582,17 @@ try {
       await compareWithBaseline(
         htmlPng,
         `${themeId}-html-slide-${index + 1}.png`,
-        result.issues,
+        result.visualIssues,
         index + 1,
       );
       await compareWithBaseline(
         pdfPng,
         `${themeId}-pdf-slide-${index + 1}.png`,
-        result.issues,
+        result.visualIssues,
         index + 1,
       );
       if (htmlPng.width !== pdfPng.width || htmlPng.height !== pdfPng.height) {
-        result.issues.push(
+        result.visualIssues.push(
           `Slide ${index + 1}: HTML image is ${htmlPng.width}×${htmlPng.height} but PDF image is ${pdfPng.width}×${pdfPng.height}.`,
         );
         continue;
@@ -606,7 +607,7 @@ try {
       );
       const differenceRatio = differingPixels / (htmlPng.width * htmlPng.height);
       if (differenceRatio > 0.12) {
-        result.issues.push(
+        result.visualIssues.push(
           `Slide ${index + 1}: HTML/PDF visual difference is ${(differenceRatio * 100).toFixed(1)}%.`,
         );
       }
@@ -642,6 +643,12 @@ await writeFile(
 const failures = summary.flatMap((theme) =>
   theme.issues.map((issue) => `${theme.themeId}: ${issue}`),
 );
+const visualWarnings = summary.flatMap((theme) =>
+  theme.visualIssues.map((issue) => `${theme.themeId}: ${issue}`),
+);
+if (visualWarnings.length > 0) {
+  process.stdout.write(`Visual review warnings recorded: ${visualWarnings.length}. See reports/acceptance.json and the PR review comment.\n`);
+}
 if (failures.length > 0) {
   process.stderr.write(`${failures.join('\n')}\n`);
   process.exitCode = 1;

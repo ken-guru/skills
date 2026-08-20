@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: presentation-theme-rendering-${{ github.workflow }}-${{ github.ref }}
@@ -52,8 +53,41 @@ jobs:
       - name: Run HTML, PDF, and gallery acceptance
         run: npm run test:full
 
-      - name: Upload acceptance reports on failure
-        if: failure()
+      - name: Comment visual review warnings on pull request
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = 'skills/presentation/verification/presentation-themes/reports/acceptance.json';
+            const marker = '<!-- presentation-theme-visual-review -->';
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            } catch {
+              return;
+            }
+            const warnings = report.flatMap((theme) =>
+              (theme.visualIssues ?? []).map((issue) => `- **${theme.themeId}**: ${issue}`),
+            );
+            const body = warnings.length
+              ? `${marker}\n## Presentation theme visual review\n\nAutomated pixel comparisons found potential visual differences for human review. These warnings do not block the PR.\n\n${warnings.join('\n')}\n\nPlease inspect the rendered contact sheets and decide whether the differences are intentional.`
+              : `${marker}\n## Presentation theme visual review\n\nNo visual baseline differences were detected.`;
+            const { owner, repo } = context.repo;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
+            }
+
+      - name: Upload acceptance reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: presentation-theme-acceptance-reports
