@@ -38,7 +38,7 @@ section::after {
   position: absolute;
   right: 26px;
   bottom: 18px;
-  content: counter(marpit-slide, decimal-leading-zero) " / " attr(data-marpit-pagination);
+  content: counter(marpit-slide, decimal-leading-zero);
   color: var(--compact-mid-blue);
   font: 700 14px/1 var(--presentation-font-override, var(--compact-body));
   letter-spacing: .08em;

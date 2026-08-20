@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "fixtureVersion": 1,
-  "sourceFingerprint": "af6fcb28871e2eb48420928e868ab268cc183b3aed5cc1a994d9faf8ef7b1cf2",
+  "sourceFingerprint": "004bc7c0e1d67cbb889a08359565605668ff65f7387233817a6220b050d7d3c3",
   "sourceMedia": {
     "sha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb"
   },
@@ -164,8 +164,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 581336,
-      "sha256": "e8de441c6dc5f8fb367c55ae09042ff53449c193896014130a9efe9da99eca58"
+      "bytes": 580925,
+      "sha256": "8cdb6aca2ac2a38d691ded8a5af146b8d884a2df335b5acf4e6ea29bebc7a2e0"
     },
     "compact-signal-text-only.png": {
       "theme": "compact-signal",
@@ -176,8 +176,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 73911,
-      "sha256": "7c8f77fd627186a45b095ce7129d0453b515af0a44e8ad85e504ae818af0772c"
+      "bytes": 73533,
+      "sha256": "b7c355bc70f2ef23d0fff4bd2e654d712ad9c96312c4149834fec391be02a0f0"
     },
     "compact-signal-text-plus-image.png": {
       "theme": "compact-signal",
@@ -188,8 +188,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 445141,
-      "sha256": "16734e440c010dcdf1748ec42fcfb6537b7263e866772c715c75f86c5dcf8c50"
+      "bytes": 444710,
+      "sha256": "e15337f9fc61543ed51d9766276f5f16c85cb124b64029d6e193e329b9bff49c"
     },
     "compact-signal-full-image.png": {
       "theme": "compact-signal",
@@ -200,8 +200,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 800341,
-      "sha256": "097766d4a2330dc0c73779b4840b7dc0c8172162a23dcaa1975a38db56dab732"
+      "bytes": 799701,
+      "sha256": "08a466890fbfd7a4c4fdb22164a0fe6df7237bb3d6ef02a23c8c828a8c8b18c6"
     },
     "compact-signal-data.png": {
       "theme": "compact-signal",
@@ -212,8 +212,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 55825,
-      "sha256": "4a3bffacc58cd8b12c94fbd4867ab67182be83aa9971d92e91a93220bee2f767"
+      "bytes": 55451,
+      "sha256": "894b2776f5d2fcb83df710d07ca3fce70ab180017527fa5b968367337a3d340c"
     },
     "compact-signal-quotation.png": {
       "theme": "compact-signal",
@@ -224,8 +224,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 48774,
-      "sha256": "2e36298b290b1f99606bcaced6e9d8423b7df0c9ee9875cd243866a6e7868c83"
+      "bytes": 48260,
+      "sha256": "1b23ef5effa1a15315cc075b6c89c47f8739c9977c3442c3444bd1f265064bca"
     },
     "field-notes-title.png": {
       "theme": "field-notes",
