@@ -8,14 +8,8 @@ Implementation issue:
 Draft pull request:
 [Restructure repository around portable Skill Suites](https://github.com/ken-guru/skills/pull/52)
 
-Decision history:
-[Simplify the repository restructuring before implementation](../../wayfinder/repository-restructure-proportionality/map.md)
-
-Normative path mapping:
-[Proportionate restructuring Migration Manifest](../../wayfinder/repository-restructure-proportionality/migration-manifest.md)
-
-Implications:
-[Repository restructuring implications assessment](../../wayfinder/repository-restructure-proportionality/implications-assessment.md)
+Decision history and normative path mapping are captured by this approved
+specification and its linked implementation issue and pull request.
 
 ## 1. Authority
 
@@ -23,8 +17,7 @@ This specification replaces the earlier approved restructuring design and is the
 sole implementation authority. The earlier dependency-snapshot and
 Collection-governance design is withdrawn from implementation.
 
-[Approve the revised proportionate restructuring specification](../../wayfinder/repository-restructure-proportionality/06-approve-the-revised-proportionate-restructuring-specification.md)
-records the explicit human approval.
+The implementation issue records the explicit human approval.
 
 GitHub issue 51 is ready for implementation. Pull request 52 remains draft until
 Checkpoints 1 and 2 are complete and Checkpoint 3 is ready for review.
@@ -110,7 +103,6 @@ These mechanisms may return only under the evidence triggers in section 13.
 ├── verification/
 │   └── presentation-themes/
 │       └── prototype/                 # retained historical path
-└── wayfinder/                         # retained planning paths
 ```
 
 Support directories exist only when they contain real artifacts.
@@ -320,12 +312,8 @@ Do not modernize historical prose or reorganize history. Repair only links that 
 migration newly breaks. Exclude historical material from stricter active-documentation
 rules.
 
-Remove the superseded original restructuring plan at
-`wayfinder/repository-restructure/` from the active tree. Its full decision, research,
-inventory, and manifest record remains available in the
-[immutable pre-removal tree](https://github.com/ken-guru/skills/tree/8c87d6b/wayfinder/repository-restructure).
-It is not an implementation authority and creates no migration link-repair
-obligation.
+The superseded restructuring plan is not part of the active tree. Its historical
+record remains available through Git history and is not an implementation authority.
 
 ## 10. Compatibility and evidence preservation
 
