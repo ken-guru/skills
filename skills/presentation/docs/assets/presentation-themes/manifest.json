@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "fixtureVersion": 1,
-  "sourceFingerprint": "004bc7c0e1d67cbb889a08359565605668ff65f7387233817a6220b050d7d3c3",
+  "sourceFingerprint": "2cc31bc72eb5da4c818e1ee9093610f851dc668735b868c7b4c7bbd783516674",
   "sourceMedia": {
     "sha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb"
   },
@@ -296,8 +296,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 65847,
-      "sha256": "7b362a0c7f88a475a887e5c9d12b70b279cc83ce3528c3ce0b6862f391c4761e"
+      "bytes": 65846,
+      "sha256": "269dd5f794946443fe163d0be75ab5e4f63cd8c9a09debe5cd6f1e51a59685af"
     }
   }
 }

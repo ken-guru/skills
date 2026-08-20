@@ -59,6 +59,6 @@ test('Media Renderer evals cover trigger ambiguity and incomplete outcomes', asy
 test('Compact Signal pagination shows only the current slide number', async () => {
   const compactSignal = await read('skills/presentation/generate-slides/themes/compact-signal/theme.css');
 
-  assert.match(compactSignal, /content:\s*counter\(marpit-slide, decimal-leading-zero\);/);
-  assert.doesNotMatch(compactSignal, /data-marpit-pagination/);
+  assert.match(compactSignal, /content:\s*attr\(data-marpit-pagination\);/);
+  assert.doesNotMatch(compactSignal, /counter\(marpit-slide/);
 });
