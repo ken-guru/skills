@@ -1,41 +1,45 @@
 {
   "$schema": "../theme.schema.json",
-  "id": "editorial",
-  "name": "Editorial",
-  "description": "Warm, typographic, and composed like a modern magazine.",
+  "id": "compact-signal",
+  "name": "Compact Signal",
+  "description": "Compact, clear, and high-contrast for information-dense stories with supportive or full-bleed imagery.",
   "packageVersion": "1.0.0",
   "markupVersion": 1,
-  "marpTheme": "editorial",
+  "marpTheme": "compact-signal",
   "css": "theme.css",
   "fonts": {
-    "display": ["Georgia", "Times New Roman", "serif"],
-    "body": ["Arial", "Helvetica", "sans-serif"],
-    "label": ["Arial", "Helvetica", "sans-serif"],
-    "genericFallback": "serif"
+    "display": ["Source Serif Pro", "Georgia", "serif"],
+    "body": ["Source Sans Pro", "Arial", "Helvetica", "sans-serif"],
+    "label": ["Source Sans Pro", "Arial", "Helvetica", "sans-serif"],
+    "genericFallback": "sans-serif"
   },
   "palette": {
-    "background": "#eee8dc",
-    "foreground": "#321f2e",
-    "accent": "#c63f32",
-    "secondary": "#8b7620",
-    "dark": "#321f2e",
-    "light": "#fffaf0"
+    "background": "#f7f7f7",
+    "foreground": "#012a4c",
+    "accent": "#005b91",
+    "secondary": "#00ab84",
+    "highlight": "#f7b715",
+    "dark": "#012a4c",
+    "light": "#ffffff",
+    "signal": "#e83f53",
+    "cyan": "#009fe3",
+    "muted": "#828282"
   },
   "media": {
-    "pictureTreatment": "Editorial documentary photography with warm paper tones, restrained saturation, natural light, deliberate framing, and uncluttered protected focal regions.",
-    "diagramTreatment": "Restrained aubergine and coral linework on a light paper panel; precise labels and semantic encodings remain ungraded and uncropped."
+    "pictureTreatment": "Crisp documentary or editorial imagery with clear focal subjects, restrained saturation, clean edges, and either a supportive side panel or full-bleed composition.",
+    "diagramTreatment": "Precise dark-blue linework with blue, teal, yellow, and red semantic accents on a clean light field; labels remain exact, legible, and uncropped."
   },
   "archetypes": {
     "title": {
       "class": "archetype-title",
-      "tone": "tone-light",
+      "tone": "tone-dark",
       "slots": ["title", "subtitle", "media"],
       "capacity": {"titleLines": 3, "subtitleLines": 2},
       "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
     },
     "section": {
       "class": "archetype-section",
-      "tone": "tone-light",
+      "tone": "tone-accent",
       "slots": ["title", "orientation"],
       "capacity": {"titleLines": 3, "orientationLines": 2},
       "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
@@ -44,14 +48,14 @@
       "class": "archetype-text-only",
       "tone": "tone-light",
       "slots": ["heading", "body"],
-      "capacity": {"headingLines": 2, "bullets": 5, "bulletLines": 2},
+      "capacity": {"headingLines": 2, "bullets": 6, "bulletLines": 2},
       "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
     },
     "text-plus-image": {
       "class": "archetype-text-plus-image",
       "tone": "tone-light",
       "slots": ["heading", "body", "media", "caption"],
-      "capacity": {"headingLines": 2, "bullets": 4, "bulletLines": 2, "captionLines": 2},
+      "capacity": {"headingLines": 2, "bullets": 5, "bulletLines": 2, "captionLines": 2},
       "variations": [
         {"id": "portrait", "class": "variation-portrait", "when": "orientation=portrait"},
         {"id": "landscape", "class": "variation-landscape", "when": "orientation=landscape"},

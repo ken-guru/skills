@@ -33,7 +33,7 @@ test('an unknown present theme identifier blocks and lists supported identifiers
     (error) => {
       assert.equal(error.code, 'UNKNOWN_THEME');
       assert.match(error.message, /midnight/);
-      assert.deepEqual(error.supportedIds, ['editorial', 'signal', 'field-notes']);
+      assert.deepEqual(error.supportedIds, ['editorial', 'signal', 'compact-signal', 'field-notes']);
       return true;
     },
   );
@@ -43,6 +43,7 @@ test('all bundled identifiers resolve complete compatible Theme Packages', async
   const expected = [
     ['editorial', 'Editorial'],
     ['signal', 'Signal'],
+    ['compact-signal', 'Compact Signal'],
     ['field-notes', 'Field Notes'],
   ];
 

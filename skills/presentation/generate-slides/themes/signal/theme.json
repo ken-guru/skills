@@ -54,7 +54,8 @@
       "capacity": {"headingLines": 2, "bullets": 4, "bulletLines": 2, "captionLines": 2},
       "variations": [
         {"id": "portrait", "class": "variation-portrait", "when": "orientation=portrait"},
-        {"id": "landscape", "class": "variation-landscape", "when": "orientation=landscape"}
+        {"id": "landscape", "class": "variation-landscape", "when": "orientation=landscape"},
+        {"id": "full-image", "class": "variation-full-image", "when": "orientation=full-image"}
       ]
     },
     "data": {

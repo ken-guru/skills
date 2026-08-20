@@ -19,7 +19,7 @@ Persist the confirmed Presentation Theme as one structured value:
 }
 ```
 
-Use only `editorial`, `signal`, or `field-notes`. When the user explicitly requested a font, replace `null` with an object containing the exact `family` and, only when approved, `sourceUrl`.
+Use only `editorial`, `signal`, `compact-signal`, or `field-notes`. When the user explicitly requested a font, replace `null` with an object containing the exact `family` and, only when approved, `sourceUrl`.
 
 Mark `phases.discovery.status = "done"` and record its completion timestamp in
 `PROJECT.json`.

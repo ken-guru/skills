@@ -19,7 +19,7 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
   "language": "string",
   "projectType": "presentation",
   "theme": {
-    "id": "editorial | signal | field-notes",
+    "id": "editorial | signal | compact-signal | field-notes",
     "fontOverride": "null | { family: string, sourceUrl?: string }"
   },
   "paths": {

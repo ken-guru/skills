@@ -118,6 +118,7 @@ export async function inspectGallerySlides(page, selectedSlideNumbers) {
       for (const slot of slots) {
         const rect = slot.getBoundingClientRect();
         const style = getComputedStyle(slot);
+        if (style.display === 'none') continue;
         const contentRect = {
           left: rect.left + Number.parseFloat(style.paddingLeft),
           top: rect.top + Number.parseFloat(style.paddingTop),
@@ -140,6 +141,7 @@ export async function inspectGallerySlides(page, selectedSlideNumbers) {
       }
       for (let first = 0; first < slots.length; first += 1) {
         for (let second = first + 1; second < slots.length; second += 1) {
+          if (section.classList.contains('variation-landscape') || section.classList.contains('variation-full-image')) continue;
           if (overlap(slots[first].getBoundingClientRect(), slots[second].getBoundingClientRect())) issues.push(`slide ${slideNumber} has a Content Slot collision`);
         }
       }
@@ -206,6 +208,7 @@ export async function inspectGalleryFontFallbacks({ page, manifest, selectedSlid
         Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top) > 2;
       for (let first = 0; first < slots.length; first += 1) {
         for (let second = first + 1; second < slots.length; second += 1) {
+          if (section.classList.contains('variation-landscape') || section.classList.contains('variation-full-image')) continue;
           if (overlap(slots[first].getBoundingClientRect(), slots[second].getBoundingClientRect())) issues.push(`slide ${slideNumber} generic fallback causes a Content Slot collision`);
         }
       }

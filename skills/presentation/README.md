@@ -79,6 +79,10 @@ underlying artistic style.
 
 ![Signal title slide on a dark technical grid with a condensed headline and angled portrait panel](docs/assets/presentation-themes/signal-title.png)
 
+### Compact Signal
+
+![Compact Signal title slide on a dark blue canvas with a compact serif headline and supportive portrait panel](docs/assets/presentation-themes/compact-signal-title.png)
+
 ### Field Notes
 
 ![Field Notes title slide on textured paper with a green serif headline and taped portrait print](docs/assets/presentation-themes/field-notes-title.png)

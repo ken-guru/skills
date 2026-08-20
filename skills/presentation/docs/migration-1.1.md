@@ -49,9 +49,9 @@ The pre-cutover snapshot is commit `1f82a4e`.
 - Claude marketplace/plugin validation passed.
 - Fast verification passed 35 tests.
 - Full rendered verification passed 24 capacity slides and 12 gallery slides.
-- The 48 baseline hashes are recorded in `baseline-manifest.json`; that manifest's
-  pre-cutover SHA-256 is
-  `383d8898450a67f345ef1b5c9d1cc5dd41dfd5c724e71d0d6bb3a6b789ca5047`.
+- The pre-cutover verification used 48 visual baseline hashes recorded in
+  `baseline-manifest.json`. Those browser-dependent baselines are historical
+  evidence only and are no longer part of the active verification suite.
 - The twelve gallery hashes and protected metadata are recorded in the gallery
   manifest; its pre-cutover SHA-256 is
   `2e9a48d0051c2a44421d7e5db8277201212a5b74604fc9b79338b92e12d36e98`.

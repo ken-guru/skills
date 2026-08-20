@@ -17,7 +17,7 @@ concurrency:
 jobs:
   rendered-acceptance:
     name: Presentation rendered acceptance
-    # The approved visual baselines use the bundled macOS offline-safe fonts.
+    # The bundled macOS fonts keep local and CI rendering representative for human review.
     runs-on: macos-15
     timeout-minutes: 20
 
@@ -52,8 +52,9 @@ jobs:
       - name: Run HTML, PDF, and gallery acceptance
         run: npm run test:full
 
-      - name: Upload acceptance reports on failure
-        if: failure()
+      - name: Upload acceptance reports
+        if: always()
+        id: acceptance-reports
         uses: actions/upload-artifact@v4
         with:
           name: presentation-theme-acceptance-reports

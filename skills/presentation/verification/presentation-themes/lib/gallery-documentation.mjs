@@ -42,7 +42,7 @@ const visualPropertyPattern = /(?:serif|condensed|typograph|grid|paper|texture|c
 
 function expectedIdentity(filename) {
   const stem = filename.replace(/\.png$/, '');
-  for (const theme of ['editorial', 'signal', 'field-notes']) {
+  for (const theme of ['editorial', 'signal', 'compact-signal', 'field-notes']) {
     if (stem.startsWith(`${theme}-`)) return { theme, archetype: stem.slice(theme.length + 1) };
   }
   return null;
@@ -89,10 +89,10 @@ export function validateGalleryDocumentation({ readme, gallery, expectedAssets, 
   const expectedTitles = expectedAssets.filter((filename) => filename.endsWith('-title.png')).sort();
   const expectedGallery = [...expectedAssets].sort();
   if (JSON.stringify(readmeNames) !== JSON.stringify(expectedTitles)) {
-    issues.push('README must reference exactly the three expected title images once each.');
+    issues.push(`README must reference exactly the ${expectedTitles.length} expected title images once each.`);
   }
   if (JSON.stringify(galleryNames) !== JSON.stringify(expectedGallery)) {
-    issues.push('Gallery must reference exactly the expected twelve gallery images once each.');
+    issues.push(`Gallery must reference exactly the expected ${expectedGallery.length} gallery images once each.`);
   }
   return issues;
 }

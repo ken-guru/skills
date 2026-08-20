@@ -3,14 +3,14 @@ import test from 'node:test';
 
 import { resolveGallerySource } from '../lib/gallery-contract.mjs';
 
-const themes = ['editorial', 'signal', 'field-notes'];
+const themes = ['editorial', 'signal', 'compact-signal', 'field-notes'];
 const sourceFiles = [
   { path: 'themes/editorial/theme.css', bytes: Buffer.from('editorial') },
   { path: 'fixtures/gallery/media/collaboration-portrait.png', bytes: Buffer.from('portrait') },
   { path: 'fixtures/gallery/deck.mjs', bytes: Buffer.from('deck') },
 ];
 
-test('gallery source resolution returns the twelve semantic documentation assets deterministically', () => {
+test('gallery source resolution returns the twenty-four semantic documentation assets deterministically', () => {
   const first = resolveGallerySource({ themes, sourceFiles, sampleMediaPresent: true, sampleMediaBytes: Buffer.from('portrait') });
   const second = resolveGallerySource({
     themes,
@@ -21,15 +21,27 @@ test('gallery source resolution returns the twelve semantic documentation assets
 
   assert.deepEqual(first.assets.map(({ filename }) => filename), [
     'editorial-title.png',
+    'editorial-text-only.png',
     'editorial-text-plus-image.png',
+    'editorial-full-image.png',
     'editorial-data.png',
     'editorial-quotation.png',
     'signal-title.png',
+    'signal-text-only.png',
     'signal-text-plus-image.png',
+    'signal-full-image.png',
     'signal-data.png',
     'signal-quotation.png',
+    'compact-signal-title.png',
+    'compact-signal-text-only.png',
+    'compact-signal-text-plus-image.png',
+    'compact-signal-full-image.png',
+    'compact-signal-data.png',
+    'compact-signal-quotation.png',
     'field-notes-title.png',
+    'field-notes-text-only.png',
     'field-notes-text-plus-image.png',
+    'field-notes-full-image.png',
     'field-notes-data.png',
     'field-notes-quotation.png',
   ]);

@@ -30,7 +30,7 @@ test('canonical fixture populates every archetype at the shared capacity floor',
   assert.equal((slides[2].match(/<li>/g) ?? []).length, 5);
   assert.equal((slides[2].match(/<br>/g) ?? []).length, 6);
   assert.equal((slides[3].match(/<li>/g) ?? []).length, 4);
-  assert.equal((slides[4].match(/<li>/g) ?? []).length, 4);
+  assert.equal((slides[4].match(/<li>/g) ?? []).length, 0);
   assert.equal((slides[5].match(/class="metric"/g) ?? []).length, 4);
   assert.match(slides[7], /slot-quote[^>]*>[^<]*<br>[^<]*<br>[^<]*<br>/);
 });

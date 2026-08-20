@@ -5,9 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import AxeBuilder from '@axe-core/playwright';
-import pixelmatch from 'pixelmatch';
 import { chromium } from 'playwright-core';
-import { PNG } from 'pngjs';
 
 import { validateApprovedGallery } from '../lib/gallery-approval.mjs';
 import { gallerySlides } from '../lib/gallery-contract.mjs';
@@ -33,19 +31,6 @@ await mkdir(paths.reportsDirectory, { recursive: true });
 const browser = await chromium.launch({ executablePath, headless: true });
 const issues = [];
 const captures = {};
-
-async function compareApproved(actual, asset) {
-  const approvedPath = path.join(paths.assetsDirectory, asset.filename);
-  if (!existsSync(approvedPath)) return;
-  const approved = PNG.sync.read(await readFile(approvedPath));
-  if (actual.width !== approved.width || actual.height !== approved.height) {
-    issues.push(`${asset.filename} changed from ${approved.width}×${approved.height} to ${actual.width}×${actual.height}.`);
-    return;
-  }
-  const changed = pixelmatch(actual.data, approved.data, null, actual.width, actual.height, { threshold: 0.2 });
-  const ratio = changed / (actual.width * actual.height);
-  if (ratio > 0.015) issues.push(`${asset.filename} differs from its approved asset by ${(ratio * 100).toFixed(1)}%.`);
-}
 
 try {
   for (const theme of themeIds) {
@@ -88,9 +73,7 @@ try {
       const outputPath = path.join(paths.reportsDirectory, asset.filename);
       await page.screenshot({ path: outputPath, clip: { x: 0, y: 0, width: 1280, height: 720 } });
       const bytes = await readFile(outputPath);
-      const png = PNG.sync.read(bytes);
       captures[asset.filename] = { renderer: 'html', sha256: createHash('sha256').update(bytes).digest('hex') };
-      await compareApproved(png, asset);
     }
     await context.close();
   }

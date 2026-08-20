@@ -43,6 +43,20 @@ test('picture orientation selects the persisted variation and mismatches block',
   assert.match(plan.directive, /archetype-text-plus-image variation-portrait tone-light/);
   assert.equal(plan.themeTreatment, editorial.media.pictureTreatment);
 
+  const fullImagePlan = planSlide({
+    manifest: editorial,
+    slide: {
+      visual: {
+        type: 'picture',
+        themeTreatment: editorial.media.pictureTreatment,
+        intendedOrientation: 'full-image',
+        actualOrientation: 'full-image',
+      },
+    },
+  });
+  assert.equal(fullImagePlan.variation, 'full-image');
+  assert.match(fullImagePlan.directive, /archetype-text-plus-image variation-full-image tone-light/);
+
   assert.throws(
     () =>
       planSlide({
