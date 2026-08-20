@@ -3,3 +3,6 @@
 skills/presentation/verification/presentation-themes/.generated/
 skills/presentation/verification/presentation-themes/reports/
 skills/presentation/verification/presentation-themes/node_modules/
+
+# Wayfinder planning is temporary; preserve historical tracked files but ignore new ones.
+wayfinder/**
