@@ -49,6 +49,25 @@ is not a supported product guarantee.
 Each installed member contains every runtime instruction, script, and supporting file
 it needs. Members exchange project state only through the user's Project Folder.
 
+## Editorial pass
+
+Presentation copy always goes through the standalone [`unslop`](../unslop/SKILL.md)
+Skill before the Agenda or final slides are written. The pass preserves semantic
+markup, citations, accessibility text, commands, and other protected content while
+editing prose for clarity.
+
+During Discovery, users may specify:
+
+- `tone`: the desired voice, such as “warm and direct” or “formal and restrained”
+- `prefer`: styles to apply consistently, such as short declarative sentences
+- `avoid`: styles to remove, such as em dashes or bold lead-ins followed by colons
+
+These preferences are stored in `DISCOVERY.json.editorialPreferences` and travel
+with the Project Folder through Structure, Generation, media text, and Proofread.
+If no preferences are given, `unslop` chooses clear wording appropriate to the
+medium without inventing a house style. See the [Project Folder state schema](docs/state-schema.md)
+for the persisted shape.
+
 ## External prerequisites
 
 - **Marp and Node.js:** required and checked by Generate Slides and Proofread when

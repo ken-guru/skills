@@ -12,8 +12,12 @@ Renders the final presentation from an approved `AGENDA.md` using one locked Pre
 Apply a lightweight human-voice pass when generating slide copy, presenter
 notes, glossary text, and user-facing reports. Presentation content must remain
 concise, specific, accessible, and within Content Capacity. Keep Markdown, HTML,
-commands, semantic classes, and project state exact. Use the standalone `unslop`
-Skill for a deliberate full editorial pass.
+commands, semantic classes, and project state exact. Before writing the final
+`PRESENTASJON.md`, invoke the standalone `unslop` Skill as a required full
+editorial pass over slide copy, presenter notes, and glossary text, using
+`DISCOVERY.json.editorialPreferences`. Then rerun capacity and semantic-markup
+validation; the pass is incomplete if either the preference scan or validation
+has not succeeded.
 
 ## Gotchas
 

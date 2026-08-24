@@ -12,8 +12,11 @@ Builds and refines `AGENDA.md` through collaborative iteration with the user.
 Apply a lightweight human-voice pass to agenda alternatives, narrative
 explanations, and collaboration prompts. Keep Presentation content concise and
 concrete, preserve the user's intended tone, and do not rewrite approved wording
-merely to make it sound more conversational. Use the standalone `unslop` Skill
-for a deliberate full editorial pass.
+merely to make it sound more conversational. Before writing or updating
+`AGENDA.md`, invoke the standalone `unslop` Skill as a required full editorial
+pass over editable agenda prose, using `DISCOVERY.json.editorialPreferences`.
+Treat that pass as incomplete until its protection checks and preference scan
+are complete.
 
 ## Gotchas
 - Write AGENDA.md only after the user gives explicit approval — premature writes trigger the restart guard on every subsequent iteration

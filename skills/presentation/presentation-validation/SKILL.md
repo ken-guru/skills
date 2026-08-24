@@ -19,8 +19,8 @@ The dispatcher never installs tools, acquires credentials, changes project files
 Apply a lightweight human-voice pass to human-readable validation reports. Name
 the failing check, affected artifact, and remediation without puffery. Preserve
 JSON output, exact paths, commands, error identifiers, and machine-readable
-report contracts. Use the standalone `unslop` Skill for a deliberate full
-editorial pass.
+report contracts. Presentation-copy generation must already have completed the
+required standalone `unslop` pass; validation does not substitute for it.
 
 Use `--format json` when another agent or process needs structured findings. Use `--report <path>` only when a persistent report is explicitly requested.
 

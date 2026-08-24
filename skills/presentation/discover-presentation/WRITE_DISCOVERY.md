@@ -1,7 +1,8 @@
 ### Step 3: Write state files
 
 Write `DISCOVERY.json` with the confirmed topic, audience fields, duration, occasion,
-language, `projectType: "presentation"`, Theme selection, and these path fields:
+language, `projectType: "presentation"`, Theme selection, editorial preferences,
+and these path fields:
 `agenda`, `imageSpec`, `diagramSpec`, `presentation`, `html`, `pdf`, `images`,
 `videos`, `docs`, `sources`, `themes`, and `themeLock`.
 
@@ -16,6 +17,17 @@ Persist the confirmed Presentation Theme as one structured value:
 "theme": {
   "id": "editorial",
   "fontOverride": null
+}
+```
+
+Persist confirmed editorial preferences as one structured value. Use empty
+arrays and `null` when the user supplied no preference:
+
+```json
+"editorialPreferences": {
+  "tone": null,
+  "prefer": [],
+  "avoid": []
 }
 ```
 

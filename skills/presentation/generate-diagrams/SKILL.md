@@ -12,7 +12,9 @@ Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves 
 Apply a lightweight human-voice pass to scope questions, review prompts, and
 result reports. Preserve user-provided Media Intent and D2 source when
 transporting them, and keep filenames, paths, commands, and state values exact.
-Use the standalone `unslop` Skill for a deliberate full editorial pass.
+Before approving diagram labels or explanatory text, invoke the standalone
+`unslop` Skill as a required full editorial pass using
+`DISCOVERY.json.editorialPreferences`; preserve D2 syntax and semantic labels.
 
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,

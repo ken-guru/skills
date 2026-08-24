@@ -12,8 +12,10 @@ Gathers presentation requirements through a conversational interview. Writes res
 Apply a lightweight human-voice pass to interview questions, assumption
 summaries, and confirmation prompts. Keep the conversation specific and warm
 without forced enthusiasm. Preserve user wording when it is being recorded as
-project content, and keep JSON field names and values exact. Use the standalone
-`unslop` Skill for a deliberate full editorial pass.
+project content, and keep JSON field names and values exact. Record any
+editorial preferences the user gives. Every presentation-copy phase must run
+the standalone `unslop` Skill as a required editorial pass, using those
+preferences.
 
 ## Gotchas
 - Advance to Step 2 only after at least 3 of 4 persona dimensions are known — thin personas produce generic slides
@@ -56,6 +58,7 @@ Present a one-shot confirmation summary before writing any files:
 - Language: [language]
 - Presentation style: [narrative structure from DEFAULTS.md]
 - Presentation Theme: [Editorial / Signal / Field Notes] ([identifier])
+- Editorial preferences: [tone, preferred styles, and styles to avoid — or none]
 - External Font Override: [exact family or none]
 - Pagination: Yes
 - Max bullet points per slide: 5–6

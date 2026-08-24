@@ -12,7 +12,10 @@ Reads `IMAGE_SPEC.md`, submits each entry's prompt to an AI image generation API
 Apply a lightweight human-voice pass to scope questions, review prompts, and
 result reports. Keep prompts and user-provided Media Intent intact when
 transporting them, and keep filenames, paths, commands, and state values exact.
-Use the standalone `unslop` Skill for a deliberate full editorial pass.
+Before approving any presentation-facing text, invoke the standalone `unslop`
+Skill as a required full editorial pass using
+`DISCOVERY.json.editorialPreferences`; preserve prompts and machine-readable
+media metadata where their contract requires exact wording.
 
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,

@@ -13,6 +13,12 @@
   },
   {
     "skill": "unslop",
+    "type": "positive",
+    "query": "Polish this presentation using these preferences: avoid em dashes and bold lead-ins followed by colons; prefer short declarative sentences.",
+    "expected": "skill treats the supplied avoid and prefer preferences as requirements for editable presentation prose while preserving semantic markup and protected content"
+  },
+  {
+    "skill": "unslop",
     "type": "boundary",
     "query": "rewrite this code comment and JSON output to sound human",
     "expected": "skill protects code and machine-readable output while optionally editing surrounding explanatory prose"

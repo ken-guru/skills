@@ -18,6 +18,11 @@ Written by `discover-presentation`. Required input for `structure-agenda`.
   "occasion": "string",
   "language": "string",
   "projectType": "presentation",
+  "editorialPreferences": {
+    "tone": "string | null",
+    "prefer": ["string"],
+    "avoid": ["string"]
+  },
   "theme": {
     "id": "editorial | signal | compact-signal | field-notes",
     "fontOverride": "null | { family: string, sourceUrl?: string }"

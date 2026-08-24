@@ -107,6 +107,12 @@ _Avoid_: run mode, output mode, step-by-step mode
 
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
 
+**Editorial preferences** — User-supplied instructions for presentation prose:
+an optional `tone`, a list of styles to `prefer`, and a list of styles to `avoid`.
+They are persisted in `DISCOVERY.json.editorialPreferences` and are mandatory
+inputs to the `unslop` pass. They affect editable copy, not protected markup,
+citations, accessibility text, commands, or machine-readable metadata.
+
 **Glossary** (Begreper og definisjoner) — Canonical definitions of all domain-specific terms used in the presentation
 
 **Agenda-time diagram briefing** — The collaborative discussion of a slide's diagram intent and content while its agenda entry is being drafted, before any diagram specification or D2 source is generated.

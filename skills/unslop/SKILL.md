@@ -14,10 +14,13 @@ content contract.
 1. Identify the output boundary. Separate conversational prose, Presentation
    content, quotations, citations, accessibility text, and protected structured
    content.
-2. Scan the editable prose for the universal clarity rules below.
-3. Rewrite only what needs rewriting. Keep the intended tone and audience.
-4. Apply contextual style preferences where they improve the specific output.
-5. Run the protection checks and the final human-voice audit.
+2. Load any user- or project-supplied editorial preferences before editing.
+3. Scan the editable prose for the universal clarity rules below.
+4. Rewrite only what needs rewriting. Keep the intended tone and audience.
+5. Apply explicit preferences as requirements, not suggestions. If no preference
+   is supplied, choose the clearest form for the medium without inventing a
+   house style.
+6. Run the protection checks and the final human-voice audit.
 
 ## Universal clarity rules
 
@@ -39,7 +42,8 @@ content contract.
 
 ## Contextual style preferences
 
-Treat these as choices, not prohibitions:
+Treat these as configurable choices. A user's explicit preference overrides
+these defaults for editable prose:
 
 - em dashes, colons, parentheses, and other punctuation
 - sentence case or title case headings
@@ -47,7 +51,17 @@ Treat these as choices, not prohibitions:
 - first person, opinions, and conversational reactions
 - short fragments, when the format or tone calls for them
 
-Use the choice that best serves the audience, format, and requested voice.
+Interpret `avoid` preferences as a scan requirement: remove the pattern when
+it is not protected content, including equivalent constructions that preserve
+the same stylistic effect. Interpret `prefer` preferences as a positive target
+and use them consistently where the format permits. Do not let a preference
+break meaning, accessibility, technical precision, or the output contract.
+
+For presentation projects, preference examples include:
+
+- `avoid`: "bold lead-in followed by a colon", "em dashes", "generic bullet lists"
+- `prefer`: "short declarative sentences", "unnumbered statements", "plain headings"
+- `tone`: "warm and direct", "formal and restrained", or another user-supplied description
 
 ## Protected content
 
@@ -69,8 +83,9 @@ without changing the protected content's contract.
 Presentation content follows the same clarity rules but has tighter constraints.
 Keep slide copy concise, preserve narrative hierarchy and Content Capacity, and
 do not trade away accessibility or semantic meaning for a more conversational
-sound. A good slide sentence is specific enough to carry the message without
-needing the presenter to decode it.
+sound. Apply the project's explicit editorial preferences to slide copy and
+presenter notes. A good slide sentence is specific enough to carry the message
+without needing the presenter to decode it.
 
 ## Final audit
 

@@ -14,7 +14,9 @@ Apply a lightweight human-voice pass to proofreading reports, warnings, and
 user-facing remediation. Be specific about the observed issue and the next
 action. Preserve quotations, accessibility text unless clarity requires a
 correction, project state, commands, and semantic markup contracts. Use the
-standalone `unslop` Skill for a deliberate full editorial pass.
+standalone `unslop` Skill for every proofreading report and, when requested to
+edit presentation copy, as a required full editorial pass using
+`DISCOVERY.json.editorialPreferences`.
 
 ## Startup
 

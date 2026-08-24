@@ -8,13 +8,13 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Suite | Description |
 |---|---|
-| [Presentation](skills/presentation/README.md) | Eight Skills for discovering, structuring, generating, validating, rendering, and proofreading presentations |
+| [Presentation](skills/presentation/README.md) | Eight Skills for discovering, structuring, generating, validating, rendering, and proofreading presentations, with a required editorial pass |
 
 ## Standalone Skills
 
 | Skill | Description |
 |---|---|
-| [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, and structured output |
+| [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, structured output, and explicit user style preferences |
 
 Install the standalone Skill directly:
 

@@ -36,6 +36,12 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 
 Theme selection is required for new projects. Do not infer it from topic, audience, or occasion. Do not proactively ask about fonts. If the user explicitly volunteers a particular font family, capture it as an External Font Override with the exact family and an optional source URL that the user approves.
 
+12. **Editorial preferences** — Ask: "Are there any writing styles you want me to
+avoid or consistently use in the presentation?" Capture concrete preferences,
+such as avoiding em dashes or bold lead-ins with colons, or preferring short
+declarative sentences. This is optional; do not invent preferences when the
+user has none.
+
 ## Extraction rules
 
 - If the user says "30 min talk at a conference", extract duration = "30 minutes" and occasion = "conference"

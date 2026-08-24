@@ -14,8 +14,9 @@ remains independently callable.
 Apply a lightweight human-voice pass to routing explanations, decision
 summaries, and completion reports. Prefer concrete state and next actions,
 preserve the user's requested tone, and leave Project Folder paths, commands,
-and state names exact. Use the standalone `unslop` Skill for a deliberate full
-editorial pass.
+and state names exact. Route every presentation-copy phase through its
+required standalone `unslop` pass. The pass must use any editorial preferences
+recorded in `DISCOVERY.json`.
 
 ## Installation boundary
 
