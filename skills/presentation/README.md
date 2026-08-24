@@ -62,8 +62,9 @@ During Discovery, users may specify:
 - `prefer`: styles to apply consistently, such as short declarative sentences
 - `avoid`: styles to remove, such as em dashes or bold lead-ins followed by colons
 
-These preferences are stored in `DISCOVERY.json.editorialPreferences` and travel
-with the Project Folder through Structure, Generation, media text, and Proofread.
+These preferences are stored in the `editorialPreferences` field of
+`DISCOVERY.json` and travel with the Project Folder through Structure, Generation,
+media text, and Proofread.
 If no preferences are given, `unslop` chooses clear wording appropriate to the
 medium without inventing a house style. See the [Project Folder state schema](docs/state-schema.md)
 for the persisted shape.
