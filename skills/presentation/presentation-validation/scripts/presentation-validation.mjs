@@ -3,6 +3,7 @@
 import { access, readFile, readdir, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { inflateSync } from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -127,7 +128,7 @@ function slidesFrom(markdown) {
 async function checkEnvironment(inputs, report) {
   const commands = ['node'];
   if (report.profile === 'generation' || report.profile === 'proofread') commands.push('marp');
-  const needsD2 = (await exists(inputs.diagramSpec)) || /\.(svg)\b/i.test(await readTextIfPresent(inputs.presentation));
+  const needsD2 = (await exists(inputs.diagramSpec)) || mediaReferences(await readTextIfPresent(inputs.presentation)).some((file) => /\.svg$/i.test(file));
   if (needsD2) commands.push('d2');
   for (const command of commands) {
     const result = spawnSync(command, ['--version'], { stdio: 'ignore' });
@@ -219,7 +220,7 @@ async function checkStructure(inputs, report) {
     if (!/<h[12][^>]*class=["'][^"']*slot-(?:title|heading)/i.test(slide) && !/class=["'][^"']*slot-quote/i.test(slide)) {
       report.finding('structure.semantic-markup', 'warning', `Slide ${index + 1} has no recognizable semantic heading slot.`, { slide: index + 1 });
     }
-    const bullets = (slide.match(/^\s*[-*]\s+/gm) ?? []).length;
+    const bullets = (slide.match(/<li\b/gi) ?? []).length;
     if (bullets > 5) {
       report.finding('structure.capacity', 'warning', `Slide ${index + 1} contains ${bullets} bullets.`, {
         slide: index + 1,
@@ -237,8 +238,12 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function stripNonMarkupBlocks(text) {
+  return text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+}
+
 function mediaReferences(text) {
-  return [...text.matchAll(/(?:src|href)=["']([^"']+)["']|!\[[^\]]*\]\(([^)]+)\)/g)]
+  return [...stripNonMarkupBlocks(text).matchAll(/(?:src|href)=["']([^"']+)["']|!\[[^\]]*\]\(([^)]+)\)/g)]
     .map((match) => match[1] ?? match[2])
     .filter((reference) => !/^https?:/i.test(reference));
 }
@@ -334,8 +339,33 @@ function countHtmlSlides(html) {
   return (html.match(/<section\b/gi) ?? []).length;
 }
 
-function countPdfPages(buffer) {
-  return (buffer.toString('latin1').match(/\/Type\s*\/Page\b/g) ?? []).length;
+function inflateFlateStreams(buffer) {
+  const text = buffer.toString('latin1');
+  const dictStream = /<<([^>]*?)>>\s*stream\r?\n/g;
+  const decoded = [];
+  let match;
+  while ((match = dictStream.exec(text))) {
+    if (!/\/Filter\s*(?:\/FlateDecode\b|\[[^\]]*\/FlateDecode\b[^\]]*\])/.test(match[1])) continue;
+    const start = match.index + match[0].length;
+    const end = text.indexOf('endstream', start);
+    if (end === -1) continue;
+    let trimmed = end;
+    while (trimmed > start && (text[trimmed - 1] === '\n' || text[trimmed - 1] === '\r')) trimmed--;
+    try {
+      decoded.push(inflateSync(buffer.subarray(start, trimmed)).toString('latin1'));
+    } catch {
+      // Not plain zlib data (extra filters, encryption, or boundary drift) — skip; the raw scan still covers uncompressed objects.
+    }
+  }
+  return decoded.join('\n');
+}
+
+function pdfSearchableText(buffer) {
+  return `${buffer.toString('latin1')}\n${inflateFlateStreams(buffer)}`;
+}
+
+function countPdfPages(searchableText) {
+  return (searchableText.match(/\/Type\s*\/Page\b/g) ?? []).length;
 }
 
 async function checkExports(inputs, report) {
@@ -347,8 +377,9 @@ async function checkExports(inputs, report) {
   if (!htmlExists || !pdfExists) return;
   const html = await readText(inputs.html);
   const pdf = await readFile(inputs.pdf);
+  const pdfText = pdfSearchableText(pdf);
   const htmlSlides = countHtmlSlides(html);
-  const pdfSlides = countPdfPages(pdf);
+  const pdfSlides = countPdfPages(pdfText);
   if (!htmlSlides || !pdfSlides || htmlSlides !== pdfSlides) {
     report.finding('exports.parity', report.profile === 'proofread' ? 'blocking' : 'warning', 'HTML and PDF slide counts do not match.', {
       evidence: `HTML ${htmlSlides}; PDF ${pdfSlides}`,
@@ -356,7 +387,7 @@ async function checkExports(inputs, report) {
   } else {
     report.finding('exports.parity', 'info', `HTML and PDF both contain ${htmlSlides} slides.`, { value: htmlSlides });
   }
-  const mediaBox = pdf.toString('latin1').match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
+  const mediaBox = pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
   if (mediaBox) {
     const ratio = Number(mediaBox[1]) / Number(mediaBox[2]);
     if (Math.abs(ratio - 16 / 9) > 0.03) {
