@@ -59,6 +59,10 @@ remove it without asking — it may hold state the user still wants. Skip this c
 `docker` isn't installed or isn't running; note that it couldn't be checked rather than failing the
 rest of the skill over it.
 
+Done when you know whether a baseline exists (and if so, have moved on to [Adding the SSH layer
+later](#adding-the-ssh-layer-later) instead of continuing below) and whether a stale container
+needs clearing before either path reopens the workspace.
+
 ## 3. Ask about the optional layers
 
 Ask the user directly, as two independent questions:
@@ -130,7 +134,7 @@ file (`grep -rn '{{' .devcontainer/`).
 
 ## 6. Report next steps
 
-Tell the user, adapted to whether the SSH layer is present:
+Tell the user, adapted to whether the SSH layer and YOLO alias are present:
 
 1. Install Docker Desktop and the **Dev Containers** VS Code extension.
 2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
@@ -139,13 +143,19 @@ Tell the user, adapted to whether the SSH layer is present:
 4. Run `claude` and log in.
 5. {{If the SSH layer is present: on attach, `post-attach.sh` prints a public key — paste it into
    github.com/settings/ssh as a Signing Key, then `touch ~/.ssh/.signing-key-registered`.}}
+6. {{If the YOLO alias is present: a new shell in the container has `claude-yolo` available —
+   `claude --dangerously-skip-permissions --worktree --remote-control` — for fast, unattended
+   iteration.}}
+
+Done when the user has been told every applicable item above, adapted to whether the SSH layer and
+YOLO alias are present.
 
 ## Adding the SSH layer later
 
 For a repo that already has the baseline from this skill (`.devcontainer/devcontainer.json`
 exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
 
-1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in step 1 above.
+1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1 above.
 2. Edit `.devcontainer/devcontainer.json`: add
    `"source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"` to the `mounts` array,
    and add `"postAttachCommand": "bash .devcontainer/post-attach.sh"` as the last key — don't
@@ -156,7 +166,8 @@ exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` 
 4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
    substituted, and `chmod +x` it.
 5. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
-   `.devcontainer/.env.example`, and update its `GH_TOKEN` comment as in step 5 above.
+   `.devcontainer/.env.example`, and update its `GH_TOKEN` comment as in the main flow's step 5
+   above.
 6. `.devcontainer/.env` itself already exists in this flow (it's required for the baseline to
    have worked at all) and is gitignored — don't touch it programmatically, since it holds a live
    `GH_TOKEN`. `devcontainer.json`'s `initializeCommand` only seeds `.env` from `.env.example` when
