@@ -10,7 +10,7 @@ const sourceFiles = [
   { path: 'fixtures/gallery/deck.mjs', bytes: Buffer.from('deck') },
 ];
 
-test('gallery source resolution returns the twenty-four semantic documentation assets deterministically', () => {
+test('gallery source resolution returns the thirty-two semantic documentation assets deterministically', () => {
   const first = resolveGallerySource({ themes, sourceFiles, sampleMediaPresent: true, sampleMediaBytes: Buffer.from('portrait') });
   const second = resolveGallerySource({
     themes,
@@ -21,28 +21,36 @@ test('gallery source resolution returns the twenty-four semantic documentation a
 
   assert.deepEqual(first.assets.map(({ filename }) => filename), [
     'editorial-title.png',
+    'editorial-section.png',
     'editorial-text-only.png',
     'editorial-text-plus-image.png',
     'editorial-full-image.png',
     'editorial-data.png',
+    'editorial-diagram.png',
     'editorial-quotation.png',
     'signal-title.png',
+    'signal-section.png',
     'signal-text-only.png',
     'signal-text-plus-image.png',
     'signal-full-image.png',
     'signal-data.png',
+    'signal-diagram.png',
     'signal-quotation.png',
     'compact-signal-title.png',
+    'compact-signal-section.png',
     'compact-signal-text-only.png',
     'compact-signal-text-plus-image.png',
     'compact-signal-full-image.png',
     'compact-signal-data.png',
+    'compact-signal-diagram.png',
     'compact-signal-quotation.png',
     'field-notes-title.png',
+    'field-notes-section.png',
     'field-notes-text-only.png',
     'field-notes-text-plus-image.png',
     'field-notes-full-image.png',
     'field-notes-data.png',
+    'field-notes-diagram.png',
     'field-notes-quotation.png',
   ]);
   assert.equal(first.sourceFingerprint, second.sourceFingerprint);

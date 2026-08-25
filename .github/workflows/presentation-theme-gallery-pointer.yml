@@ -1,0 +1,62 @@
+name: Presentation theme gallery pointer
+
+on:
+  pull_request:
+    paths:
+      - 'skills/presentation/generate-slides/themes/**'
+      - 'skills/presentation/docs/presentation-themes.md'
+      - 'skills/presentation/docs/assets/presentation-themes/**'
+      - 'skills/presentation/verification/presentation-themes/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: presentation-theme-gallery-pointer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    name: Point reviewers at the theme gallery
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Comment with the rendered gallery link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headRepo = context.payload.pull_request.head.repo.full_name;
+            const headRef = context.payload.pull_request.head.ref;
+            const galleryUrl = `https://github.com/${headRepo}/blob/${encodeURIComponent(headRef)}/skills/presentation/docs/presentation-themes.md`;
+            const marker = '<!-- presentation-theme-gallery-pointer -->';
+            const body = [
+              marker,
+              'This PR touches Presentation Theme or gallery files.',
+              '',
+              `**[Review the theme comparison gallery on this branch](${galleryUrl})** — each Slide Archetype is a table with all four themes side by side. There is no automated visual check for theme rendering; a human look here is the verification step before merging.`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            const existing = comments.find((comment) => comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }

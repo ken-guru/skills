@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "fixtureVersion": 1,
-  "sourceFingerprint": "391c53e1750b3b8f3ed46971091584954992dfbf188e8b3f61d870f4ca64ba06",
+  "sourceFingerprint": "762acb6a373f4d942e968fef3a22ad0101644fb9548a229a9a579b1eb56ff1df",
   "sourceMedia": {
     "sha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb"
   },
@@ -22,6 +22,18 @@
       "height": 720,
       "bytes": 339535,
       "sha256": "b076d183b5cea060ef13a737c23e9600778861eb76db9f122aebc19df3dc1aea"
+    },
+    "editorial-section.png": {
+      "theme": "editorial",
+      "archetype": "section",
+      "slideNumber": 2,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 51849,
+      "sha256": "1d12645d7156b88f9619b46f30ca7b8843dff0ae65ba50426ded72e774efa5ca"
     },
     "editorial-text-only.png": {
       "theme": "editorial",
@@ -71,6 +83,18 @@
       "bytes": 70103,
       "sha256": "0a272c4487e0ccff6714261cbd51d5b169c51648a149ecfdae1868d52d966151"
     },
+    "editorial-diagram.png": {
+      "theme": "editorial",
+      "archetype": "diagram",
+      "slideNumber": 7,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 64903,
+      "sha256": "5ef319e64a3fe986ea3d2b2483111b9faf987aca8e23364117535d6dcf3eded5"
+    },
     "editorial-quotation.png": {
       "theme": "editorial",
       "archetype": "quotation",
@@ -92,8 +116,20 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 454585,
-      "sha256": "97ab59a1bee857d7e2c71e5af3b6c66748528e9ba1388674606e50c6f6eb8194"
+      "bytes": 453563,
+      "sha256": "f340c33960374d5815dd1b7e75950ce0b640c1c22aa440759b42a55571dfe934"
+    },
+    "signal-section.png": {
+      "theme": "signal",
+      "archetype": "section",
+      "slideNumber": 2,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 46539,
+      "sha256": "f157aceb850433ffb731e83fba2d3a74cfcc455aa9346dead09b20dedd0c4994"
     },
     "signal-text-only.png": {
       "theme": "signal",
@@ -104,8 +140,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 85898,
-      "sha256": "1ba46084d4cb875f90f16bfae3c21e52a72e43873b41bed294a6c48f8114060e"
+      "bytes": 85003,
+      "sha256": "2e523653f7e1617a3c18f6a09332a9c8fdcf94629a5d69b1db14ba6954956e3a"
     },
     "signal-text-plus-image.png": {
       "theme": "signal",
@@ -116,8 +152,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 497440,
-      "sha256": "ff69053ba2f2409b5c678475938a54f642f3b96076118dc4e14a5907a11208af"
+      "bytes": 496335,
+      "sha256": "041744a7654c5c625fffe1404b8506e5f313ac409e61e541f165e0f43dfc2a49"
     },
     "signal-full-image.png": {
       "theme": "signal",
@@ -128,8 +164,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 728030,
-      "sha256": "a8b081b4f0c5eabddcc61bc34e33779bf3d3a6888cab7d569e9240cc4af3501b"
+      "bytes": 726822,
+      "sha256": "1d495b416c6cabed5cfaef1f5a633654f14c383ae83b66af3d25eae74cc63c1a"
     },
     "signal-data.png": {
       "theme": "signal",
@@ -140,8 +176,20 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 54532,
-      "sha256": "0d5d059436b7362aabd7c8109c6345893873e115af089a51fa40eb81d8eb292c"
+      "bytes": 53676,
+      "sha256": "6696a06e482444fe66bd4535bbab946e43d771a2cfdb8e23d1bbc6feabd591a5"
+    },
+    "signal-diagram.png": {
+      "theme": "signal",
+      "archetype": "diagram",
+      "slideNumber": 7,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 63481,
+      "sha256": "ff8b4a743526ed153389ac4b8d333e5f4923c7ac5ed8e7148ac1856740e81283"
     },
     "signal-quotation.png": {
       "theme": "signal",
@@ -152,8 +200,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 55629,
-      "sha256": "c827f4a491fd9accc97efd3bdfbc1a36f78477855349b4296f7106e870ee71a0"
+      "bytes": 54737,
+      "sha256": "e917481de31ed09077106fae35df8685b048e6bc45626be5aa09987228c5f78a"
     },
     "compact-signal-title.png": {
       "theme": "compact-signal",
@@ -166,6 +214,18 @@
       "height": 720,
       "bytes": 580925,
       "sha256": "8cdb6aca2ac2a38d691ded8a5af146b8d884a2df335b5acf4e6ea29bebc7a2e0"
+    },
+    "compact-signal-section.png": {
+      "theme": "compact-signal",
+      "archetype": "section",
+      "slideNumber": 2,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 47504,
+      "sha256": "825eb88ee6beab5758d083f8af4c850b7ff063d5f675ab8860d3af75ae6a1b59"
     },
     "compact-signal-text-only.png": {
       "theme": "compact-signal",
@@ -212,8 +272,20 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 55451,
-      "sha256": "894b2776f5d2fcb83df710d07ca3fce70ab180017527fa5b968367337a3d340c"
+      "bytes": 55288,
+      "sha256": "5b4d3822cac99ba6a554d6a31d1b926dcca104154676c87af6a7ef5523f2ecbc"
+    },
+    "compact-signal-diagram.png": {
+      "theme": "compact-signal",
+      "archetype": "diagram",
+      "slideNumber": 7,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 57068,
+      "sha256": "84dc0c0e6bdfb0bd23a2635ce21a7a7ff3a3836a52f4e6cf75ad35dd0177582f"
     },
     "compact-signal-quotation.png": {
       "theme": "compact-signal",
@@ -236,8 +308,20 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 395212,
-      "sha256": "dc767eccf040d35b6d53359c42c419882c391c75e492e07451292d53a31234ec"
+      "bytes": 394842,
+      "sha256": "3894d6d5282df2ddd3deeffc182282aa37a54008ecf4dc69a3579c5ccad5ef6d"
+    },
+    "field-notes-section.png": {
+      "theme": "field-notes",
+      "archetype": "section",
+      "slideNumber": 2,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 58349,
+      "sha256": "f052a856daab776a8870383594c71951828d7cd79d9b6650fbaa60acd596f7f7"
     },
     "field-notes-text-only.png": {
       "theme": "field-notes",
@@ -287,6 +371,18 @@
       "bytes": 102970,
       "sha256": "37562875b27466d092ff6fb8fffb7d1d2e50c4bd17b300ff707421fd24f9271d"
     },
+    "field-notes-diagram.png": {
+      "theme": "field-notes",
+      "archetype": "diagram",
+      "slideNumber": 7,
+      "fixtureVersion": 1,
+      "renderer": "html",
+      "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
+      "width": 1280,
+      "height": 720,
+      "bytes": 78227,
+      "sha256": "fc0f21023174e428587eed992c51b907e0df37981857eeb08882576aca84ead5"
+    },
     "field-notes-quotation.png": {
       "theme": "field-notes",
       "archetype": "quotation",
@@ -296,8 +392,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 65846,
-      "sha256": "269dd5f794946443fe163d0be75ab5e4f63cd8c9a09debe5cd6f1e51a59685af"
+      "bytes": 65847,
+      "sha256": "7b362a0c7f88a475a887e5c9d12b70b279cc83ce3528c3ce0b6862f391c4761e"
     }
   }
 }

@@ -19,7 +19,9 @@
     "accent": "#b84630",
     "secondary": "#8b6a00",
     "sage": "#63775e",
-    "light": "#f7f2e7"
+    "dark": "#2e3d31",
+    "light": "#f7f2e7",
+    "muted": "#405444"
   },
   "media": {
     "pictureTreatment": "Natural documentary photography with warm paper color, restrained saturation, visible human process, honest texture, and generous protected focal regions for print-like framing.",

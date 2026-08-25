@@ -19,7 +19,9 @@
     "accent": "#dfff00",
     "secondary": "#82ffe2",
     "highlight": "#ff4f8b",
-    "light": "#f4f6f1"
+    "dark": "#0b0f19",
+    "light": "#f4f6f1",
+    "muted": "#c9d2df"
   },
   "media": {
     "pictureTreatment": "High-energy documentary imagery with controlled contrast, cool cyan shadows, restrained magenta highlights, clear subjects, and uncluttered edges for modular framing.",

@@ -21,9 +21,9 @@
     "highlight": "#f7b715",
     "dark": "#012a4c",
     "light": "#ffffff",
-    "signal": "#e83f53",
+    "red": "#b4233a",
     "cyan": "#009fe3",
-    "muted": "#828282"
+    "muted": "#333333"
   },
   "media": {
     "pictureTreatment": "Crisp documentary or editorial imagery with clear focal subjects, restrained saturation, clean edges, and either a supportive side panel or full-bleed composition.",
