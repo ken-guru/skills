@@ -100,7 +100,10 @@ Record these answers — they decide which template variants and configuration i
   If the file doesn't exist, use [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json) (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if SSH layer accepted), substitute `{{REPO_NAME}}`, and write it.
   **Then (in all cases)**, carefully update the `.devcontainer/devcontainer.json` file to safely merge the following properties. Do not overwrite or remove any existing user customizations:
   - If Codex was accepted: add `.codex` mount (`"source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"`) to the `mounts` array, and add `"CODEX_HOME": "/home/vscode/.codex"` to the `containerEnv` object.
-  - If Antigravity was accepted: add `.gemini` mount (`"source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"`) to the `mounts` array.
+  - If Antigravity was accepted: 
+    - Add `.gemini` mount (`"source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"`) to the `mounts` array.
+    - Append the following caveat to `.devcontainer/README.md` (e.g., under a "Gotchas" or "CLI Notes" section):
+      > **Antigravity CLI Auth**: `agy` stores auth in the system keyring, not a file. The `~/.gemini` volume mount will not persist its login across rebuilds in a bare container. You may need to re-auth `agy` each time, or add a keyring daemon yourself later if that gets annoying.
 - `.devcontainer/post-create.sh`: 
   If it doesn't exist, use [templates/post-create-baseline.sh](templates/post-create-baseline.sh) and substitute. 
   If it exists, intelligently append the following blocks ONLY if they don't already exist:
