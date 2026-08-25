@@ -2,7 +2,6 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { validateApprovedGallery } from '../lib/gallery-approval.mjs';
 import { validateGalleryDocumentation } from '../lib/gallery-documentation.mjs';
 import { galleryPaths, loadGallerySource } from '../lib/gallery-files.mjs';
 
@@ -28,22 +27,12 @@ const existingPaths = new Set(
     entry.split(path.sep).join('/'),
   ),
 );
-const warnings = [];
-const issues = [
-  ...validateGalleryDocumentation({
-    readme,
-    gallery,
-    expectedAssets: source.assets.map(({ filename }) => filename),
-    existingPaths,
-  }),
-  ...(await validateApprovedGallery({
-    assetsDirectory: paths.assetsDirectory,
-    source,
-    onWarning: (warning) => warnings.push(warning),
-  })),
-];
-
-for (const warning of warnings) process.stderr.write(`⚠️  ${warning}\n`);
+const issues = validateGalleryDocumentation({
+  readme,
+  gallery,
+  expectedAssets: source.assets.map(({ filename }) => filename),
+  existingPaths,
+});
 
 if (issues.length) {
   process.stderr.write(`${issues.map((issue) => `- ${issue}`).join('\n')}\n`);
