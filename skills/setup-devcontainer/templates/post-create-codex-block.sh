@@ -1,4 +1,4 @@
 # Install Codex CLI
 if ! command -v codex >/dev/null 2>&1; then
-  npm install -g @openai/codex-cli
+  curl -fsSL https://chatgpt.com/codex/install.sh | sh
 fi
