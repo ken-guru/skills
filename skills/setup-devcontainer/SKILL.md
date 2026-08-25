@@ -65,21 +65,15 @@ needs clearing before either path reopens the workspace.
 
 ## 3. Ask about the optional layers
 
-Ask the user directly, as two independent questions:
+Ask the user directly, as independent questions (skip any they already answered in their request):
 
-- Does this repo need agent-driven `git push` and signed commits, or is Claude Code alone (with
-  manual git from outside the container, or HTTPS token auth) enough? This is the SSH layer.
-- Do they want the `claude-yolo` alias available in the container — `claude
-  --dangerously-skip-permissions --worktree --remote-control`, for fast unattended iteration — or
-  would they rather the container not offer a no-permission-prompts option at all?
+- **SSH Layer**: Does this repo need agent-driven `git push` and signed commits? (Adds deploy-key/signing-key automation).
+- **OpenAI Codex CLI**: Should we add OpenAI Codex CLI (`codex`) support to the devcontainer?
+- **Google Antigravity CLI**: Should we add Google Antigravity CLI (`agy`) support to the devcontainer?
+- **GitHub Copilot CLI**: Should we add GitHub Copilot (`copilot`) support to the devcontainer?
+- **YOLO aliases**: Which of the installed CLIs should have a `-yolo` alias available for fast unattended iteration? (Note: `copilot-yolo` just echoes instructions to manually type `/sandbox enable` inside the session).
 
-Skip a question only if the user's original request already answered it (e.g. "set up the
-devcontainer with SSH key automation" answers the first; "no YOLO alias" or "skip permission
-prompts is fine" answers the second).
-
-Record both answers — they decide which template variants steps 4–6 use. The SSH layer can be
-added later (see below) without redoing this setup; the YOLO alias, being a single alias line, is
-simple enough to add by hand afterward if the developer changes their mind.
+Record these answers — they decide which template variants and configuration injections steps 4–6 use. Optional layers can be added later (see below) without redoing this setup.
 
 ## 4. Resolve placeholders
 
@@ -95,26 +89,33 @@ simple enough to add by hand afterward if the developer changes their mind.
   collection — includes this very Skill, useful if the SSH layer needs adding later from inside
   the container). Accept any other source the user names, in `owner/repo` form. If the user has
   no preference, include both defaults. Render one line per chosen source, in the order given:
-  `npx -y skills add <source> --skill '*' -a claude-code -y --copy -g`. Use the resulting
+  `npx -y skills add <source> --skill '*' -a '*' -y --copy -g`. Use the resulting
   multi-line block everywhere this placeholder appears.
 - `{{SKILLS_SOURCES_SUMMARY}}` — the same sources as a short human-readable list (e.g.
   `` `mattpocock/skills`, `ken-guru/skills` ``), for the README's prose.
 
-## 5. Write the baseline
+## 5. Write or Update the Devcontainer Files
 
-- `.devcontainer/devcontainer.json` ← [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json)
-  if the SSH layer was declined, or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json)
-  if accepted. Substitute `{{REPO_NAME}}` either way — it now names the per-repo Claude config
-  volume, not just the SSH-layer volume.
-- `.devcontainer/post-create.sh` ← [templates/post-create-baseline.sh](templates/post-create-baseline.sh),
-  substituted. If the YOLO alias was accepted, append
-  [templates/post-create-yolo-block.sh](templates/post-create-yolo-block.sh) next. If the SSH
-  layer was accepted, append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh)
-  (substituted) last. Either, both, or neither block may be appended, in that order.
-- `.devcontainer/post-start.sh` ← [templates/post-start.sh](templates/post-start.sh), substituted.
-  Always written — skill sync is part of the baseline here.
-- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted.
-  Only if the SSH layer was accepted; omit entirely otherwise.
+- **`scripts/inject-json.mjs`**: Make sure the script bundled with this skill is used for modifying JSON safely.
+- `.devcontainer/devcontainer.json`:
+  If the file doesn't exist, use [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json) (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if SSH layer accepted), substitute `{{REPO_NAME}}`, and write it.
+  **Then (in all cases)**, use `node scripts/inject-json.mjs .devcontainer/devcontainer.json <keypath> <json_value>` (where `<json_value>` is valid JSON) to safely inject:
+  - If Codex was accepted: add `.codex` mount (`'["source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"]'`) to `mounts`, and add `CODEX_HOME` (`'{"CODEX_HOME": "/home/vscode/.codex"}'`) to `containerEnv`.
+  - If Antigravity was accepted: add `.gemini` mount (`'["source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"]'`) to `mounts`.
+- `.devcontainer/post-create.sh`: 
+  If it doesn't exist, use [templates/post-create-baseline.sh](templates/post-create-baseline.sh) and substitute. 
+  If it exists, intelligently append the following blocks ONLY if they don't already exist:
+  - **Codex CLI**: append [templates/post-create-codex-block.sh](templates/post-create-codex-block.sh)
+  - **Antigravity CLI**: append [templates/post-create-antigravity-block.sh](templates/post-create-antigravity-block.sh)
+  - **YOLO Aliases**: 
+    - Claude: `alias claude-yolo="claude --dangerously-skip-permissions --worktree --remote-control"`
+    - Codex: `alias codex-yolo="codex --ask-for-approval never --sandbox workspace-write -c sandbox_workspace_write.network_access=true"`
+    - Antigravity: `alias agy-yolo="agy --dangerously-skip-permissions --sandbox"`
+    - Copilot: `alias copilot-yolo="echo 'Copilot CLI requires manual sandboxing. Run the regular \`copilot\` command and then type \`/sandbox enable\` in the session.'"`
+    Append the requested aliases to `~/.bashrc`.
+  - **SSH Layer**: append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted) if accepted.
+- `.devcontainer/post-start.sh` ← [templates/post-start.sh](templates/post-start.sh), substituted. Always rewritten to ensure skill sync remains current.
+- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted (if SSH layer accepted).
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example),
   substituted. If the SSH layer was accepted, append
   [templates/env.ssh-block.example](templates/env.ssh-block.example) and update the `GH_TOKEN`
@@ -156,11 +157,9 @@ For a repo that already has the baseline from this skill (`.devcontainer/devcont
 exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
 
 1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1 above.
-2. Edit `.devcontainer/devcontainer.json`: add
-   `"source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"` to the `mounts` array,
-   and add `"postAttachCommand": "bash .devcontainer/post-attach.sh"` as the last key — don't
-   overwrite the whole file, this repo's `devcontainer.json` may already carry other
-   customizations.
+2. Edit `.devcontainer/devcontainer.json` safely using `node scripts/inject-json.mjs`:
+   - Inject the mount: `node scripts/inject-json.mjs .devcontainer/devcontainer.json mounts '["source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"]'`
+   - Inject the command: `node scripts/inject-json.mjs .devcontainer/devcontainer.json postAttachCommand '"bash .devcontainer/post-attach.sh"'`
 3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted)
    to the end of the existing `.devcontainer/post-create.sh`.
 4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
