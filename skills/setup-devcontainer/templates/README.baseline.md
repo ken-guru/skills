@@ -8,11 +8,16 @@ Minimal devcontainer for running Claude Code in an isolated environment, per
   feature's own Node.js auto-install fails under apt — see gotchas), the
   official `github-cli` feature, and the official `claude-code` devcontainer
   feature
-- Auth persists across rebuilds via a named volume (`claude-code-config`)
-  mounted at `~/.claude`, with `CLAUDE_CONFIG_DIR` pointed at the same path.
-  This volume name is shared across every repo using this same setup on this
-  machine — deliberately, so logging in once covers all of them. Don't
-  namespace it per repo.
+- Claude Code state persists across rebuilds via a named volume
+  (`{{REPO_NAME}}-claude-config`) mounted at `~/.claude`, with
+  `CLAUDE_CONFIG_DIR` pointed at the same path. This volume holds more than
+  auth — conversation transcripts, file-edit history, and session state all
+  live under `CLAUDE_CONFIG_DIR` too — so it's namespaced per repo rather than
+  shared machine-wide. A container running for one repo can't read another
+  repo's conversation history this way, the same reasoning behind scoping
+  `GH_TOKEN` and the SSH keys below to this repo alone. The trade-off: you log
+  in again the first time each repo's container comes up, not just once per
+  machine.
 - `gh` CLI auth comes from a `GH_TOKEN` env var supplied via a gitignored
   `.devcontainer/.env` file — see below
 - Claude Code skills are wiped and reinstalled from the configured sources
@@ -43,8 +48,8 @@ configured source on every container start:
 {{SKILLS_SOURCES_COMMANDS}}
 ```
 
-`~/.claude/skills` lives inside the same `claude-code-config` volume already
-mounted for Claude Code auth, so no separate volume is needed — the
+`~/.claude/skills` lives inside the same `{{REPO_NAME}}-claude-config` volume
+already mounted for Claude Code state, so no separate volume is needed — the
 wipe-and-reinstall just keeps the skill set in that volume current with
 upstream on every start, rather than persisting a stale copy across rebuilds.
 Add or remove a source by editing these lines directly.

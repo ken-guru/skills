@@ -7,7 +7,7 @@
   },
   "remoteUser": "vscode",
   "mounts": [
-    "source=claude-code-config,target=/home/vscode/.claude,type=volume"
+    "source={{REPO_NAME}}-claude-config,target=/home/vscode/.claude,type=volume"
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"

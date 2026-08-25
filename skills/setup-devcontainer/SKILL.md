@@ -71,7 +71,8 @@ can be added later (see below) without redoing this setup.
 
 - `.devcontainer/devcontainer.json` ← [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json)
   if the SSH layer was declined, or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json)
-  if accepted (substitute `{{REPO_NAME}}`).
+  if accepted. Substitute `{{REPO_NAME}}` either way — it now names the per-repo Claude config
+  volume, not just the SSH-layer volume.
 - `.devcontainer/post-create.sh` ← [templates/post-create-baseline.sh](templates/post-create-baseline.sh),
   substituted. If the SSH layer was accepted, append
   [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted) to the
