@@ -113,5 +113,5 @@ if (issues.length) {
   process.stderr.write(`${issues.map((issue) => `- ${issue}`).join('\n')}\n`);
   process.exitCode = 1;
 } else {
-  process.stdout.write('All 12 production gallery slides passed rendered acceptance.\n');
+  process.stdout.write(`All ${source.assets.length} production gallery slides passed rendered acceptance.\n`);
 }

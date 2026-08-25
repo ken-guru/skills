@@ -14,113 +14,55 @@ Every example below contains the same content and uses the same production rende
 
 The sample artwork was AI-generated for this comparison and is reused unchanged across all themes. The themes control its placement, crop, framing, and treatment—not its underlying artistic style.
 
+Each row below is one Slide Archetype rendered in all four themes, so you can scan across a row to compare treatments directly, or down a column to see one theme's range.
+
 ### Title
 
-#### Editorial
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial title slide on a warm cream canvas with an asymmetric serif headline, fine red rule, circular portrait frame, and restrained page furniture](assets/presentation-themes/editorial-title.png) | ![Signal title slide on a near-black technical grid with a condensed uppercase headline, cyan label, pink rule, and sharply angled portrait panel](assets/presentation-themes/signal-title.png) | ![Compact Signal title slide on a dark blue canvas with a compact serif headline, yellow label, teal rule, and supportive portrait panel](assets/presentation-themes/compact-signal-title.png) | ![Field Notes title slide on textured cream paper with a green serif headline, red handwritten label, gold underline, and loosely taped portrait print](assets/presentation-themes/field-notes-title.png) |
 
-![Editorial title slide on a warm cream canvas with an asymmetric serif headline, fine red rule, circular portrait frame, and restrained page furniture](assets/presentation-themes/editorial-title.png)
+### Section break
 
-#### Signal
-
-![Signal title slide on a near-black technical grid with a condensed uppercase headline, cyan label, pink rule, and sharply angled portrait panel](assets/presentation-themes/signal-title.png)
-
-#### Compact Signal
-
-![Compact Signal title slide on a dark blue canvas with a compact serif headline, yellow label, teal rule, and supportive portrait panel](assets/presentation-themes/compact-signal-title.png)
-
-#### Field Notes
-
-![Field Notes title slide on textured cream paper with a green serif headline, red handwritten label, gold underline, and loosely taped portrait print](assets/presentation-themes/field-notes-title.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial section slide on a warm cream canvas with a thin vertical rule, a large red numeral, and a restrained serif title](assets/presentation-themes/editorial-section.png) | ![Signal section slide with a cyan numeral column, an acid-yellow field, and a bold condensed uppercase title](assets/presentation-themes/signal-section.png) | ![Compact Signal section slide with a yellow numeral column, a dark blue field, and a compact white serif title](assets/presentation-themes/compact-signal-section.png) | ![Field Notes section slide on textured cream paper with a sage-ringed circular numeral badge and a green serif title](assets/presentation-themes/field-notes-section.png) |
 
 ### Plan with bullet points
 
-#### Editorial
-
-![Editorial text-only slide with a large serif heading and a wider numbered bullet list](assets/presentation-themes/editorial-text-only.png)
-
-#### Signal
-
-![Signal text-only slide with a bold condensed heading and a wide numbered bullet list on a dark grid](assets/presentation-themes/signal-text-only.png)
-
-#### Compact Signal
-
-![Compact Signal text-only slide with a compact serif heading and a wide numbered bullet list](assets/presentation-themes/compact-signal-text-only.png)
-
-#### Field Notes
-
-![Field Notes text-only slide with a natural serif heading and a wide arrow-led bullet list on textured paper](assets/presentation-themes/field-notes-text-only.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial text-only slide with a large serif heading and a wider numbered bullet list](assets/presentation-themes/editorial-text-only.png) | ![Signal text-only slide with a bold condensed heading and a wide numbered bullet list on a dark grid](assets/presentation-themes/signal-text-only.png) | ![Compact Signal text-only slide with a compact serif heading and a wide numbered bullet list](assets/presentation-themes/compact-signal-text-only.png) | ![Field Notes text-only slide with a natural serif heading and a wide arrow-led bullet list on textured paper](assets/presentation-themes/field-notes-text-only.png) |
 
 ### Text plus image
 
-#### Editorial
-
-![Editorial text-plus-image slide with a compact serif heading and bullet list on the left, a clean portrait frame on the right, and an italic caption below](assets/presentation-themes/editorial-text-plus-image.png)
-
-#### Signal
-
-![Signal text-plus-image slide with an uppercase heading and neon rule on the left, a dark grid canvas, and a tall angled portrait treatment on the right](assets/presentation-themes/signal-text-plus-image.png)
-
-#### Compact Signal
-
-![Compact Signal text-plus-image slide with a tightly packed sans-serif bullet list, teal rule, and narrow supportive image panel](assets/presentation-themes/compact-signal-text-plus-image.png)
-
-#### Field Notes
-
-![Field Notes text-plus-image slide with a taped portrait print on the left, serif heading and bullets on the right, and a handwritten-style caption beneath the image](assets/presentation-themes/field-notes-text-plus-image.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial text-plus-image slide with a compact serif heading and bullet list on the left, a clean portrait frame on the right, and an italic caption below](assets/presentation-themes/editorial-text-plus-image.png) | ![Signal text-plus-image slide with an uppercase heading and neon rule on the left, a dark grid canvas, and a tall angled portrait treatment on the right](assets/presentation-themes/signal-text-plus-image.png) | ![Compact Signal text-plus-image slide with a tightly packed sans-serif bullet list, teal rule, and narrow supportive image panel](assets/presentation-themes/compact-signal-text-plus-image.png) | ![Field Notes text-plus-image slide with a taped portrait print on the left, serif heading and bullets on the right, and a handwritten-style caption beneath the image](assets/presentation-themes/field-notes-text-plus-image.png) |
 
 ### Full-bleed image
 
-#### Editorial
-
-![Editorial full-image slide with a serif title over a full-bleed landscape image and a warm coral overlay](assets/presentation-themes/editorial-full-image.png)
-
-#### Signal
-
-![Signal full-image slide with an uppercase title over a full-bleed landscape image, dark grid, and acid rule](assets/presentation-themes/signal-full-image.png)
-
-#### Compact Signal
-
-![Compact Signal full-image slide with a serif title over a full-bleed landscape image and dark blue overlay](assets/presentation-themes/compact-signal-full-image.png)
-
-#### Field Notes
-
-![Field Notes full-image slide with a serif title over a full-bleed landscape image and natural green overlay](assets/presentation-themes/field-notes-full-image.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial full-image slide with a serif title over a full-bleed landscape image and a warm coral overlay](assets/presentation-themes/editorial-full-image.png) | ![Signal full-image slide with an uppercase title over a full-bleed landscape image, dark grid, and acid rule](assets/presentation-themes/signal-full-image.png) | ![Compact Signal full-image slide with a serif title over a full-bleed landscape image and dark blue overlay](assets/presentation-themes/compact-signal-full-image.png) | ![Field Notes full-image slide with a serif title over a full-bleed landscape image and natural green overlay](assets/presentation-themes/field-notes-full-image.png) |
 
 ### Data
 
-#### Editorial
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial data slide with a large serif heading in a narrow left column and four measured cream metric cells arranged as a red-ruled grid](assets/presentation-themes/editorial-data.png) | ![Signal data slide with a fluorescent yellow canvas, condensed black heading, and four near-black metric cards separated by cyan and pink accents](assets/presentation-themes/signal-data.png) | ![Compact Signal data slide with a dark blue canvas, four compact white metric cards, and blue chart panel](assets/presentation-themes/compact-signal-data.png) | ![Field Notes data slide with a green serif heading, gold underline, italic takeaway, and four softly colored hand-drawn oval metrics](assets/presentation-themes/field-notes-data.png) |
 
-![Editorial data slide with a large serif heading in a narrow left column and four measured cream metric cells arranged as a red-ruled grid](assets/presentation-themes/editorial-data.png)
+### Diagram
 
-#### Signal
-
-![Signal data slide with a fluorescent yellow canvas, condensed black heading, and four near-black metric cards separated by cyan and pink accents](assets/presentation-themes/signal-data.png)
-
-#### Compact Signal
-
-![Compact Signal data slide with a dark blue canvas, four compact white metric cards, and blue chart panel](assets/presentation-themes/compact-signal-data.png)
-
-#### Field Notes
-
-![Field Notes data slide with a green serif heading, gold underline, italic takeaway, and four softly colored hand-drawn oval metrics](assets/presentation-themes/field-notes-data.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial diagram slide with an aubergine serif heading and a protected cream diagram panel holding rounded, colored process boxes](assets/presentation-themes/editorial-diagram.png) | ![Signal diagram slide with a condensed white heading on a dark grid and a cyan-bordered protected diagram panel](assets/presentation-themes/signal-diagram.png) | ![Compact Signal diagram slide with a dark blue serif heading and a blue-bordered protected diagram panel](assets/presentation-themes/compact-signal-diagram.png) | ![Field Notes diagram slide on textured paper with a green serif heading and a drop-shadowed, gently tilted diagram panel](assets/presentation-themes/field-notes-diagram.png) |
 
 ### Quotation
 
-#### Editorial
-
-![Editorial quotation slide with an aubergine canvas, large cream serif quotation, pale vertical rule, small gold label, and restrained attribution](assets/presentation-themes/editorial-quotation.png)
-
-#### Signal
-
-![Signal quotation slide with a dark grid, oversized condensed white quotation, cyan label, pale vertical bar, and a vivid pink attribution strip](assets/presentation-themes/signal-quotation.png)
-
-#### Compact Signal
-
-![Compact Signal quotation slide with a dark blue canvas, compact white serif quotation, blue context label, and red attribution strip](assets/presentation-themes/compact-signal-quotation.png)
-
-#### Field Notes
-
-![Field Notes quotation slide on textured paper with a centered green serif quotation, pale blue rule, gold underline, red handwritten label, and botanical decoration](assets/presentation-themes/field-notes-quotation.png)
+| Editorial | Signal | Compact Signal | Field Notes |
+| --- | --- | --- | --- |
+| ![Editorial quotation slide with an aubergine canvas, large cream serif quotation, pale vertical rule, small gold label, and restrained attribution](assets/presentation-themes/editorial-quotation.png) | ![Signal quotation slide with a dark grid, oversized condensed white quotation, cyan label, pale vertical bar, and a vivid pink attribution strip](assets/presentation-themes/signal-quotation.png) | ![Compact Signal quotation slide with a dark blue canvas, compact white serif quotation, blue context label, and red attribution strip](assets/presentation-themes/compact-signal-quotation.png) | ![Field Notes quotation slide on textured paper with a centered green serif quotation, pale blue rule, gold underline, red handwritten label, and botanical decoration](assets/presentation-themes/field-notes-quotation.png) |
 
 ## Choosing a theme
 

@@ -32,7 +32,10 @@ Store these as `audience.experience_level`, `audience.goal`, `audience.top_conce
 11. **Presentation Theme** — Immediately after Visual preference, present these choices in order using descriptions translated into the presentation language:
    - **Editorial** (`editorial`, recommended) — “Warm, typographic, and composed like a modern magazine.”
    - **Signal** (`signal`) — “Bold, high-contrast, and structured for energy, systems, and data.”
+   - **Compact Signal** (`compact-signal`) — “Compact, clear, and high-contrast for information-dense stories with supportive or full-bleed imagery.”
    - **Field Notes** (`field-notes`) — “Tactile, natural, and shaped like a documented working session.”
+
+Point the user at the side-by-side visual comparison if they want to see the themes before choosing: [Compare the themes](../docs/presentation-themes.md#compare-the-themes).
 
 Theme selection is required for new projects. Do not infer it from topic, audience, or occasion. Do not proactively ask about fonts. If the user explicitly volunteers a particular font family, capture it as an External Font Override with the exact family and an optional source URL that the user approves.
 

@@ -79,11 +79,13 @@ test('gallery approval writes only exact reviewed assets and their provenance ma
     provenance: { provider: 'Gemini', model: 'test-model', approvedAt: '2026-07-17' },
   });
 
-  assert.equal(result.approved, 6);
+  assert.equal(result.approved, 8);
   assert.deepEqual((await readdir(fixture.assetsDirectory)).sort(), [
     'editorial-data.png',
+    'editorial-diagram.png',
     'editorial-full-image.png',
     'editorial-quotation.png',
+    'editorial-section.png',
     'editorial-text-only.png',
     'editorial-text-plus-image.png',
     'editorial-title.png',
