@@ -111,7 +111,13 @@ Record these answers — they decide which template variants and configuration i
   - **Antigravity CLI**: append [templates/post-create-antigravity-block.sh](templates/post-create-antigravity-block.sh)
   - **YOLO Aliases**: 
     - Claude: `alias claude-yolo="claude --dangerously-skip-permissions --worktree --remote-control"`
-    - Codex: `alias codex-yolo="codex --ask-for-approval never --sandbox workspace-write -c sandbox_workspace_write.network_access=true"`
+    - Codex: `alias codex-yolo="codex --dangerously-bypass-approvals-and-sandbox"`
+      > **Why not `--sandbox workspace-write`?** Codex's Linux sandbox uses bubblewrap, which needs
+      > to create unprivileged user namespaces — something Docker's default seccomp/AppArmor
+      > profiles block. Rather than loosening the container's own confinement (`--cap-add=SYS_ADMIN`,
+      > `--security-opt seccomp=unconfined`, etc. for the whole devcontainer) to let bubblewrap work,
+      > `codex-yolo` skips Codex's internal sandbox and relies on the devcontainer itself as the
+      > isolation boundary — consistent with what a "yolo" alias implies anyway.
     - Antigravity: `alias agy-yolo="agy --dangerously-skip-permissions --sandbox"`
     - Copilot: `alias copilot-yolo="echo 'Copilot CLI requires manual sandboxing. Run the regular \`copilot\` command and then type \`/sandbox enable\` in the session.'"`
     Append the requested aliases to `~/.bashrc`.
