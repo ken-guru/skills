@@ -6,11 +6,15 @@ description: Set up a Claude Code devcontainer (Ubuntu base image, Node, GitHub 
 # Setup Devcontainer
 
 Generates `.devcontainer/` from the templates in [templates/](templates/): a baseline Claude
-Code devcontainer setup with repo-specific values replaced by placeholders. Two layers:
+Code devcontainer setup with repo-specific values replaced by placeholders. One always-written
+baseline, plus two independent opt-ins:
 
 - **baseline** — Claude Code + `gh` CLI + persistent auth + skill sync. Always written.
 - **SSH layer** — deploy-key/signing-key automation for agent-driven `git push` and signed
   commits. Optional, and addable after the fact without touching the baseline files.
+- **YOLO alias** — a `claude-yolo` shell alias (`claude --dangerously-skip-permissions --worktree
+  --remote-control`) for fast, unattended iteration. Optional — some developers don't want a
+  no-holds-barred agent available inside the container at all.
 
 ## 1. Detect the target repo
 
@@ -55,16 +59,23 @@ remove it without asking — it may hold state the user still wants. Skip this c
 `docker` isn't installed or isn't running; note that it couldn't be checked rather than failing the
 rest of the skill over it.
 
-## 3. Ask about the SSH layer
+## 3. Ask about the optional layers
 
-Ask the user directly: does this repo need agent-driven `git push` and signed commits, or is
-Claude Code alone (with manual git from outside the container, or HTTPS token auth) enough?
+Ask the user directly, as two independent questions:
 
-Skip this question only if the user's original request already answered it (e.g. "set up the
-devcontainer with SSH key automation").
+- Does this repo need agent-driven `git push` and signed commits, or is Claude Code alone (with
+  manual git from outside the container, or HTTPS token auth) enough? This is the SSH layer.
+- Do they want the `claude-yolo` alias available in the container — `claude
+  --dangerously-skip-permissions --worktree --remote-control`, for fast unattended iteration — or
+  would they rather the container not offer a no-permission-prompts option at all?
 
-Record the answer — it decides which template variants steps 4–6 use. Either way, the SSH layer
-can be added later (see below) without redoing this setup.
+Skip a question only if the user's original request already answered it (e.g. "set up the
+devcontainer with SSH key automation" answers the first; "no YOLO alias" or "skip permission
+prompts is fine" answers the second).
+
+Record both answers — they decide which template variants steps 4–6 use. The SSH layer can be
+added later (see below) without redoing this setup; the YOLO alias, being a single alias line, is
+simple enough to add by hand afterward if the developer changes their mind.
 
 ## 4. Resolve placeholders
 
@@ -92,9 +103,10 @@ can be added later (see below) without redoing this setup.
   if accepted. Substitute `{{REPO_NAME}}` either way — it now names the per-repo Claude config
   volume, not just the SSH-layer volume.
 - `.devcontainer/post-create.sh` ← [templates/post-create-baseline.sh](templates/post-create-baseline.sh),
-  substituted. If the SSH layer was accepted, append
-  [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted) to the
-  end of the same file.
+  substituted. If the YOLO alias was accepted, append
+  [templates/post-create-yolo-block.sh](templates/post-create-yolo-block.sh) next. If the SSH
+  layer was accepted, append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh)
+  (substituted) last. Either, both, or neither block may be appended, in that order.
 - `.devcontainer/post-start.sh` ← [templates/post-start.sh](templates/post-start.sh), substituted.
   Always written — skill sync is part of the baseline here.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted.

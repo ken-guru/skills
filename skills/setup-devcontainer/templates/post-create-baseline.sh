@@ -1,12 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# Add YOLO alias for fast development — skips permission prompts, runs in an
-# isolated worktree, and enables remote control.
-cat >> ~/.bashrc << 'EOF'
-alias claude-yolo="claude --dangerously-skip-permissions --worktree --remote-control"
-EOF
-
 # Fix ownership on mounted volumes.
 # The claude-code devcontainer feature installs as root into the nvm tree;
 # hand it back to vscode so the manifest-managed startup update works without
