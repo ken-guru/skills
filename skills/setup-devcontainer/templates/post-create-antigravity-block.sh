@@ -1,3 +1,7 @@
+# Fix ownership on the .gemini config volume mount (Docker creates it
+# root-owned on first mount, since nothing in the base image pre-creates it).
+sudo chown -R vscode:vscode "$HOME/.gemini"
+
 # Install Antigravity CLI
 if ! command -v agy >/dev/null 2>&1; then
   architecture=$(uname -m)
