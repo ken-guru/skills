@@ -104,6 +104,21 @@ so `initializeCommand` copies `.env.example` to `.env` on the host before the
 build starts if `.env` doesn't exist yet — the container will build with
 `gh` unauthenticated rather than failing outright.
 
+## Troubleshooting
+
+**`unable to find user vscode: no matching entries in passwd file` (or any other "no matching
+entries in passwd file" error) on reopen.** Docker reused a container left over from an unrelated
+prior devcontainer setup for this workspace folder instead of building fresh. The Dev Containers
+CLI labels containers by `devcontainer.local_folder=<workspace path>`, independent of what the
+current `devcontainer.json` says, so a stale container survives even after its old config was
+deleted or never committed — and the leftover container has no `vscode` user because it wasn't
+built from this baseline. Find and remove it, then reopen:
+
+```bash
+docker ps -a --filter "label=devcontainer.local_folder=$(pwd)"
+docker rm -f <container id>
+```
+
 ## SSH deploy key and signing key automation
 
 Not set up here. Agent-driven `git push` and signed commits need it — see the

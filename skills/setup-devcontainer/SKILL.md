@@ -27,7 +27,7 @@ instead of guessing.
 
 Done when you have both `{{REPO_SLUG}}` and `{{REPO_NAME}}`.
 
-## 2. Check for an existing baseline
+## 2. Check for an existing baseline and a lingering container
 
 ```bash
 test -f .devcontainer/devcontainer.json && echo exists
@@ -36,6 +36,24 @@ test -f .devcontainer/devcontainer.json && echo exists
 - **Exists already**: this is the "add SSH layer" case — skip to [Adding the SSH layer
   later](#adding-the-ssh-layer-later) instead of regenerating the baseline.
 - **Doesn't exist**: continue to step 3.
+
+Either way, also check for a container left over from an unrelated prior devcontainer setup for
+this same workspace folder. The Dev Containers CLI labels containers by
+`devcontainer.local_folder=<absolute workspace path>`, independent of what `devcontainer.json`
+currently says — so a stale container survives even after its old config was deleted or never
+committed, and reopening will silently reuse it instead of building fresh:
+
+```bash
+docker ps -a --filter "label=devcontainer.local_folder=$(pwd)" --format '{{.ID}} {{.Image}}'
+```
+
+If this returns anything, warn the user before they reopen: a container built from a different
+setup won't have the `vscode` user this baseline expects, and reopening fails with a cryptic
+`unable to find user vscode: no matching entries in passwd file` that gives no hint the real cause
+is the leftover container, not the new config. Offer to remove it (`docker rm -f <id>`), but don't
+remove it without asking — it may hold state the user still wants. Skip this check entirely if
+`docker` isn't installed or isn't running; note that it couldn't be checked rather than failing the
+rest of the skill over it.
 
 ## 3. Ask about the SSH layer
 
