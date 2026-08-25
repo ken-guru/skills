@@ -1,0 +1,44 @@
+
+## SSH deploy key and signing key
+
+- Git push/pull and commit signing use two separate SSH keys, persisted
+  across rebuilds in a named volume (`{{REPO_NAME}}-ssh-config`) mounted at
+  `~/.ssh`.
+
+Two separate ED25519 keys exist because GitHub rejects a public key as a
+signing key once that same key is already registered as a deploy key.
+`post-create.sh` generates `~/.ssh/id_ed25519` as the deploy key (git
+transport: push/pull this repo, registered automatically against
+`repos/{{REPO_SLUG}}/keys` via the `gh` API) and `~/.ssh/id_ed25519_signing`
+as the signing key (commit verification, registered manually once per machine
+via the GitHub UI — there's no API-driven way to do this without granting the
+token account-level `write:ssh_signing_key`, which would let it manage every
+signing key on the account, not just this project's).
+
+Both keys live in the `{{REPO_NAME}}-ssh-config` volume, so they and the
+`~/.ssh/.signing-key-registered` marker survive container rebuilds. Only
+wiping that volume regenerates the keys and resets the marker.
+
+Deploy-key registration is checked by key **content**, not title — if the
+volume is wiped and a new key is generated, the stale GitHub entry (same
+title, old content) is deleted and replaced. `postAttachCommand` re-verifies
+the deploy key on every attach so an accidental deletion on GitHub is caught
+immediately instead of failing silently on the next `git push`.
+
+`GH_TOKEN` needs the repo's **Administration (read/write)** permission to
+list, register, and delete deploy keys via `gh api repos/.../keys` — this is
+in addition to whatever else you use `gh` for (Issues, Pull requests,
+Metadata). No account-level token permissions are needed for any of this.
+
+Register the signing key: `postAttachCommand` prints a one-time prompt with a
+public key to paste into <https://github.com/settings/ssh> as a **Signing
+Key**. Do that, then dismiss the prompt with
+`touch ~/.ssh/.signing-key-registered`.
+
+**`GH_TOKEN` alone doesn't authenticate git push/pull, only the `gh` API.**
+The `gh` CLI reads `GH_TOKEN` automatically for API calls, but `git` itself
+has no idea it exists. If this repo's remote is an SSH URL (`git@github.com:...`),
+the SSH deploy key set up in `post-create.sh` is what makes `git push`/`git
+pull` work against `origin` — `git config --global credential.helper
+'!gh auth setup-git'` (set in the baseline) only covers an HTTPS remote, and
+does nothing for SSH transport.
