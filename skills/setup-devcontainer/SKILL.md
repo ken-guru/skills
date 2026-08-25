@@ -1,0 +1,136 @@
+---
+name: setup-devcontainer
+description: Set up a Claude Code devcontainer (Ubuntu base image, Node, GitHub CLI, persistent auth, automatic skill sync) in the current repo, optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits. Use when the user wants to add a devcontainer for Claude Code, or add SSH key automation to a devcontainer that already has the baseline.
+---
+
+# Setup Devcontainer
+
+Generates `.devcontainer/` from the templates in [templates/](templates/): a baseline Claude
+Code devcontainer setup with repo-specific values replaced by placeholders. Two layers:
+
+- **baseline** — Claude Code + `gh` CLI + persistent auth + skill sync. Always written.
+- **SSH layer** — deploy-key/signing-key automation for agent-driven `git push` and signed
+  commits. Optional, and addable after the fact without touching the baseline files.
+
+## 1. Detect the target repo
+
+```bash
+git remote get-url origin
+```
+
+Parse `owner/repo` from it (works for both `git@github.com:owner/repo.git` and
+`https://github.com/owner/repo` forms) — this is `{{REPO_SLUG}}`. `{{REPO_NAME}}` is the `repo`
+part alone, used in volume names and SSH key titles.
+
+If there's no `origin` remote yet (brand-new repo), ask the user for the intended `owner/repo`
+instead of guessing.
+
+Done when you have both `{{REPO_SLUG}}` and `{{REPO_NAME}}`.
+
+## 2. Check for an existing baseline
+
+```bash
+test -f .devcontainer/devcontainer.json && echo exists
+```
+
+- **Exists already**: this is the "add SSH layer" case — skip to [Adding the SSH layer
+  later](#adding-the-ssh-layer-later) instead of regenerating the baseline.
+- **Doesn't exist**: continue to step 3.
+
+## 3. Ask about the SSH layer
+
+Ask the user directly: does this repo need agent-driven `git push` and signed commits, or is
+Claude Code alone (with manual git from outside the container, or HTTPS token auth) enough?
+
+Skip this question only if the user's original request already answered it (e.g. "set up the
+devcontainer with SSH key automation").
+
+Record the answer — it decides which template variants steps 4–6 use. Either way, the SSH layer
+can be added later (see below) without redoing this setup.
+
+## 4. Resolve placeholders
+
+- `{{REPO_SLUG}}`, `{{REPO_NAME}}` — from step 1.
+- `{{GIT_EMAIL_DEFAULT}}`, `{{GIT_NAME_DEFAULT}}` — run `git config --global user.email` and
+  `git config --global user.name` on the host. If either is unset, don't invent a default: use
+  `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
+  `post-create.sh` instead of the `:-` form, and drop the parenthetical in `.env.example`'s
+  comment.
+- `{{SKILLS_SOURCES_COMMANDS}}` — ask the user which skill sources to sync into
+  `~/.claude/skills` on every container start. Offer two opt-in defaults, neither required:
+  `mattpocock/skills` (a broad general-purpose skill baseline) and `ken-guru/skills` (this
+  collection — includes this very Skill, useful if the SSH layer needs adding later from inside
+  the container). Accept any other source the user names, in `owner/repo` form. If the user has
+  no preference, include both defaults. Render one line per chosen source, in the order given:
+  `npx -y skills add <source> --skill '*' -a claude-code -y --copy -g`. Use the resulting
+  multi-line block everywhere this placeholder appears.
+- `{{SKILLS_SOURCES_SUMMARY}}` — the same sources as a short human-readable list (e.g.
+  `` `mattpocock/skills`, `ken-guru/skills` ``), for the README's prose.
+
+## 5. Write the baseline
+
+- `.devcontainer/devcontainer.json` ← [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json)
+  if the SSH layer was declined, or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json)
+  if accepted (substitute `{{REPO_NAME}}`).
+- `.devcontainer/post-create.sh` ← [templates/post-create-baseline.sh](templates/post-create-baseline.sh),
+  substituted. If the SSH layer was accepted, append
+  [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted) to the
+  end of the same file.
+- `.devcontainer/post-start.sh` ← [templates/post-start.sh](templates/post-start.sh), substituted.
+  Always written — skill sync is part of the baseline here.
+- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted.
+  Only if the SSH layer was accepted; omit entirely otherwise.
+- `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example),
+  substituted. If the SSH layer was accepted, append
+  [templates/env.ssh-block.example](templates/env.ssh-block.example) and update the `GH_TOKEN`
+  comment to add: `Required permissions: Administration (read/write) — needed to manage deploy
+  keys — plus whatever else you use gh for.`
+- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md),
+  substituted. If the SSH layer was accepted, append
+  [templates/README.ssh-block.md](templates/README.ssh-block.md) and delete the baseline
+  template's closing "SSH deploy key and signing key automation — Not set up here" section
+  (superseded by the real section being appended).
+- Make `.devcontainer/*.sh` executable: `chmod +x .devcontainer/*.sh`.
+- Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
+
+Done when every file above exists, `.devcontainer/devcontainer.json` parses as valid JSON
+(`jq empty .devcontainer/devcontainer.json`), and no `{{...}}` placeholder remains in any written
+file (`grep -rn '{{' .devcontainer/`).
+
+## 6. Report next steps
+
+Tell the user, adapted to whether the SSH layer is present:
+
+1. Install Docker Desktop and the **Dev Containers** VS Code extension.
+2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
+   `DEVCONTAINER_HOST` (run `hostname`) if the SSH layer is present}}.
+3. Reopen the repo in the container (**Dev Containers: Reopen in Container**).
+4. Run `claude` and log in.
+5. {{If the SSH layer is present: on attach, `post-attach.sh` prints a public key — paste it into
+   github.com/settings/ssh as a Signing Key, then `touch ~/.ssh/.signing-key-registered`.}}
+
+## Adding the SSH layer later
+
+For a repo that already has the baseline from this skill (`.devcontainer/devcontainer.json`
+exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
+
+1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in step 1 above.
+2. Edit `.devcontainer/devcontainer.json`: add
+   `"source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"` to the `mounts` array,
+   and add `"postAttachCommand": "bash .devcontainer/post-attach.sh"` as the last key — don't
+   overwrite the whole file, this repo's `devcontainer.json` may already carry other
+   customizations.
+3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted)
+   to the end of the existing `.devcontainer/post-create.sh`.
+4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
+   substituted, and `chmod +x` it.
+5. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
+   `.devcontainer/.env.example`, and update its `GH_TOKEN` comment as in step 5 above.
+6. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
+   `.devcontainer/README.md`, and delete that file's "SSH deploy key and signing key automation —
+   Not set up here" closing section.
+7. Tell the user to rebuild the container (**Dev Containers: Rebuild Container**) and, once
+   attached, follow the signing-key prompt from `post-attach.sh`.
+
+Done when `.devcontainer/devcontainer.json` still parses as valid JSON, has both the new mount and
+`postAttachCommand`, and no `{{...}}` placeholder remains in any touched file.

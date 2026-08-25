@@ -15,11 +15,13 @@ A Collection of agent Skills and cohesive Skill Suites.
 | Skill | Description |
 |---|---|
 | [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, structured output, and explicit user style preferences |
+| [setup-devcontainer](skills/setup-devcontainer/SKILL.md) | Generate a Claude Code devcontainer baseline, optionally with SSH deploy-key/signing-key automation |
 
-Install the standalone Skill directly:
+Install a standalone Skill directly:
 
 ```bash
 npx skills@latest add ken-guru/skills --skill unslop
+npx skills@latest add ken-guru/skills --skill setup-devcontainer
 ```
 
 ## Repository structure
