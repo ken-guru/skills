@@ -11,7 +11,7 @@ if (!filePath || !keyPath || !valueStr) {
 
 // Simple comment stripper for JSONC
 function stripJsonComments(data) {
-  return data.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
+  return data.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (match, group) => group ? "" : match);
 }
 
 let content = fs.readFileSync(filePath, 'utf8');
@@ -24,7 +24,7 @@ try {
 }
 
 const value = JSON.parse(valueStr);
-const keys = keyPath.split('.');
+const keys = [keyPath];
 let current = obj;
 
 for (let i = 0; i < keys.length - 1; i++) {
@@ -36,21 +36,23 @@ for (let i = 0; i < keys.length - 1; i++) {
 
 const lastKey = keys[keys.length - 1];
 
+function pushIfNotExists(arr, item) {
+  if (!arr.includes(item)) {
+    arr.push(item);
+  }
+}
+
 // If it's an array, append if not exists
 if (Array.isArray(current[lastKey]) && Array.isArray(value)) {
   for (const item of value) {
-    if (!current[lastKey].includes(item)) {
-      current[lastKey].push(item);
-    }
+    pushIfNotExists(current[lastKey], item);
   }
 } else if (typeof current[lastKey] === 'object' && current[lastKey] !== null && typeof value === 'object' && !Array.isArray(value)) {
   current[lastKey] = { ...current[lastKey], ...value };
 } else {
   // Otherwise overwrite or set
   if (Array.isArray(current[lastKey]) && !Array.isArray(value)) {
-    if (!current[lastKey].includes(value)) {
-      current[lastKey].push(value);
-    }
+    pushIfNotExists(current[lastKey], value);
   } else {
     current[lastKey] = value;
   }
