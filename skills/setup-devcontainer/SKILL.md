@@ -96,12 +96,11 @@ Record these answers — they decide which template variants and configuration i
 
 ## 5. Write or Update the Devcontainer Files
 
-- **`scripts/inject-json.mjs`**: Make sure the script bundled with this skill is used for modifying JSON safely.
 - `.devcontainer/devcontainer.json`:
   If the file doesn't exist, use [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json) (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if SSH layer accepted), substitute `{{REPO_NAME}}`, and write it.
-  **Then (in all cases)**, use `node scripts/inject-json.mjs .devcontainer/devcontainer.json <keypath> <json_value>` (where `<json_value>` is valid JSON) to safely inject:
-  - If Codex was accepted: add `.codex` mount (`'["source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"]'`) to `mounts`, and add `CODEX_HOME` (`'{"CODEX_HOME": "/home/vscode/.codex"}'`) to `containerEnv`.
-  - If Antigravity was accepted: add `.gemini` mount (`'["source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"]'`) to `mounts`.
+  **Then (in all cases)**, carefully update the `.devcontainer/devcontainer.json` file to safely merge the following properties. Do not overwrite or remove any existing user customizations:
+  - If Codex was accepted: add `.codex` mount (`"source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"`) to the `mounts` array, and add `"CODEX_HOME": "/home/vscode/.codex"` to the `containerEnv` object.
+  - If Antigravity was accepted: add `.gemini` mount (`"source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"`) to the `mounts` array.
 - `.devcontainer/post-create.sh`: 
   If it doesn't exist, use [templates/post-create-baseline.sh](templates/post-create-baseline.sh) and substitute. 
   If it exists, intelligently append the following blocks ONLY if they don't already exist:
@@ -157,9 +156,9 @@ For a repo that already has the baseline from this skill (`.devcontainer/devcont
 exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
 
 1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1 above.
-2. Edit `.devcontainer/devcontainer.json` safely using `node scripts/inject-json.mjs`:
-   - Inject the mount: `node scripts/inject-json.mjs .devcontainer/devcontainer.json mounts '["source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"]'`
-   - Inject the command: `node scripts/inject-json.mjs .devcontainer/devcontainer.json postAttachCommand '"bash .devcontainer/post-attach.sh"'`
+2. Safely merge the following properties into `.devcontainer/devcontainer.json` without overwriting existing user customizations:
+   - Add the SSH mount to the `mounts` array: `"source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"`
+   - Add `"postAttachCommand": "bash .devcontainer/post-attach.sh"` as a top-level key.
 3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted)
    to the end of the existing `.devcontainer/post-create.sh`.
 4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
