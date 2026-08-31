@@ -29,7 +29,7 @@ Before proceeding:
 2. Check `IMAGE_SPEC.md` exists. If not:
    > ❌ `IMAGE_SPEC.md` not found. Create and approve an image specification before rendering images.
    Abort.
-3. Check `GEMINI_API_KEY` is set: `echo "$GEMINI_API_KEY"`. If empty, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
+3. Resolve the provider (`gemini` by default, or `atlas` when the user explicitly selects it) and check its key without printing the value: `test -n "$GEMINI_API_KEY"` or `test -n "$ATLASCLOUD_API_KEY"`. If missing, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
 4. Check `node` is available: `which node`. If not found, abort: ❌ `node` not installed.
 5. Resolve the absolute directory containing this invoked `SKILL.md`. Set the runtime
    bundle path to `<skill-directory>/scripts/generate-images.js` and require that
@@ -64,8 +64,8 @@ Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 
 ```
 💡 N image(s) will be generated
-   Gemini charges per image, not per token.
-   Pricing: https://ai.google.dev/gemini-api/docs/pricing
+   The selected provider charges per generated image.
+   Confirm current pricing in the provider documentation before continuing.
 
   1  All at once   — generate selected images in sequence
   2  One at a time — pause after each image for your review
@@ -77,7 +77,7 @@ Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
-  "<IMAGE_SPEC.md path>" [--force] [--slides=N,M,...] [--model=<id>] [--delay=<seconds>]
+  "<IMAGE_SPEC.md path>" [--force] [--slides=N,M,...] [--provider=<id>] [--model=<id>] [--delay=<seconds>]
 ```
 
 - Scope A → no extra flags (script skips existing files by default)
@@ -90,7 +90,7 @@ For each image in scope, run:
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
-  "<IMAGE_SPEC.md path>" --slide=N --force [--model=<id>]
+  "<IMAGE_SPEC.md path>" --slide=N --force [--provider=<id>] [--model=<id>]
 ```
 
 After each, present:
@@ -121,12 +121,13 @@ These flags bypass the interactive prompts — useful for scripting or repeat ru
 | `--force` | Skip scope prompt — regenerate all images in batch |
 | `--slide=N` | Skip all prompts — generate only slide N |
 | `--slides=N,M,...` | Skip scope prompt — generate specific slides in batch |
+| `--provider=<id>` | Select `gemini` (default) or `atlas` |
 | `--model=<id>` | Override the default model (see [PROVIDERS.md](PROVIDERS.md#models)) |
 | `--delay=<seconds>` | Pause between requests (default: 1s; increase on free-tier rate limits) |
 
 ## Providers
 
-Default: **Gemini** (`gemini-3.1-flash-image`). For setup, other providers, and security guidance, see [PROVIDERS.md](PROVIDERS.md).
+Default: **Gemini** (`gemini-3.1-flash-image`). Atlas Cloud is an explicit opt-in provider with its own credential and model default. For setup, models, and security guidance, see [PROVIDERS.md](PROVIDERS.md).
 
 ## Project state
 

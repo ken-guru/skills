@@ -63,6 +63,44 @@ Free tier allows roughly 15 requests per minute. The script inserts a 1-second p
 
 ---
 
+## Atlas Cloud (Opt-in)
+
+Atlas Cloud is available only when selected with `--provider=atlas`. Gemini remains
+the default and existing commands continue to use `GEMINI_API_KEY`.
+
+### 1. Get and store an API key
+
+Create a key in the [Atlas Cloud console](https://www.atlascloud.ai/console/api-key),
+then add it to the project-local `.envrc` described above:
+
+```bash
+export ATLASCLOUD_API_KEY=your-key-here
+```
+
+Never pass the key as a command-line argument or commit `.envrc`.
+
+### 2. Generate with Atlas Cloud
+
+```bash
+node "<absolute skill directory>/scripts/generate-images.js" \
+  "<IMAGE_SPEC.md path>" --provider=atlas
+```
+
+The default Atlas model is `openai/gpt-image-1-mini/text-to-image`, requested with
+PNG output so the Media Renderer's file contract remains unchanged. Override it
+with `--model=<id>` only when the selected Atlas text-to-image model supports the
+`output_format=png` input.
+
+Atlas submission requests are sent once and are not automatically retried. The
+renderer polls the read-only result endpoint with a fixed bound, then downloads
+and validates the first PNG output. A failed submission or non-PNG output leaves
+the Images phase pending.
+
+Model availability and schemas change. Confirm the current model in the
+[Atlas Cloud model catalog](https://www.atlascloud.ai/models) before a paid run.
+
+---
+
 ## Adding another provider
 
 Edit the authored source at `scripts/src/generate-images.js`; do not edit the
@@ -81,7 +119,7 @@ To add a provider:
      return Buffer.from(base64ImageData, 'base64');
    }
    ```
-2. Replace or dispatch around the Gemini `ai.models.generateContent(...)` call in
+2. Dispatch alongside the existing Gemini and Atlas provider functions in
    `generateOne(...)`.
 3. Read your provider's API key from a dedicated environment variable (e.g. `MY_PROVIDER_API_KEY`).
 4. From `scripts/`, run `npm run build && npm run check:bundle`, then commit both the
@@ -95,5 +133,5 @@ Any API that accepts a text prompt and returns image data (base64, binary, or a 
 
 - [ ] `.envrc` is in `.gitignore`
 - [ ] API key set only as an environment variable — never in source files or config
-- [ ] Key is not logged: do not add `console.log(process.env.GEMINI_API_KEY)` for debugging
+- [ ] Keys are not logged: do not print `GEMINI_API_KEY`, `ATLASCLOUD_API_KEY`, or other provider secrets
 - [ ] Rotate the key immediately if accidentally exposed (committed, logged, shared in chat)

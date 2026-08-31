@@ -18,7 +18,7 @@ installed Skills remain operationally self-contained.
 
 ## Provider adapters
 
-The Image Media Renderer owns Gemini credential, model, bundle, and API behavior.
+The Image Media Renderer owns its selected provider credential, model, bundle, and API behavior.
 The Diagram Media Renderer owns D2 availability, installation choice, layout,
 theme, and syntax behavior. Provider-specific setup, retries, security guidance,
 and failure handling stay with the owning renderer.

@@ -3,14 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) {
-  console.error('❌ GEMINI_API_KEY is not set in the environment');
-  console.error('   Use direnv: add `export GEMINI_API_KEY=your-key` to .envrc in your project folder');
-  console.error('   See PROVIDERS.md for full setup instructions');
-  process.exit(1);
-}
-
 const args = process.argv.slice(2);
 const specPath = path.resolve(args.find(a => !a.startsWith('--')) || 'IMAGE_SPEC.md');
 const force = args.includes('--force');
@@ -20,12 +12,40 @@ const slidesArg = args.find(a => a.startsWith('--slides='));
 const slidesFilter = slidesArg ? slidesArg.split('=')[1].split(',').map(n => parseInt(n.trim(), 10)) : null;
 const delayArg = args.find(a => a.startsWith('--delay='));
 const delayMs = delayArg ? parseFloat(delayArg.split('=')[1]) * 1000 : 1000;
-const model = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? 'gemini-3.1-flash-image';
+const provider = args.find(a => a.startsWith('--provider='))?.split('=')[1] ?? 'gemini';
+const defaultModels = {
+  gemini: 'gemini-3.1-flash-image',
+  atlas: 'openai/gpt-image-1-mini/text-to-image',
+};
+
+if (!Object.hasOwn(defaultModels, provider)) {
+  console.error(`❌ Unknown provider: ${provider}`);
+  console.error('   Supported providers: gemini, atlas');
+  process.exit(1);
+}
+
+const apiKeyName = provider === 'atlas' ? 'ATLASCLOUD_API_KEY' : 'GEMINI_API_KEY';
+const apiKey = process.env[apiKeyName];
+if (!apiKey) {
+  console.error(`❌ ${apiKeyName} is not set in the environment`);
+  console.error(`   Use direnv: add \`export ${apiKeyName}=your-key\` to .envrc in your project folder`);
+  console.error('   See PROVIDERS.md for full setup instructions');
+  process.exit(1);
+}
+
+const model = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? defaultModels[provider];
 
 const projectDir = path.dirname(specPath);
 
-const { GoogleGenAI } = require('@google/genai');
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+let ai;
+if (provider === 'gemini') {
+  const { GoogleGenAI } = require('@google/genai');
+  ai = new GoogleGenAI({ apiKey });
+}
+
+const ATLAS_API_BASE = 'https://api.atlascloud.ai';
+const ATLAS_MAX_POLLS = 60;
+const ATLAS_POLL_INTERVAL_MS = 3000;
 
 function parseImageSpec(content) {
   const entries = [];
@@ -55,6 +75,110 @@ function safeOutPath(filename) {
   return resolved;
 }
 
+function isPng(buffer) {
+  return buffer.length >= 8
+    && buffer[0] === 0x89
+    && buffer.subarray(1, 4).toString('ascii') === 'PNG'
+    && buffer[4] === 0x0d
+    && buffer[5] === 0x0a
+    && buffer[6] === 0x1a
+    && buffer[7] === 0x0a;
+}
+
+async function atlasJson(response, action) {
+  if (!response.ok) {
+    throw new Error(`Atlas ${action} failed with HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (Number(payload.code) !== 200 || !payload.data) {
+    throw new Error(`Atlas ${action} failed: ${payload.message || `code ${payload.code}`}`);
+  }
+  return payload.data;
+}
+
+async function downloadAtlasImage(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Atlas image download failed with HTTP ${response.status}`);
+  }
+
+  const image = Buffer.from(await response.arrayBuffer());
+  if (!isPng(image)) {
+    throw new Error('Atlas output was not PNG; use an Atlas text-to-image model that supports output_format=png');
+  }
+  return image;
+}
+
+async function generateWithAtlas(prompt) {
+  let submitResponse;
+  try {
+    submitResponse = await fetch(`${ATLAS_API_BASE}/api/v1/model/generateImage`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        output_format: 'png',
+      }),
+    });
+  } catch (err) {
+    throw new Error(`Atlas submission failed without retry: ${err.message}`);
+  }
+
+  let prediction = await atlasJson(submitResponse, 'submission');
+  if (!prediction.id) {
+    throw new Error('Atlas submission returned no prediction id');
+  }
+
+  for (let attempt = 1; attempt <= ATLAS_MAX_POLLS; attempt++) {
+    if (prediction.status === 'completed') {
+      const outputUrl = prediction.outputs?.[0];
+      if (!outputUrl) throw new Error('Atlas completed without an output URL');
+      return downloadAtlasImage(outputUrl);
+    }
+    if (['failed', 'timeout'].includes(prediction.status)) {
+      throw new Error(`Atlas generation ${prediction.status}: ${prediction.error || 'no details provided'}`);
+    }
+
+    try {
+      const pollResponse = await fetch(
+        `${ATLAS_API_BASE}/api/v1/model/result/${encodeURIComponent(prediction.id)}`,
+        { headers: { Authorization: `Bearer ${apiKey}` } },
+      );
+      prediction = await atlasJson(pollResponse, 'result polling');
+    } catch (err) {
+      if (attempt === ATLAS_MAX_POLLS) throw err;
+    }
+
+    if (prediction.status !== 'completed' && attempt < ATLAS_MAX_POLLS) {
+      await new Promise(resolve => setTimeout(resolve, ATLAS_POLL_INTERVAL_MS));
+    }
+  }
+
+  throw new Error(`Atlas generation did not complete after ${ATLAS_MAX_POLLS} polls`);
+}
+
+async function generateWithGemini(prompt) {
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+    config: { responseModalities: ['TEXT', 'IMAGE'] },
+  });
+
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  for (const part of parts) {
+    if (part.inlineData?.data) {
+      return Buffer.from(part.inlineData.data, 'base64');
+    }
+  }
+
+  throw new Error('Response contained no image data');
+}
+
 async function generateOne(entry) {
   const outPath = safeOutPath(entry.filename);
 
@@ -66,23 +190,14 @@ async function generateOne(entry) {
   console.log(`🎨 Slide ${entry.slideNumber} — ${entry.slideTitle}`);
   console.log(`   Prompt: ${entry.prompt.substring(0, 90)}${entry.prompt.length > 90 ? '…' : ''}`);
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: entry.prompt,
-    config: { responseModalities: ['TEXT', 'IMAGE'] },
-  });
+  const image = provider === 'atlas'
+    ? await generateWithAtlas(entry.prompt)
+    : await generateWithGemini(entry.prompt);
 
-  const parts = response.candidates?.[0]?.content?.parts ?? [];
-  for (const part of parts) {
-    if (part.inlineData?.data) {
-      fs.mkdirSync(path.dirname(outPath), { recursive: true });
-      fs.writeFileSync(outPath, Buffer.from(part.inlineData.data, 'base64'));
-      console.log(`   ✅ Saved: ${path.relative(process.cwd(), outPath)}`);
-      return 'generated';
-    }
-  }
-
-  throw new Error('Response contained no image data');
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, image);
+  console.log(`   ✅ Saved: ${path.relative(process.cwd(), outPath)}`);
+  return 'generated';
 }
 
 async function main() {
@@ -109,6 +224,7 @@ async function main() {
   }
 
   console.log(`📋 ${entries.length} image specification(s) in ${path.basename(specPath)}`);
+  console.log(`   Provider: ${provider}`);
   console.log(`   Model: ${model}`);
   console.log();
 
