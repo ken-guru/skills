@@ -6,10 +6,13 @@ sudo chown -R vscode:vscode "$HOME/.codex"
 # non-login script's PATH doesn't include ~/.local/bin (the installer only
 # adds that to .bashrc, which applies to interactive shells only), so a
 # PATH-based check would miss an already-installed binary and re-run the
-# network installer on every rebuild. The upstream installer can also prompt
-# interactively and hit a flaky self-check network call, so stdin is closed
-# and a failure here is a warning, not a postCreateCommand-aborting error —
-# Codex is optional tooling and shouldn't block the rest of setup.
+# network installer on every rebuild. CODEX_NON_INTERACTIVE=1 is the
+# installer's documented switch for skipping its prompts — do not swap this
+# for `sh </dev/null` on the pipeline: closing the sh process's own stdin
+# breaks the curl|sh pipe itself (curl gets EPIPE and the install silently
+# no-ops), it doesn't just suppress the prompt. A failure here is a warning,
+# not a postCreateCommand-aborting error — Codex is optional tooling and
+# shouldn't block the rest of setup.
 if [ ! -x "$HOME/.local/bin/codex" ]; then
-  curl -fsSL https://chatgpt.com/codex/install.sh | sh </dev/null || echo "Warning: Codex CLI install failed, continuing without it" >&2
+  curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh || echo "Warning: Codex CLI install failed, continuing without it" >&2
 fi
