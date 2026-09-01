@@ -9,8 +9,10 @@
 # built Tool Container.
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
-# Node.js — required by the Claude Code CLI and available to any tool that
-# wants it, installed once here instead of once per Tool Container.
+# Node.js — none of the four AI CLIs need this themselves (all install as
+# native binaries), but it's kept as a general-purpose amenity for repos
+# whose own project code is JS/TS, installed once here instead of once per
+# Tool Container.
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -38,14 +40,5 @@ RUN if ! id vscode >/dev/null 2>&1; then \
       groupadd --gid 1000 vscode && \
       useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode; \
     fi
-
-# The NodeSource apt package's npm ships with a root-owned global prefix
-# (/usr/lib/node_modules), so `npm install -g` as `vscode` fails with EACCES
-# without this. Giving `vscode` its own writable global prefix means any
-# Tool Container's post-create script (e.g. Claude Code's `npm install -g
-# @anthropic-ai/claude-code`) can install global packages without sudo.
-ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
-ENV PATH="${NPM_CONFIG_PREFIX}/bin:${PATH}"
-RUN mkdir -p "${NPM_CONFIG_PREFIX}" && chown -R vscode:vscode "${NPM_CONFIG_PREFIX}"
 
 USER vscode

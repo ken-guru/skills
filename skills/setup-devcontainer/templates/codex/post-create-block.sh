@@ -7,10 +7,16 @@ sudo chown -R vscode:vscode "$HOME/.codex"
 # non-login script's PATH doesn't include ~/.local/bin (the installer only
 # adds that to .bashrc, which applies to interactive shells only), so a
 # PATH-based check would miss an already-installed binary and re-run the
-# network installer on every rebuild. The upstream installer can also prompt
-# interactively and hit a flaky self-check network call, so stdin is closed
-# and a failure here is a warning, not a postCreateCommand-aborting error —
-# Codex is optional tooling and shouldn't block the rest of setup.
+# network installer on every rebuild. A failure here is a warning, not a
+# postCreateCommand-aborting error — Codex is optional tooling and shouldn't
+# block the rest of setup.
+#
+# CODEX_NON_INTERACTIVE=1 is OpenAI's own documented flag for suppressing
+# the installer's interactive prompts (developers.openai.com/codex/cli) —
+# used instead of a bare `</dev/null` redirect so this matches their
+# documented invocation exactly, not an inferred equivalent. `</dev/null` is
+# also kept as defense-in-depth: harmless alongside the env var, and it's
+# what already proved sufficient on its own during testing.
 if [ ! -x "$HOME/.local/bin/codex" ]; then
   # Chained with `&&`, not sequential statements inside the subshell: a
   # subshell that is itself the left side of `||` has bash's errexit
@@ -22,7 +28,7 @@ if [ ! -x "$HOME/.local/bin/codex" ]; then
   tmpscript=$(mktemp)
   (
     curl -fsSL https://chatgpt.com/codex/install.sh -o "$tmpscript" &&
-    sh "$tmpscript" </dev/null
+    CODEX_NON_INTERACTIVE=1 sh "$tmpscript" </dev/null
   ) || echo "Warning: Codex CLI install failed, continuing without it" >&2
   rm -f "$tmpscript"
 fi
