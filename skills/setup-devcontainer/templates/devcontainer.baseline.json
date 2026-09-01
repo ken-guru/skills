@@ -6,6 +6,7 @@
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
   "remoteUser": "vscode",
+  "init": true,
   "mounts": [
     "source={{REPO_NAME}}-claude-config,target=/home/vscode/.claude,type=volume"
   ],
