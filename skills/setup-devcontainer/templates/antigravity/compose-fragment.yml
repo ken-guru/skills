@@ -1,7 +1,5 @@
   antigravity:
-    build:
-      context: .
-      dockerfile: antigravity/Dockerfile
+    image: {{REPO_NAME}}-antigravity:{{BASE_IMAGE_VERSION}}
     env_file:
       - .env
     volumes:

@@ -1,7 +1,5 @@
   claude-code:
-    build:
-      context: .
-      dockerfile: claude-code/Dockerfile
+    image: {{REPO_NAME}}-claude-code:{{BASE_IMAGE_VERSION}}
     env_file:
       - .env
     environment:

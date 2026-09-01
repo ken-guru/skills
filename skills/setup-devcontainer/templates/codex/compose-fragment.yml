@@ -1,7 +1,5 @@
   codex:
-    build:
-      context: .
-      dockerfile: codex/Dockerfile
+    image: {{REPO_NAME}}-codex:{{BASE_IMAGE_VERSION}}
     env_file:
       - .env
     environment:

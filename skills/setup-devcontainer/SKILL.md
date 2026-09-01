@@ -20,7 +20,15 @@ bundling every tool together. See
 - **One Tool Container per selected tool** — its own Dockerfile (extending
   the shared base), `devcontainer.json`, post-create script, and Compose
   service. Fully isolated: a permission grant, config volume, or install step
-  for one tool never reaches another's container.
+  for one tool never reaches another's container. This skill builds and tags
+  each tool's image itself (`docker build`, same as the base image) and the
+  Compose service references that pre-built tag via `image:`, never `build:`
+  — VS Code's Dev Containers CLI is known to pass `--pull` when it builds a
+  Compose service itself, which forces Docker to try re-resolving *any*
+  locally-built image referenced via `FROM` (including our own shared base)
+  from a registry, and fails hard since it was never pushed anywhere. Pre-
+  building ourselves means VS Code never has a build step to run at all for
+  these services — just an already-present image to start.
 - **Concurrent Workspace** — every Tool Container is a service in the same
   `docker-compose.yml`, bind-mounting this same repo checkout. Opening two
   tools' containers in two separate VS Code windows runs them side by side.
@@ -153,34 +161,43 @@ generated (see the append-flows below).
 
 ## 5. Build or reuse the shared base image
 
+`{{BASE_IMAGE_VERSION}}` is the bare version string (`v1`, `v2`, ...);
+`{{BASE_IMAGE_TAG}}` is the full image reference built from it:
+`skills-tool-container-base:{{BASE_IMAGE_VERSION}}`.
+
 - If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
   [templates/base.Dockerfile](templates/base.Dockerfile) (no placeholders to
-  substitute in this file itself). Set `{{BASE_IMAGE_TAG}}` to
-  `skills-tool-container-base:v1`. Build it:
+  substitute in this file itself). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
+  Build it:
   `docker build -t skills-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
-  Record the tag and a content hash of the file
+  Record the version and a content hash of the file
   (`sha256sum .devcontainer/base.Dockerfile`) into
-  `.devcontainer/.base-image-version` as `<tag> <sha256>`.
+  `.devcontainer/.base-image-version` as `<version> <sha256>`.
 - If it already exists: compute the sha256 of
   [templates/base.Dockerfile](templates/base.Dockerfile)'s current rendered
   content and compare it to the hash recorded in
   `.devcontainer/.base-image-version`.
-  - **Unchanged**: skip rebuilding. Use the tag already recorded in
-    `.devcontainer/.base-image-version` as `{{BASE_IMAGE_TAG}}`.
+  - **Unchanged**: skip rebuilding. Use the version already recorded in
+    `.devcontainer/.base-image-version` as `{{BASE_IMAGE_VERSION}}`.
   - **Changed**: tell the user the shared base layer's template has changed
     and this would affect every Tool Container that extends it, and ask
     whether to bump the version (e.g. `v1` → `v2`) and rebuild. Never bump or
     rebuild silently.
     - **Confirmed**: overwrite `.devcontainer/base.Dockerfile`, build and tag
       the bumped version, update `.devcontainer/.base-image-version` with the
-      new tag and hash, and use the new tag as `{{BASE_IMAGE_TAG}}`.
+      new version and hash, and use the new version as
+      `{{BASE_IMAGE_VERSION}}`. A version bump also forces every already-
+      generated tool's image to rebuild in step 6 (their tags are versioned
+      identically to the base — see below), even though their own
+      Dockerfiles didn't change.
     - **Declined**: leave `.devcontainer/base.Dockerfile` and the recorded
-      tag/hash untouched, and use the existing tag as `{{BASE_IMAGE_TAG}}` for
-      this run's new tool(s).
+      version/hash untouched, and use the existing version as
+      `{{BASE_IMAGE_VERSION}}` for this run's new tool(s).
 
 Done when `.devcontainer/base.Dockerfile` exists, `docker image inspect
-<{{BASE_IMAGE_TAG}}>` succeeds, and `.devcontainer/.base-image-version`
-records that exact tag alongside a hash matching the file actually on disk.
+skills-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
+`.devcontainer/.base-image-version` records that exact version alongside a
+hash matching the file actually on disk.
 
 ## 6. Generate the compose file and each selected tool's folder
 
@@ -188,6 +205,15 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 
 - `.devcontainer/<tool>/Dockerfile` ← [templates/<tool>/Dockerfile](templates/), substitute
   `{{BASE_IMAGE_TAG}}` with the tag resolved in step 5.
+- **Build and tag this tool's own image**:
+  `docker build -t {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}} -f .devcontainer/<tool>/Dockerfile .devcontainer`.
+  The Compose service references this exact pre-built tag via `image:` (see below) — never
+  `build:` — specifically so VS Code's Dev Containers CLI never has a build step to run for these
+  services at all. This matters because that CLI is known to pass `--pull` when it *does* build a
+  Compose service, which forces Docker to try re-resolving any locally-built image referenced via
+  `FROM` (our shared base) from a registry — and since the base was never pushed anywhere, that
+  pull fails outright and aborts the whole "Reopen in Container" attempt. Pre-building ourselves
+  sidesteps the bug entirely rather than working around it.
 - `.devcontainer/<tool>/devcontainer.json`:
   use [templates/<tool>/devcontainer.json](templates/) (or
   [templates/<tool>/devcontainer.with-ssh.json](templates/) if this tool's SSH
@@ -226,9 +252,16 @@ If **any** newly or already-selected tool has the SSH answer yes:
 - `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example) appended (only if not already present), and its `GH_TOKEN` comment gets: `Required permissions: Administration (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
 - `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md) appended (only if not already present), and the baseline template's closing "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by the real section).
 
+If step 5 bumped `{{BASE_IMAGE_VERSION}}` this run (the **Confirmed** branch), rebuild and
+retag **every already-existing tool's image** too, at the new version — same build command as
+above, run again for each tool that already has a Tool Container even though none of its own
+files (Dockerfile, devcontainer.json, post-create.sh) need rewriting. Their Compose service's
+`image:` reference is versioned identically to the base, so without this their tag would point at
+an image that no longer exists.
+
 Always (every run, regardless of which tools are new):
 
-- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist; otherwise just update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
@@ -243,8 +276,10 @@ Always (every run, regardless of which tools are new):
 
 Done when every file above exists, every tool's `devcontainer.json` parses as valid JSON
 (`jq empty .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses as valid YAML
-with exactly one service per selected tool, and no `{{...}}` placeholder remains in any written
-file (`grep -rn '{{' .devcontainer/`).
+with exactly one service per selected tool, every selected tool's image actually exists at the
+tag its Compose service references (`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}`
+succeeds for each), and no `{{...}}` placeholder remains in any written file
+(`grep -rn '{{' .devcontainer/`).
 
 ## 7. Report next steps
 
