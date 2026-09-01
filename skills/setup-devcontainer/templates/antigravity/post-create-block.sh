@@ -3,10 +3,12 @@
 # root-owned on first mount, since nothing in the base image pre-creates it).
 sudo chown -R vscode:vscode "$HOME/.antigravity"
 
-# Install Antigravity CLI via the official installer script. Checked by
-# binary path, not `command -v` — this non-login script's PATH doesn't
-# include ~/.local/bin, so a PATH-based check would miss an already-installed
-# binary and re-run the installer on every rebuild. Antigravity is optional
+# Install Antigravity CLI via the official installer, as a plain piped
+# one-liner rather than a download-then-run wrapper — its own shebang
+# (#!/bin/bash) is why this pipes into `bash`, not `sh`. Checked by binary
+# path, not `command -v` — this non-login script's PATH doesn't include
+# ~/.local/bin, so a PATH-based check would miss an already-installed binary
+# and re-run the installer on every rebuild. Antigravity is optional
 # tooling, so a download/install failure here is a warning, not a
 # postCreateCommand-aborting error.
 #
@@ -16,17 +18,5 @@ sudo chown -R vscode:vscode "$HOME/.antigravity"
 # handles detection, download, and idempotency itself, so there's nothing
 # left for this script to duplicate.
 if [ ! -x "$HOME/.local/bin/agy" ]; then
-  # Chained with `&&`, not sequential statements inside the subshell: a
-  # subshell that is itself the left side of `||` has bash's errexit
-  # suppressed for everything inside it, so a failing `curl`/`bash` would
-  # otherwise be silently ignored and the subshell would still exit 0 from
-  # the final `rm -f` (which always succeeds) — meaning the warning below
-  # would never fire even though the install actually failed. The `&&`
-  # chain's own exit status correctly reflects the first failure.
-  tmpscript=$(mktemp)
-  (
-    curl -fsSL https://antigravity.google/cli/install.sh -o "$tmpscript" &&
-    bash "$tmpscript" </dev/null
-  ) || echo "Warning: Antigravity CLI install failed, continuing without it" >&2
-  rm -f "$tmpscript"
+  curl -fsSL https://antigravity.google/cli/install.sh | bash || echo "Warning: Antigravity CLI install failed, continuing without it" >&2
 fi
