@@ -12,7 +12,7 @@ baseline, plus two independent opt-ins:
 - **baseline** — Claude Code + `gh` CLI + persistent auth + skill sync. Always written.
 - **SSH layer** — deploy-key/signing-key automation for agent-driven `git push` and signed
   commits. Optional, and addable after the fact without touching the baseline files.
-- **YOLO alias** — a `claude-yolo` shell alias (`claude --dangerously-skip-permissions --worktree
+- **YOLO alias** — a `claude-yolo` shell alias (`claude --permission-mode auto --worktree
   --remote-control`) for fast, unattended iteration. Optional — some developers don't want a
   no-holds-barred agent available inside the container at all.
 
@@ -99,7 +99,11 @@ Record these answers — they decide which template variants and configuration i
 - `.devcontainer/devcontainer.json`:
   If the file doesn't exist, use [templates/devcontainer.baseline.json](templates/devcontainer.baseline.json) (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if SSH layer accepted), substitute `{{REPO_NAME}}`, and write it.
   **Then (in all cases)**, carefully update the `.devcontainer/devcontainer.json` file to safely merge the following properties. Do not overwrite or remove any existing user customizations:
-  - If Codex was accepted: add `.codex` mount (`"source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"`) to the `mounts` array, and add `"CODEX_HOME": "/home/vscode/.codex"` to the `containerEnv` object.
+  - If Codex was accepted:
+    - Add `.codex` mount (`"source={{REPO_NAME}}-codex-config,target=/home/vscode/.codex,type=volume"`) to the `mounts` array, and add `"CODEX_HOME": "/home/vscode/.codex"` to the `containerEnv` object.
+    - Add `"SYS_ADMIN"` to a top-level `capAdd` array (create it if absent, merge into it if present) and `"seccomp=unconfined"` / `"systempaths=unconfined"` to a top-level `securityOpt` array (same merge rule) — Codex's Linux sandbox uses Bubblewrap, which needs to create unprivileged user namespaces; these are the minimum container runtime settings Bubblewrap needs, without making the whole container privileged.
+    - Append the following caveat to `.devcontainer/README.md` (e.g., under a "Gotchas" or "CLI Notes" section):
+      > **Codex Linux sandbox**: the `capAdd`/`securityOpt` grants above exist so Codex's own Bubblewrap sandbox (`codex-yolo`'s `--sandbox workspace-write`) can actually create its namespace. This skill does not include a runtime health probe to verify the sandbox is confining anything on your specific host — if `codex-yolo` ever behaves as though unsandboxed, that's the first thing to check by hand.
   - If Antigravity was accepted: 
     - Add `.gemini` mount (`"source={{REPO_NAME}}-antigravity-config,target=/home/vscode/.gemini,type=volume"`) to the `mounts` array.
     - Append the following caveat to `.devcontainer/README.md` (e.g., under a "Gotchas" or "CLI Notes" section):
@@ -110,15 +114,28 @@ Record these answers — they decide which template variants and configuration i
   - **Codex CLI**: append [templates/post-create-codex-block.sh](templates/post-create-codex-block.sh)
   - **Antigravity CLI**: append [templates/post-create-antigravity-block.sh](templates/post-create-antigravity-block.sh)
   - **YOLO Aliases**: 
-    - Claude: `alias claude-yolo="claude --dangerously-skip-permissions --worktree --remote-control"`
-    - Codex: `alias codex-yolo="codex --dangerously-bypass-approvals-and-sandbox"`
-      > **Why not `--sandbox workspace-write`?** Codex's Linux sandbox uses bubblewrap, which needs
-      > to create unprivileged user namespaces — something Docker's default seccomp/AppArmor
-      > profiles block. Rather than loosening the container's own confinement (`--cap-add=SYS_ADMIN`,
-      > `--security-opt seccomp=unconfined`, etc. for the whole devcontainer) to let bubblewrap work,
-      > `codex-yolo` skips Codex's internal sandbox and relies on the devcontainer itself as the
-      > isolation boundary — consistent with what a "yolo" alias implies anyway.
-    - Antigravity: `alias agy-yolo="agy --dangerously-skip-permissions --sandbox"`
+    - Claude: `alias claude-yolo="claude --permission-mode auto --worktree --remote-control"`
+      > **Why not `--dangerously-skip-permissions`?** It triggers Claude Code's own bwrap sandbox,
+      > whose mount-namespace view of the repo conflicts with git's worktree identity check and
+      > breaks worktree creation 100% of the time. `--permission-mode auto` is a classifier-based
+      > policy that gives comparable autonomy without ever triggering the sandbox.
+    - Codex: `alias codex-yolo="codex --ask-for-approval on-request --sandbox workspace-write -c sandbox_workspace_write.network_access=true"`
+      > **Why not `--dangerously-bypass-approvals-and-sandbox`?** That's Codex's full-bypass
+      > equivalent of `--dangerously-skip-permissions` — no sandbox and no approval checkpoint at
+      > all, unlike `claude-yolo` (a classifier) and `agy-yolo` (a curated allow-list), which both
+      > keep a real internal checkpoint. `on-request` gives Codex the same shape: the model itself
+      > judges when to escalate to a human, rather than never escalating. The `capAdd`/`securityOpt`
+      > grants added to `devcontainer.json` when Codex is accepted (see step 5) are what let the
+      > `workspace-write` sandbox actually create its Bubblewrap namespace.
+    - Antigravity: `alias agy-yolo="agy --mode accept-edits"`
+      > **Why not `--dangerously-skip-permissions --sandbox`?** Antigravity auto-approves its own
+      > sandbox's internal prompts once `--dangerously-skip-permissions` is present, making
+      > `--sandbox` a no-op — confirmed by a filed Google bug
+      > ([antigravity-cli#36](https://github.com/google-antigravity/antigravity-cli/issues/36)), so
+      > that combination gives zero protection. The real safety boundary is a curated
+      > `permissions.allow` list in `~/.gemini/antigravity-cli/settings.json`, starting from
+      > `git`, `gh`, `ls`, `cat` and never `rm`, `curl`, raw `bash -c`, or a wildcard — see step 6
+      > for telling the user to set it up as a manual, once-per-machine step.
     - Copilot: `alias copilot-yolo="echo 'Copilot CLI requires manual sandboxing. Run the regular \`copilot\` command and then type \`/sandbox enable\` in the session.'"`
     Append the requested aliases to `~/.bashrc`.
   - **SSH Layer**: append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted) if accepted.
@@ -143,7 +160,7 @@ file (`grep -rn '{{' .devcontainer/`).
 
 ## 6. Report next steps
 
-Tell the user, adapted to whether the SSH layer and YOLO alias are present:
+Tell the user, adapted to whether the SSH layer, YOLO alias, and Antigravity CLI are present:
 
 1. Install Docker Desktop and the **Dev Containers** VS Code extension.
 2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
@@ -153,11 +170,18 @@ Tell the user, adapted to whether the SSH layer and YOLO alias are present:
 5. {{If the SSH layer is present: on attach, `post-attach.sh` prints a public key — paste it into
    github.com/settings/ssh as a Signing Key, then `touch ~/.ssh/.signing-key-registered`.}}
 6. {{If the YOLO alias is present: a new shell in the container has `claude-yolo` available —
-   `claude --dangerously-skip-permissions --worktree --remote-control` — for fast, unattended
+   `claude --permission-mode auto --worktree --remote-control` — for fast, unattended
    iteration.}}
+7. {{If Antigravity was accepted and the `agy-yolo` alias is present: `agy-yolo`'s real safety
+   boundary is a curated `permissions.allow` list, not a sandbox flag — this is a manual,
+   once-per-machine step, deliberately not auto-templated (silently writing a security-relevant
+   allow-list on every rebuild shouldn't happen without a human's hand). Add to
+   `~/.gemini/antigravity-cli/settings.json` a list scoped to the repo's actual safe commands,
+   starting from `git`, `gh`, `ls`, `cat` and extending with whatever else this repo's workflows
+   need (package manager, test runner, etc.) — never `rm`, `curl`, raw `bash -c`, or a wildcard.}}
 
-Done when the user has been told every applicable item above, adapted to whether the SSH layer and
-YOLO alias are present.
+Done when the user has been told every applicable item above, adapted to whether the SSH layer,
+YOLO alias, and Antigravity CLI are present.
 
 ## Adding the SSH layer later
 
