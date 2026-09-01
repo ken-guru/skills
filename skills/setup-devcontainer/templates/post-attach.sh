@@ -34,6 +34,10 @@ fi
 SIGNING_KEY_TITLE=$(awk '{print $3}' ~/.ssh/id_ed25519_signing.pub 2>/dev/null)
 
 echo ""
+echo "This registration is shared across every SSH-enabled Tool Container in this"
+echo "repo — do this ONCE, from whichever tool's window shows this prompt first."
+echo "Dismissing it here (see below) dismisses it for every other tool too, since"
+echo "they all read the same marker file from the same shared volume."
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║  Devcontainer SSH setup status                                      ║"
 echo "╠══════════════════════════════════════════════════════════════════════╣"

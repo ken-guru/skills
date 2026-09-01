@@ -37,7 +37,15 @@ Metadata). No account-level token permissions are needed for any of this.
 Register the signing key: `postAttachCommand` prints a one-time prompt with a
 public key to paste into <https://github.com/settings/ssh> as a **Signing
 Key**. Do that, then dismiss the prompt with
-`touch ~/.ssh/.signing-key-registered`.
+`touch ~/.ssh/.signing-key-registered`. **Do this once for the whole repo —
+not once per Tool Container.** If more than one SSH-enabled tool is open,
+whichever one you dismiss the prompt in dismisses it for all of them too,
+since they all read the same marker file from the same shared volume. If you
+open two SSH-enabled Tool Containers for the very first time at the same
+moment, a lock in `post-create.sh` serializes key generation/registration
+between them so only one actually does the work — you may still see both
+print the prompt (each was waiting on the lock when it started), but there's
+only ever one real key pair and one registration behind it.
 
 **`GH_TOKEN` alone doesn't authenticate git push/pull, only the `gh` API.**
 The `gh` CLI reads `GH_TOKEN` automatically for API calls, but `git` itself

@@ -29,9 +29,11 @@ bundling every tool together. See
   the fact without touching that tool's existing files. Shared across every
   SSH-enabled Tool Container (one registered key pair per repo, not one per
   tool).
-- **YOLO alias** — a `<tool>-yolo` shell alias for fast, unattended
-  iteration. Optional per tool — some developers don't want a no-holds-barred
-  agent available inside a given Tool Container at all.
+- **YOLO alias** — a shell alias for fast, unattended iteration, named after
+  the tool's actual CLI invocation, not its folder name: `claude-yolo`,
+  `codex-yolo`, `agy-yolo` (Antigravity's binary is `agy`, not `antigravity`),
+  `copilot-yolo`. Optional per tool — some developers don't want a
+  no-holds-barred agent available inside a given Tool Container at all.
 
 ## 1. Detect the target repo
 
@@ -117,9 +119,12 @@ For each **newly** selected tool, ask independently:
   commits from this tool's Tool Container? (Adds deploy-key/signing-key
   automation, shared with any other Tool Container that also has it
   enabled.)
-- **YOLO alias**: Should this tool get a `<tool>-yolo` alias for fast,
-  unattended iteration? (Note for Copilot: `copilot-yolo` just echoes
-  instructions to manually type `/sandbox enable` inside the session.)
+- **YOLO alias**: Should this tool get its `-yolo` alias for fast, unattended
+  iteration — `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo`,
+  matching the tool's actual CLI command, **not** its folder name (Antigravity's
+  is `agy-yolo`, never `antigravity-yolo`)? (Note for Copilot: `copilot-yolo`
+  just echoes instructions to manually type `/sandbox enable` inside the
+  session.)
 
 Record these answers — they decide which template variants steps 5–6 use.
 Both layers are addable later per tool without redoing anything already
@@ -227,6 +232,14 @@ Always (every run, regardless of which tools are new):
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist; otherwise just update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
+- If **Claude Code** is selected (newly or already), add `.claude/worktrees/` to `.gitignore` if
+  it isn't already ignored: `claude --worktree` (used by the `claude-yolo` alias, and available to
+  any Claude Code session regardless of the alias) creates isolated git worktrees directly inside
+  the bind-mounted `/workspace`, which the host sees as untracked noise in `git status` since the
+  mount is the same filesystem, not container-isolated. Apply the same reasoning to any other
+  tool-generated runtime noise you notice actually landing inside the workspace (as opposed to a
+  config volume, which is already container-isolated and needs no gitignore entry) — this list
+  isn't meant to be exhaustive up front, only to grow as real noise is observed.
 
 Done when every file above exists, every tool's `devcontainer.json` parses as valid JSON
 (`jq empty .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses as valid YAML
@@ -247,11 +260,16 @@ Tell the user, adapted to which tools were selected and which have SSH/yolo:
    VS Code window (File > New Window) on this same repo and reopen it in a
    different tool's container there — see the README's "Running tools
    concurrently" section.}}
-6. {{For each tool with the SSH layer present: on attach, `post-attach.sh`
+6. {{If any tool has the SSH layer present: on attach, `post-attach.sh`
    prints a public key — paste it into github.com/settings/ssh as a Signing
-   Key, then `touch ~/.ssh/.signing-key-registered`.}}
+   Key, then `touch ~/.ssh/.signing-key-registered`. Do this **once**,
+   in whichever SSH-enabled tool's window shows the prompt first — the key
+   pair and the registration marker are shared across every SSH-enabled Tool
+   Container in this repo, not generated separately per tool.}}
 7. {{For each tool with its YOLO alias present: a new shell in that tool's
-   container has `<tool>-yolo` available for fast, unattended iteration.}}
+   container has its alias available for fast, unattended iteration —
+   `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo` (matching the
+   tool's actual CLI command, not its folder name).}}
 8. {{If Antigravity was selected and its `agy-yolo` alias is present:
    `agy-yolo`'s real safety boundary is a curated `permissions.allow` list,
    not a sandbox flag — this is a manual, once-per-machine step, deliberately
