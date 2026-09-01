@@ -2,18 +2,22 @@
 ## SSH deploy key and signing key
 
 - Git push/pull and commit signing use two separate SSH keys, persisted
-  across rebuilds in a named volume (`{{REPO_NAME}}-ssh-config`) mounted at
-  `~/.ssh`.
+  across rebuilds in one named volume (`{{REPO_NAME}}-ssh-config`) mounted at
+  `~/.ssh`. This volume is shared across every Tool Container that has the
+  SSH layer enabled — deploy/signing keys are a property of this repo's git
+  identity, not of any one AI CLI, so every SSH-enabled Tool Container reuses
+  the same registered key pair rather than each tool registering its own.
 
 Two separate ED25519 keys exist because GitHub rejects a public key as a
-signing key once that same key is already registered as a deploy key.
-`post-create.sh` generates `~/.ssh/id_ed25519` as the deploy key (git
-transport: push/pull this repo, registered automatically against
-`repos/{{REPO_SLUG}}/keys` via the `gh` API) and `~/.ssh/id_ed25519_signing`
-as the signing key (commit verification, registered manually once per machine
-via the GitHub UI — there's no API-driven way to do this without granting the
-token account-level `write:ssh_signing_key`, which would let it manage every
-signing key on the account, not just this project's).
+signing key once that same key is already registered as a deploy key. Each
+SSH-enabled Tool Container's `post-create.sh` generates `~/.ssh/id_ed25519`
+as the deploy key (git transport: push/pull this repo, registered
+automatically against `repos/{{REPO_SLUG}}/keys` via the `gh` API) and
+`~/.ssh/id_ed25519_signing` as the signing key (commit verification,
+registered manually once per machine via the GitHub UI — there's no
+API-driven way to do this without granting the token account-level
+`write:ssh_signing_key`, which would let it manage every signing key on the
+account, not just this project's).
 
 Both keys live in the `{{REPO_NAME}}-ssh-config` volume, so they and the
 `~/.ssh/.signing-key-registered` marker survive container rebuilds. Only

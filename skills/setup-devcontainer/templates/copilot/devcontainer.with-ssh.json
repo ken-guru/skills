@@ -1,0 +1,15 @@
+{
+  "name": "Copilot",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "copilot",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "remoteUser": "vscode",
+  "init": true,
+  "mounts": [
+    "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
+  ],
+  "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
+  "postCreateCommand": "bash .devcontainer/copilot/post-create.sh",
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}

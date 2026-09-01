@@ -1,0 +1,10 @@
+  antigravity:
+    build:
+      context: .
+      dockerfile: antigravity/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ..:/workspace:cached
+      - {{REPO_NAME}}-antigravity-config:/home/vscode/.antigravity
+    command: sleep infinity

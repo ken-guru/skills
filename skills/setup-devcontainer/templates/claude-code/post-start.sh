@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
-# Runs on every container start (not just create/rebuild).
+# Runs on every container start (not just create/rebuild). Claude-Code
+# specific: skill sync only applies to the Claude Code Tool Container.
 
 # Claude Code skills are wiped and reinstalled from the configured sources on
 # every start, so the skill set stays current with upstream instead of

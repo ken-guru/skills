@@ -1,0 +1,10 @@
+  copilot:
+    build:
+      context: .
+      dockerfile: copilot/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ..:/workspace:cached
+      - {{REPO_NAME}}-copilot-config:/home/vscode/.copilot
+    command: sleep infinity

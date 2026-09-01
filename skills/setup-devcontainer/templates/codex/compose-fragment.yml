@@ -1,0 +1,21 @@
+  codex:
+    build:
+      context: .
+      dockerfile: codex/Dockerfile
+    env_file:
+      - .env
+    environment:
+      CODEX_HOME: /home/vscode/.codex
+    # Codex's Linux sandbox uses Bubblewrap, which needs to create an
+    # unprivileged user namespace — these are the minimum container runtime
+    # settings Bubblewrap needs, scoped to Codex's own service only. No other
+    # Tool Container's service carries this grant.
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp=unconfined
+      - systempaths=unconfined
+    volumes:
+      - ..:/workspace:cached
+      - {{REPO_NAME}}-codex-config:/home/vscode/.codex
+    command: sleep infinity
