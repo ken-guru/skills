@@ -24,7 +24,7 @@ deploy_id=$(gh api "repos/${REPO}/keys" 2>/dev/null | jq -r \
 if [ -z "$deploy_id" ]; then
   echo ""
   echo "⚠ Deploy key NOT found on GitHub — git push/pull will fail."
-  echo "  Re-run: bash .devcontainer/post-create.sh"
+  echo "  Rebuild this Tool Container (Dev Containers: Rebuild Container) to re-register it."
   echo ""
 fi
 
@@ -41,7 +41,7 @@ echo "╠═══════════════════════�
 if [ -n "$deploy_id" ]; then
   echo "║  ✓ Deploy key registered (git push/pull: ready)                     ║"
 else
-  echo "║  ✗ Deploy key NOT found on GitHub — run: bash .devcontainer/post-create.sh ║"
+  echo "║  ✗ Deploy key NOT found on GitHub — rebuild this Tool Container            ║"
 fi
 
 echo "║                                                                      ║"

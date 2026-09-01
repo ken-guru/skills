@@ -197,6 +197,24 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   already-existing Claude Code Tool Container) to ensure skill sync stays current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
 
+If **Codex** was newly selected, append the following caveat to `.devcontainer/README.md` (under
+a "Gotchas" or "CLI Notes" section, creating one if it doesn't exist):
+
+> **Codex Linux sandbox**: Codex's Tool Container carries `capAdd`/`securityOpt` grants so
+> Codex's own Bubblewrap sandbox (`codex-yolo`'s `--sandbox workspace-write`) can actually create
+> its namespace — scoped to Codex's own container only, never any other tool's. This skill does
+> not include a runtime health probe to verify the sandbox is confining anything on your specific
+> host — if `codex-yolo` ever behaves as though unsandboxed, that's the first thing to check by
+> hand.
+
+If **Antigravity** was newly selected, append the following caveat to `.devcontainer/README.md`
+(same section):
+
+> **Antigravity CLI Auth**: `agy` stores auth in the system keyring, not a file. The
+> `.antigravity` volume mount will not persist its login across rebuilds in a bare container. You
+> may need to re-auth `agy` each time, or add a keyring daemon yourself later if that gets
+> annoying.
+
 If **any** newly or already-selected tool has the SSH answer yes:
 
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted (shared across every SSH-enabled tool). Write once; `chmod +x` it.
