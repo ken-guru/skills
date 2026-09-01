@@ -1,0 +1,15 @@
+{
+  "name": "Codex",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "codex",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "remoteUser": "vscode",
+  "init": true,
+  "mounts": [
+    "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
+  ],
+  "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
+  "postCreateCommand": "bash .devcontainer/codex/post-create.sh",
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}

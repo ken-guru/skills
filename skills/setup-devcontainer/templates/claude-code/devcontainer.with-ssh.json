@@ -1,0 +1,17 @@
+{
+  "name": "Claude Code",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "claude-code",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "remoteUser": "vscode",
+  "init": true,
+  "mounts": [
+    "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
+  ],
+  "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
+  "postCreateCommand": "bash .devcontainer/claude-code/post-create.sh",
+  "postStartCommand": "bash .devcontainer/claude-code/post-start.sh",
+  "waitFor": "postStartCommand",
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}

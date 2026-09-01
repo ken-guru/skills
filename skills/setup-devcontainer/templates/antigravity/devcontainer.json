@@ -1,0 +1,11 @@
+{
+  "name": "Antigravity",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "antigravity",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "remoteUser": "vscode",
+  "init": true,
+  "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
+  "postCreateCommand": "bash .devcontainer/antigravity/post-create.sh"
+}

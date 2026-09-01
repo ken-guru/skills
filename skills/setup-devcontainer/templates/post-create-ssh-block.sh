@@ -1,6 +1,9 @@
 
 # SSH identity — two keys per host machine, both persisted in the
-# {{REPO_NAME}}-ssh-config volume.
+# {{REPO_NAME}}-ssh-config volume, and SHARED across every Tool Container
+# that has this layer enabled (they all mount the same volume). Registration
+# happens ONCE FOR THE WHOLE REPO, never once per tool — see the signing-key
+# prompt from post-attach.sh, which says the same thing.
 #   id_ed25519         — deploy key: scoped auth for this repo (registered automatically)
 #   id_ed25519_signing — signing key: commit verification (registered manually once)
 #
@@ -15,6 +18,16 @@ if [ -z "${DEVCONTAINER_HOST:-}" ]; then
   echo "       Copy .devcontainer/.env.example to .devcontainer/.env and set DEVCONTAINER_HOST." >&2
   exit 1
 fi
+
+# Every SSH-enabled Tool Container mounts this same shared volume. If two are
+# opened for the first time at once (exactly what Concurrent Workspace use
+# encourages), both would otherwise race to generate and register keys at the
+# same time — this lock serializes them: whichever container gets here first
+# does the real work, and any other container waits for the lock, then finds
+# the keys already in place and skips straight to "already registered".
+(
+flock -x 201
+
 DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
 SIGNING_KEY_TITLE="{{REPO_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
 
@@ -75,6 +88,8 @@ else
     -f title="$DEPLOY_KEY_TITLE" -f key="$DEPLOY_PUBKEY" -F read_only=false
   echo "Deploy key registered: $DEPLOY_KEY_TITLE"
 fi
+
+) 201>/home/vscode/.ssh/.setup.lock
 
 # Signing key is separate from the deploy key so it can be registered on GitHub
 # without hitting the "key is already in use" constraint.
