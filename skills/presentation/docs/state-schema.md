@@ -74,7 +74,11 @@ being additional lifecycle phases.
     },
     "images": {
       "status": "done | pending | skipped",
-      "completedAt": "ISO 8601 date string | null"
+      "completedAt": "ISO 8601 date string | null",
+      "provider": "gemini | openai",
+      "providerSource": "flag | auto",
+      "model": "string",
+      "modelSource": "flag | default"
     },
     "diagrams": {
       "status": "done | pending | skipped",
