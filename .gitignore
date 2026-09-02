@@ -1,5 +1,7 @@
 .vscode/
 .envrc
+.devcontainer/
+.claude/worktrees/
 skills/presentation/verification/presentation-themes/.generated/
 skills/presentation/verification/presentation-themes/reports/
 skills/presentation/verification/presentation-themes/node_modules/

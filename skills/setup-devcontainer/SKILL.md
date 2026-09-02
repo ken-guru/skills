@@ -222,7 +222,8 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   1. [templates/post-create-base.sh](templates/post-create-base.sh), substituted (git identity — shared across every tool).
   2. [templates/<tool>/post-create-block.sh](templates/) (this tool's CLI install and config-volume ownership fix).
   3. [templates/<tool>/yolo-alias-block.sh](templates/) — only if this tool's yolo answer was yes.
-  4. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes.
+  4. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it.
+  5. [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh) — only if this tool's SSH answer was yes, immediately after the SSH block above. Appends a snippet to `~/.bashrc` that surfaces any of this SSH layer's three standing warnings (setup skipped, signing key unregistered, deploy key missing on GitHub) at the top of every new terminal, not just once at attach — `postCreateCommand`/`postAttachCommand` each fire once per rebuild/attach, not per terminal tab.
 - `.devcontainer/claude-code/post-start.sh` (Claude Code only) ←
   [templates/claude-code/post-start.sh](templates/claude-code/post-start.sh), substituted. Always rewritten (even on an
   already-existing Claude Code Tool Container) to ensure skill sync stays current.
@@ -353,8 +354,9 @@ exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` 
    [templates/<tool>/devcontainer.with-ssh.json](templates/), substituted —
    this only adds the SSH mount and `postAttachCommand` relative to the
    existing file, so no other property changes.
-3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted)
-   to the end of the existing `.devcontainer/<tool>/post-create.sh`.
+3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted),
+   then [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
+   (no placeholders), to the end of the existing `.devcontainer/<tool>/post-create.sh`.
 4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
    substituted, and `chmod +x` it, if it doesn't already exist (it may already exist if another
    tool already has SSH enabled — the file and the volume it manages are shared across every
@@ -372,8 +374,9 @@ exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` 
    ```
    DEVCONTAINER_HOST=<actual output of hostname>
    ```
-   Skipping this makes the first rebuild after adding the SSH layer fail at `post-create.sh` with
-   `ERROR: DEVCONTAINER_HOST is not set.`
+   Skipping this doesn't fail the build — `post-create-ssh-block.sh` degrades to skipping the SSH
+   setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
+   never activates, so set it before the first rebuild rather than relying on the warning to catch it.
 7. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
    `.devcontainer/README.md` (only if not already present), and delete that file's "SSH deploy key
    and signing key automation — Not set up here" closing section.

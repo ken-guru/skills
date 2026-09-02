@@ -13,11 +13,49 @@ sudo mkdir -p /home/vscode/.ssh
 sudo chown -R vscode:vscode /home/vscode/.ssh
 chmod 700 /home/vscode/.ssh
 
-if [ -z "${DEVCONTAINER_HOST:-}" ]; then
-  echo "ERROR: DEVCONTAINER_HOST is not set." >&2
-  echo "       Copy .devcontainer/.env.example to .devcontainer/.env and set DEVCONTAINER_HOST." >&2
-  exit 1
+# Nothing about this optional layer may be able to fail the whole container
+# build — a postCreateCommand abort here would also skip every block
+# concatenated after this one (other tool setup, the warnings banner below).
+# So every precondition below degrades to "skip the rest of this block and
+# record why" instead of exiting; this block never uses `exit` past this
+# point. SSH_SKIP_MARKER is what the warnings banner (appended after this
+# block) and post-attach.sh both check to know SSH was never configured.
+SSH_SKIP_MARKER="$HOME/.ssh/.ssh-setup-skipped"
+rm -f "$SSH_SKIP_MARKER"
+SSH_SETUP_OK=true
+REPO="{{REPO_SLUG}}"
+
+# Probed first, before generating or touching any keys, with its own call —
+# deliberately NOT reused for the real registration read below, which must
+# stay inside the flock further down so it sees a fresh view if another
+# concurrent Tool Container just registered the same key while this one
+# waited on the lock. This call's only job is classifying GH_TOKEN's error,
+# via the same `gh: <message> (HTTP <code>)` stderr format `gh api` always
+# uses on failure.
+if ! probe_err=$(gh api "repos/${REPO}/keys" 2>&1 1>/dev/null); then
+  case "$probe_err" in
+    *"(HTTP 401)"*)
+      reason="GH_TOKEN is missing or invalid (401 from GitHub) — set a valid token in .devcontainer/.env." ;;
+    *"(HTTP 403)"*)
+      reason="GH_TOKEN lacks the repo's Administration (read/write) permission (403 from GitHub), needed to manage deploy keys." ;;
+    *)
+      reason="GitHub API call failed unexpectedly: ${probe_err:-no response}" ;;
+  esac
+  echo "⚠ SSH layer skipped this build: $reason" >&2
+  echo "  Fix .devcontainer/.env, then Dev Containers: Rebuild Container." >&2
+  echo "$reason" > "$SSH_SKIP_MARKER"
+  SSH_SETUP_OK=false
 fi
+
+if [ "$SSH_SETUP_OK" = true ] && [ -z "${DEVCONTAINER_HOST:-}" ]; then
+  reason="DEVCONTAINER_HOST is not set in .devcontainer/.env (run \`hostname\` on your host to find it)."
+  echo "⚠ SSH layer skipped this build: $reason" >&2
+  echo "  Set it, then Dev Containers: Rebuild Container." >&2
+  echo "$reason" > "$SSH_SKIP_MARKER"
+  SSH_SETUP_OK=false
+fi
+
+if [ "$SSH_SETUP_OK" = true ]; then
 
 # Every SSH-enabled Tool Container mounts this same shared volume. If two are
 # opened for the first time at once (exactly what Concurrent Workspace use
@@ -63,7 +101,6 @@ fi
 
 DEPLOY_PUBKEY=$(cat ~/.ssh/id_ed25519.pub)
 DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
-REPO="{{REPO_SLUG}}"
 
 ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys")
 
@@ -96,3 +133,5 @@ fi
 git config --global gpg.format ssh
 git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
 git config --global commit.gpgsign true
+
+fi

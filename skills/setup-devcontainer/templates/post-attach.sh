@@ -3,7 +3,9 @@ set -euo pipefail
 # Runs each time VS Code attaches to the container.
 # If the SSH signing key hasn't been registered yet, shows a setup prompt.
 # Also verifies the deploy key is live on GitHub so any accidental deletion
-# is caught early.
+# is caught early, caching that result to a status file so the every-terminal
+# warnings snippet in ~/.bashrc (post-create-warnings-block.sh) can show the
+# same result on every subsequent terminal without an API call of its own.
 #
 # Lifecycle:
 #   Prompt shows until the developer dismisses it with:
@@ -11,9 +13,18 @@ set -euo pipefail
 #   That file persists in the {{REPO_NAME}}-ssh-config volume, so rebuilds stay quiet.
 #   Wiping the volume resets it and the prompt reappears.
 
+# SSH setup never ran this build (missing/under-scoped GH_TOKEN, or
+# DEVCONTAINER_HOST unset) — nothing here to verify. ~/.bashrc's warnings
+# snippet already surfaces the reason, from ~/.ssh/.ssh-setup-skipped, on
+# every terminal.
+if [ -f "$HOME/.ssh/.ssh-setup-skipped" ] || [ ! -f "$HOME/.ssh/id_ed25519.pub" ]; then
+  exit 0
+fi
+
 REGISTERED="$HOME/.ssh/.signing-key-registered"
+DEPLOY_STATUS_FILE="$HOME/.ssh/.deploy-key-status"
 REPO="{{REPO_SLUG}}"
-DEPLOY_KEY_BODY=$(awk '{print $1, $2}' ~/.ssh/id_ed25519.pub 2>/dev/null)
+DEPLOY_KEY_BODY=$(awk '{print $1, $2}' ~/.ssh/id_ed25519.pub 2>/dev/null || true)
 
 # Always verify the deploy key on attach — catches accidental deletion even
 # after the signing key has been registered.
@@ -22,16 +33,19 @@ deploy_id=$(gh api "repos/${REPO}/keys" 2>/dev/null | jq -r \
   '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id' || true)
 
 if [ -z "$deploy_id" ]; then
+  echo "missing" > "$DEPLOY_STATUS_FILE"
   echo ""
   echo "⚠ Deploy key NOT found on GitHub — git push/pull will fail."
   echo "  Rebuild this Tool Container (Dev Containers: Rebuild Container) to re-register it."
   echo ""
+else
+  echo "ok" > "$DEPLOY_STATUS_FILE"
 fi
 
 # Fast path — signing key already registered; nothing more to do.
 [ -f "$REGISTERED" ] && exit 0
 
-SIGNING_KEY_TITLE=$(awk '{print $3}' ~/.ssh/id_ed25519_signing.pub 2>/dev/null)
+SIGNING_KEY_TITLE=$(awk '{print $3}' ~/.ssh/id_ed25519_signing.pub 2>/dev/null || true)
 
 echo ""
 echo "This registration is shared across every SSH-enabled Tool Container in this"
