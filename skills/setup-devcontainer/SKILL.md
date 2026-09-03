@@ -132,10 +132,18 @@ For each **newly** selected tool, ask independently:
   matching the tool's actual CLI command, **not** its folder name (Antigravity's
   is `agy-yolo`, never `antigravity-yolo`)? (Note for Copilot: `copilot-yolo`
   just echoes instructions to manually type `/sandbox enable` inside the
-  session.)
+  session.) Each tool's `-yolo` alias reduces its permission checkpoints for
+  faster iteration; the exact tradeoff differs per tool — see the README's
+  "YOLO aliases" section for specifics.
+- **Copilot CLI version** (Copilot only): always install the latest release,
+  or lock to a specific version? Look up the current latest release
+  (`gh api repos/github/copilot-cli/releases/latest --jq .tag_name`) and
+  suggest it as the default value to lock to if the user wants to pin.
+  Record the answer as `{{COPILOT_CLI_VERSION}}` (`latest`, or the exact
+  version string with no leading `v`).
 
 Record these answers — they decide which template variants steps 5–6 use.
-Both layers are addable later per tool without redoing anything already
+All three are addable later per tool without redoing anything already
 generated (see the append-flows below).
 
 ## 4. Resolve placeholders
@@ -146,16 +154,50 @@ generated (see the append-flows below).
   `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
   the base post-create script instead of the `:-` form, and drop the parenthetical in
   `.env.example`'s comment.
-- `{{SKILLS_SOURCES_COMMANDS}}` (Claude Code only) — ask the user which skill sources to sync into
-  `~/.claude/skills` on every container start. Offer two opt-in defaults, neither required:
+- `{{COPILOT_CLI_VERSION}}` (Copilot only) — the answer collected in step 3 (`latest`, or an exact
+  version string). If Copilot wasn't newly selected this run (already existing, or not selected at
+  all), this placeholder doesn't apply.
+- `{{SKILLS_SOURCES_COMMANDS}}` (Claude Code only) — ask the user one combined question: sync AI-agent
+  skills into this container automatically on every start? Two ready-made suites are available:
   `mattpocock/skills` (a broad general-purpose skill baseline) and `ken-guru/skills` (this
   collection — includes this very Skill, useful if a layer needs adding later from inside the
-  container). Accept any other source the user names, in `owner/repo` form. If the user has
-  no preference, include both defaults. Render one line per chosen source, in the order given:
-  `npx -y skills add <source> --skill '*' -a '*' -y --copy -g`. Use the resulting
-  multi-line block everywhere this placeholder appears.
-- `{{SKILLS_SOURCES_SUMMARY}}` — the same sources as a short human-readable list (e.g.
-  `` `mattpocock/skills`, `ken-guru/skills` ``), for the README's prose.
+  container). For each, ask yes/no. In the same prompt, also invite the user to name any other
+  individual skills they want, in `owner/repo/skill-name` form (e.g.
+  `anthropics/skills/frontend-design`) — mixing and matching freely, including picking specific
+  skills out of the two suites above instead of taking them whole. If the user just wants both
+  suites in full, saying yes to both and skipping the rest is the fast path.
+
+  Validate live in this same conversation before rendering anything, for **every individually
+  named skill pick, from any source including the two named defaults** (a whole-suite accept
+  needs no validation — `--skill '*'` can't typo): `npx -y skills add <source> --list` (or `-l`)
+  lists what that source actually contains. If the source doesn't resolve, or a named skill isn't
+  in the list, tell the user and re-ask rather than rendering a broken command — this is the
+  intended defense against typos, since skills.sh's own API requires authentication this context
+  doesn't have, so the CLI's own listing is used instead. This applies even to a skill picked out
+  of `mattpocock/skills` or `ken-guru/skills` individually rather than taken as a whole suite —
+  those two sources are pre-named, not pre-validated for every skill inside them.
+
+  Render one line per **distinct source**, in the order first mentioned:
+  - A source accepted as a whole suite (either of the two defaults, or any other source the user
+    chose to take in full): `npx -y skills add <source> --skill '*' -a '*' -y --copy -g`.
+  - A source with only individual picks (not accepted as a whole suite): `npx -y skills add
+    <source> --skill '<name1>' --skill '<name2>' ... -a '*' -y --copy -g`, listing only that
+    source's picked skills.
+  - A source both accepted as a whole suite **and** separately named for an individual pick:
+    render only the whole-suite line for it — the individual pick is redundant, not
+    contradictory, so drop it silently rather than flagging it back to the user.
+
+  Use the resulting multi-line block everywhere `{{SKILLS_SOURCES_COMMANDS}}` appears. Also
+  record, for `{{SKILLS_SOURCES_SUMMARY}}` below: only naming a trusted source matters here —
+  `-y --copy -g` installs and re-syncs that source's skills unattended on every container start,
+  with no per-skill review step, and an installed skill's instructions can influence what the
+  agent does inside the container. Tell the user this caution as part of asking the question, not
+  as an afterthought.
+- `{{SKILLS_SOURCES_SUMMARY}}` — the chosen sources and picks as a short human-readable list for
+  the README's prose (e.g. `` `mattpocock/skills` (full), `ken-guru/skills` (full),
+  `anthropics/skills/frontend-design` ``) — distinguishing whole-suite sources from individual
+  picks, since the README's "Automatic skill sync" section states both. If the user named nothing
+  (declined both defaults and no individual picks), render as "none configured."
 - `{{SELECTED_TOOLS_SUMMARY}}` — a short human-readable list of the tools selected across this
   run and any already-existing ones (e.g. `` Claude Code, Codex ``), for the README's prose.
 
@@ -227,7 +269,15 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 - `.devcontainer/claude-code/post-start.sh` (Claude Code only) ←
   [templates/claude-code/post-start.sh](templates/claude-code/post-start.sh), substituted. Always rewritten (even on an
   already-existing Claude Code Tool Container) to ensure skill sync stays current.
+- `.devcontainer/copilot/post-start.sh` (Copilot only) ←
+  [templates/copilot/post-start.sh](templates/copilot/post-start.sh) (no placeholders to substitute
+  — it reads `COPILOT_CLI_VERSION` from the container's own environment at runtime, not from this
+  skill). Always rewritten, same as Claude Code's, for consistency.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
+
+If **Copilot** was newly selected:
+
+- `.devcontainer/.env.example` gets [templates/env.copilot-block.example](templates/env.copilot-block.example) appended (only if not already present), substituting `{{COPILOT_CLI_VERSION}}` with this run's answer — unlike `GH_TOKEN`/`DEVCONTAINER_HOST`, this value is already known at setup time, so it's rendered directly rather than left as a static placeholder for the user to edit blindly.
 
 If **Codex** was newly selected, append the following caveat to `.devcontainer/README.md` (under
 a "Gotchas" or "CLI Notes" section, creating one if it doesn't exist):
@@ -264,7 +314,7 @@ Always (every run, regardless of which tools are new):
 
 - `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
-- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist; otherwise just update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place.
+- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
 - If **Claude Code** is selected (newly or already), add `.claude/worktrees/` to `.gitignore` if
   it isn't already ignored: `claude --worktree` (used by the `claude-yolo` alias, and available to
@@ -305,15 +355,10 @@ Tell the user, adapted to which tools were selected and which have SSH/yolo:
 7. {{For each tool with its YOLO alias present: a new shell in that tool's
    container has its alias available for fast, unattended iteration —
    `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo` (matching the
-   tool's actual CLI command, not its folder name).}}
-8. {{If Antigravity was selected and its `agy-yolo` alias is present:
-   `agy-yolo`'s real safety boundary is a curated `permissions.allow` list,
-   not a sandbox flag — this is a manual, once-per-machine step, deliberately
-   not auto-templated. Add to `~/.antigravity/antigravity-cli/settings.json`
-   a list scoped to the repo's actual safe commands, starting from `git`,
-   `gh`, `ls`, `cat` and extending with whatever else this repo's workflows
-   need (package manager, test runner, etc.) — never `rm`, `curl`, raw
-   `bash -c`, or a wildcard.}}
+   tool's actual CLI command, not its folder name). See the README's "YOLO
+   aliases" section for what each one's permission tradeoff actually means
+   before using it — Antigravity's in particular needs one manual setup step
+   there before `agy-yolo` is meaningfully safe.}}
 
 Done when the user has been told every applicable item above, adapted to which tools, SSH layer,
 and YOLO aliases are present.
@@ -336,7 +381,13 @@ now wants an additional tool:
    of tools (old and new together), so every already-existing tool's service
    definition is preserved automatically — nothing about an existing tool's
    files is touched by this flow.
-6. Run step 7, scoped to the newly-added tool(s)' next steps only.
+6. If **Copilot** was newly added and `.devcontainer/.env` already exists (it must, for the
+   already-existing tool(s) to have worked at all): step 6's env-block append only reaches
+   `.env.example`, not the live, gitignored `.env` — the same gap `DEVCONTAINER_HOST` has when SSH
+   is added later. Tell the user the exact `COPILOT_CLI_VERSION` line to add to their existing
+   `.env`, matching whatever this run's Copilot-version question answered (default: `latest`),
+   rather than leaving it to only take effect on some future fresh `.env`.
+7. Run step 7, scoped to the newly-added tool(s)' next steps only.
 
 Done when the new tool's files exist and pass the same step-6 checks, the
 existing tools' files are byte-for-byte unchanged (aside from
