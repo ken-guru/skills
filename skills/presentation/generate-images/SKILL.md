@@ -19,7 +19,7 @@ media metadata where their contract requires exact wording.
 
 Protocol: resolve Media Scope, choose Generation Mode, review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,
-and preserve unrelated phase records. Gemini setup remains local.
+and preserve unrelated phase records. Provider setup remains local.
 
 ## Startup
 
@@ -29,7 +29,7 @@ Before proceeding:
 2. Check `IMAGE_SPEC.md` exists. If not:
    > ❌ `IMAGE_SPEC.md` not found. Create and approve an image specification before rendering images.
    Abort.
-3. Check `GEMINI_API_KEY` is set: `echo "$GEMINI_API_KEY"`. If empty, show setup instructions from [PROVIDERS.md](PROVIDERS.md) and abort.
+3. Provider and model resolve automatically inside the script — from `--provider=`/`--model=` flags, `GEMINI_API_KEY`/`OPENAI_API_KEY`, or any prior choice persisted in `PROJECT.json`. No separate check is needed here: if misconfigured, the script exits with a clear, actionable error pointing at [PROVIDERS.md](PROVIDERS.md).
 4. Check `node` is available: `which node`. If not found, abort: ❌ `node` not installed.
 5. Resolve the absolute directory containing this invoked `SKILL.md`. Set the runtime
    bundle path to `<skill-directory>/scripts/generate-images.js` and require that
@@ -63,9 +63,8 @@ Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 ### Step 2: Select generation mode
 
 ```
-💡 N image(s) will be generated
-   Gemini charges per image, not per token.
-   Pricing: https://ai.google.dev/gemini-api/docs/pricing
+💡 N image(s) will be generated using <provider> (<model>)
+   See PROVIDERS.md for pricing details.
 
   1  All at once   — generate selected images in sequence
   2  One at a time — pause after each image for your review
@@ -77,7 +76,7 @@ Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
-  "<IMAGE_SPEC.md path>" [--force] [--slides=N,M,...] [--model=<id>] [--delay=<seconds>]
+  "<IMAGE_SPEC.md path>" [--force] [--slides=N,M,...] [--provider=<gemini|openai>] [--model=<id>] [--delay=<seconds>]
 ```
 
 - Scope A → no extra flags (script skips existing files by default)
@@ -90,7 +89,7 @@ For each image in scope, run:
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
-  "<IMAGE_SPEC.md path>" --slide=N --force [--model=<id>]
+  "<IMAGE_SPEC.md path>" --slide=N --force [--provider=<gemini|openai>] [--model=<id>]
 ```
 
 After each, present:
@@ -121,16 +120,21 @@ These flags bypass the interactive prompts — useful for scripting or repeat ru
 | `--force` | Skip scope prompt — regenerate all images in batch |
 | `--slide=N` | Skip all prompts — generate only slide N |
 | `--slides=N,M,...` | Skip scope prompt — generate specific slides in batch |
-| `--model=<id>` | Override the default model (see [PROVIDERS.md](PROVIDERS.md#models)) |
-| `--delay=<seconds>` | Pause between requests (default: 1s; increase on free-tier rate limits) |
+| `--provider=<gemini\|openai>` | Override the auto-detected provider (see [PROVIDERS.md](PROVIDERS.md)) |
+| `--model=<id>` | Override the default model for the resolved provider (see [PROVIDERS.md](PROVIDERS.md#models)) |
+| `--delay=<seconds>` | Pause between requests (default: 1s; increase to avoid rate limits — see [PROVIDERS.md](PROVIDERS.md)) |
 
 ## Providers
 
-Default: **Gemini** (`gemini-3.1-flash-image`). For setup, other providers, and security guidance, see [PROVIDERS.md](PROVIDERS.md).
+Auto-detected from whichever key is set — `GEMINI_API_KEY` or `OPENAI_API_KEY`. Gemini is the default when both are present. Override with `--provider=gemini|openai`. For setup and security guidance, see [PROVIDERS.md](PROVIDERS.md).
 
 ## Project state
 
 Read `paths.imageSpec` and `paths.images` from `DISCOVERY.json`, falling back to
-`IMAGE_SPEC.md` and `images/`. After all selected entries succeed, set
-`PROJECT.json` `phases.images.status` to `"done"` and record its completion
-timestamp. On cancellation or any failed entry, do not mark the phase done.
+`IMAGE_SPEC.md` and `images/`. The script persists the resolved `provider`,
+`providerSource`, `model`, and `modelSource` (see
+[docs/state-schema.md](../docs/state-schema.md)) to `PROJECT.json`
+`phases.images` as soon as they're resolved, independent of generation outcome.
+After all selected entries succeed, set `phases.images.status` to `"done"` and
+record its completion timestamp. On cancellation or any failed entry, do not
+mark the phase done.

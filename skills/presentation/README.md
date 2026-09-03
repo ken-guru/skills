@@ -75,8 +75,10 @@ for the persisted shape.
   either phase is invoked.
 - **Node.js:** also required and checked by Generate Images.
 - **D2:** required only when Generate Diagrams renders a diagram.
-- **Gemini credential:** required only when Generate Images calls Gemini. Its pinned
-  SDK is already bundled; installed execution performs no package installation.
+- **Image Provider credential:** required only when Generate Images runs — either
+  `GEMINI_API_KEY` or `OPENAI_API_KEY`, whichever the resolved provider needs. Both
+  providers' pinned SDKs are already bundled; installed execution performs no
+  package installation.
 
 Each member checks only the prerequisite it uses.
 

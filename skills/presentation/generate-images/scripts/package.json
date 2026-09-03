@@ -7,7 +7,8 @@
     "check:bundle": "node check-bundle.mjs"
   },
   "dependencies": {
-    "@google/genai": "1.52.0"
+    "@google/genai": "1.52.0",
+    "openai": "7.9.0"
   },
   "overrides": {
     "protobufjs": "7.6.5"

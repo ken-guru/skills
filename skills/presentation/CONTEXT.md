@@ -102,6 +102,17 @@ preservation protocol while retaining distinct provider behavior.
 
 _Avoid_: media generator, rendering helper
 
+**Image Provider** — The external AI image-generation API (e.g. Gemini, OpenAI)
+that the Image Media Renderer calls to fulfill one Media Spec entry. Providers
+differ in auth, models, and response format but share one seam: a prompt in,
+a PNG buffer out.
+_Avoid_: image backend, image API, image vendor
+
+**Provider Selection** — How the Image Media Renderer picks an Image Provider
+for a run: an explicit override when given, otherwise auto-detected from which
+provider's API key is set in the environment.
+_Avoid_: provider config, provider mode
+
 **Generation Mode** — How media (images or diagrams) is produced within a run. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
 _Avoid_: run mode, output mode, step-by-step mode
 
