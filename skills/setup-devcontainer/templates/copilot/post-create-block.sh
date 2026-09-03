@@ -15,6 +15,18 @@ sudo chown -R vscode:vscode "$HOME/.copilot"
 # Auth: the installed `copilot` CLI picks up this container's GH_TOKEN
 # automatically (falling back to OAuth/`gh auth token` if unset), so no
 # separate login step is needed here.
+#
+# Version: the installer already supports a VERSION env var to pin an exact
+# release (falling back to latest when unset) — COPILOT_CLI_VERSION comes
+# from .env, defaulting to "latest", which is translated to an unset VERSION
+# so the installer's own default behavior applies unchanged. VERSION has to
+# be set on the `bash` side of the pipe, not `curl`'s — a leading `VAR=val`
+# prefix only scopes to the command it directly precedes, and it's the
+# piped-into `bash` that actually reads VERSION, not `curl`.
 if [ ! -x "$HOME/.local/bin/copilot" ]; then
-  curl -fsSL https://gh.io/copilot-install | bash || echo "Warning: Copilot CLI install failed, continuing without it" >&2
+  if [ "${COPILOT_CLI_VERSION:-latest}" = "latest" ]; then
+    curl -fsSL https://gh.io/copilot-install | bash
+  else
+    curl -fsSL https://gh.io/copilot-install | VERSION="${COPILOT_CLI_VERSION}" bash
+  fi || echo "Warning: Copilot CLI install failed, continuing without it" >&2
 fi

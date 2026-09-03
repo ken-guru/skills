@@ -8,6 +8,18 @@
   identity, not of any one AI CLI, so every SSH-enabled Tool Container reuses
   the same registered key pair rather than each tool registering its own.
 
+**Why sharing one key pair doesn't widen the blast radius.** If either key's
+material is ever exfiltrated from a Tool Container, the attacker already has
+full push/sign capability for this repo's identity from wherever they
+extracted it — isolating each tool's keys wouldn't have prevented that,
+since Docker boundaries between Tool Containers don't apply once the key
+itself is out. Per-tool isolation would only buy *selective revocation*
+(distrust one tool without touching the others' keys), which isn't worth
+multiplying the signing key's manual GitHub-UI registration step by every
+enabled tool: wiping the shared volume and regenerating is already a
+fully-scripted, fast operation, so "revoke and redo for everyone" is an
+acceptable response to distrusting any one tool.
+
 Two separate ED25519 keys exist because GitHub rejects a public key as a
 signing key once that same key is already registered as a deploy key. Each
 SSH-enabled Tool Container's `post-create.sh` generates `~/.ssh/id_ed25519`

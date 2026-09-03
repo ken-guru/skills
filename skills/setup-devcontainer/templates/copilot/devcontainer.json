@@ -7,5 +7,7 @@
   "remoteUser": "vscode",
   "init": true,
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
-  "postCreateCommand": "bash .devcontainer/copilot/post-create.sh"
+  "postCreateCommand": "bash .devcontainer/copilot/post-create.sh",
+  "postStartCommand": "bash .devcontainer/copilot/post-start.sh",
+  "waitFor": "postStartCommand"
 }

@@ -50,6 +50,52 @@ if you plan to use more than one tool at a time): open two Tool Containers
 this way and confirm both stay attached in their own windows at the same
 time. If you only ever use one tool, you can skip this entirely.
 
+## Automatic skill sync
+
+Claude Code only: {{SKILLS_SOURCES_SUMMARY}} sync into `~/.claude/skills`
+automatically on every container start — nothing to enable manually, and
+nothing to run yourself inside the container.
+
+**Only naming a source you trust matters here.** Syncing installs and
+re-syncs that source's skills unattended, with no per-skill review step, and
+an installed skill's instructions can influence what the agent does inside
+the container. To change which sources sync, re-run this skill and answer
+the skill-sources question differently.
+
+## YOLO aliases
+
+Each tool's `-yolo` alias trades some of its normal permission checkpoints
+for faster, more unattended iteration. The specific tradeoff differs per
+tool — read the one for any alias you plan to use before relying on it:
+
+- **`claude-yolo`** (`claude --permission-mode auto --worktree --remote-control`):
+  uses classifier-based auto permission mode rather than
+  `--dangerously-skip-permissions`, deliberately — the latter triggers Claude
+  Code's own sandbox, whose mount-namespace view of the repo conflicts with
+  git's worktree identity check and breaks worktree creation every time.
+- **`codex-yolo`** (`codex --ask-for-approval on-request --sandbox workspace-write
+  -c sandbox_workspace_write.network_access=true`): uses an on-request
+  approval mode rather than Codex's full-bypass equivalent
+  (`--dangerously-bypass-approvals-and-sandbox`), so the model still has a
+  real internal checkpoint — it judges when to escalate to a human, rather
+  than never escalating. The Tool Container's `capAdd`/`securityOpt` grants
+  are what let the `workspace-write` sandbox actually create its namespace.
+- **`agy-yolo`** (`agy --mode accept-edits`): does **not** use
+  `--dangerously-skip-permissions --sandbox` — Antigravity auto-approves its
+  own sandbox's internal prompts once `--dangerously-skip-permissions` is
+  present, making `--sandbox` a no-op (a filed upstream Google bug,
+  antigravity-cli#36). The real safety boundary here is a curated
+  `permissions.allow` list, not a sandbox flag — a manual, once-per-machine
+  step, deliberately not auto-templated. Add to
+  `~/.antigravity/antigravity-cli/settings.json` a list scoped to this
+  repo's actual safe commands, starting from `git`, `gh`, `ls`, `cat` and
+  extending with whatever else this repo's workflows need (package manager,
+  test runner, etc.) — never `rm`, `curl`, raw `bash -c`, or a wildcard.
+- **`copilot-yolo`**: not a real bypass — Copilot CLI has no unattended/
+  auto-approve flag of its own, so this alias just echoes the manual step
+  needed instead (`/sandbox enable`, typed inside a regular `copilot`
+  session).
+
 ## Gotchas fixed here (and why)
 
 **`remoteUser` must match the base image's actual non-root user.** The base
