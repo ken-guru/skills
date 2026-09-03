@@ -28,6 +28,28 @@ function decodeBase64Image(base64) {
   return Buffer.from(base64, 'base64');
 }
 
+// Gemini's image models only ever return JPEG (confirmed live: every model rejects
+// response_format.mime_type: 'image/png' with a 400), but IMAGE_SPEC.md fixes each
+// slide's output filename — and its .png extension — before generation. Transcode so
+// the file written under that filename is genuinely PNG.
+function transcodeJpegToPng(jpegBuffer) {
+  const jpeg = require('jpeg-js');
+  const { PNG } = require('pngjs');
+
+  const decoded = jpeg.decode(jpegBuffer, { useTArray: true });
+  const png = new PNG({ width: decoded.width, height: decoded.height });
+  png.data = Buffer.from(decoded.data);
+
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    png
+      .pack()
+      .on('data', (chunk) => chunks.push(chunk))
+      .on('end', () => resolve(Buffer.concat(chunks)))
+      .on('error', reject);
+  });
+}
+
 const args = process.argv.slice(2);
 const specPath = path.resolve(args.find(a => !a.startsWith('--')) || 'IMAGE_SPEC.md');
 const force = args.includes('--force');
@@ -143,13 +165,15 @@ function createGeminiGenerator() {
   const ai = new GoogleGenAI({ apiKey: process.env[PROVIDERS.gemini.key] });
 
   return async (prompt) => {
-    const interaction = await ai.interactions.create({
+    const response = await ai.models.generateContent({
       model,
-      input: prompt,
-      response_format: { type: 'image', mime_type: 'image/png' },
+      contents: prompt,
+      config: { responseModalities: ['TEXT', 'IMAGE'] },
     });
 
-    return decodeBase64Image(interaction.output_image?.data);
+    const parts = response.candidates?.[0]?.content?.parts ?? [];
+    const inlineData = parts.find((part) => part.inlineData?.data)?.inlineData?.data;
+    return transcodeJpegToPng(decodeBase64Image(inlineData));
   };
 }
 
