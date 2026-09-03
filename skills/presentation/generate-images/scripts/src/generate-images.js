@@ -143,15 +143,13 @@ function createGeminiGenerator() {
   const ai = new GoogleGenAI({ apiKey: process.env[PROVIDERS.gemini.key] });
 
   return async (prompt) => {
-    const response = await ai.models.generateContent({
+    const interaction = await ai.interactions.create({
       model,
-      contents: prompt,
-      config: { responseModalities: ['TEXT', 'IMAGE'] },
+      input: prompt,
+      response_format: { type: 'image', mime_type: 'image/png' },
     });
 
-    const parts = response.candidates?.[0]?.content?.parts ?? [];
-    const inlineData = parts.find((part) => part.inlineData?.data)?.inlineData?.data;
-    return decodeBase64Image(inlineData);
+    return decodeBase64Image(interaction.output_image?.data);
   };
 }
 
