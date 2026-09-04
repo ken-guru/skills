@@ -42,6 +42,17 @@ bundling every tool together. See
   `codex-yolo`, `agy-yolo` (Antigravity's binary is `agy`, not `antigravity`),
   `copilot-yolo`. Optional per tool — some developers don't want a
   no-holds-barred agent available inside a given Tool Container at all.
+- **Container identity banner** — every Tool Container prints a one-line
+  banner naming itself (e.g. `── Claude Code Tool Container ──`) at the top
+  of every new terminal, so it's always obvious which CLI's container a
+  given shell belongs to. Every non-Copilot Tool Container also disables VS
+  Code's own built-in `terminal.integrated.initialHint` terminal hint via
+  `customizations.vscode.settings` — that hint suggests "Type `copilot` to
+  use Copilot CLI" based on the local VS Code window's Copilot/Chat
+  entitlement state, not on what's actually installed in the attached
+  container, so left enabled it misleadingly nudges toward Copilot even
+  inside, say, a Claude Code Tool Container. Left enabled only in Copilot's
+  own Tool Container, where the suggestion happens to be correct.
 
 ## 1. Detect the target repo
 
@@ -208,6 +219,9 @@ Both are addable later per tool without redoing anything already generated
   (declined both defaults and no individual picks), render as "none configured."
 - `{{SELECTED_TOOLS_SUMMARY}}` — a short human-readable list of the tools selected across this
   run and any already-existing ones (e.g. `` Claude Code, Codex ``), for the README's prose.
+- `{{TOOL_DISPLAY_NAME}}` — the tool's display name for the identity banner (step 6), matching its
+  `devcontainer.json` `name` field exactly: `claude-code` → `Claude Code`, `codex` → `Codex`,
+  `antigravity` → `Antigravity`, `copilot` → `Copilot`.
 
 ## 5. Build or reuse the shared base image
 
@@ -270,10 +284,13 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   answer was yes), substitute `{{REPO_NAME}}`, and write it.
 - `.devcontainer/<tool>/post-create.sh` — assembled by concatenating, in order:
   1. [templates/post-create-base.sh](templates/post-create-base.sh), substituted (git identity — shared across every tool).
-  2. [templates/<tool>/post-create-block.sh](templates/) (this tool's CLI install and config-volume ownership fix).
-  3. [templates/<tool>/yolo-alias-block.sh](templates/) — only if this tool's yolo answer was yes.
-  4. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it.
-  5. [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh) — only if this tool's SSH answer was yes, immediately after the SSH block above. Appends a snippet to `~/.bashrc` that surfaces any of this SSH layer's three standing warnings (setup skipped, signing key unregistered, deploy key missing on GitHub) at the top of every new terminal, not just once at attach — `postCreateCommand`/`postAttachCommand` each fire once per rebuild/attach, not per terminal tab.
+  2. [templates/identity-banner-block.sh](templates/identity-banner-block.sh), substituted with this tool's
+     `{{TOOL_DISPLAY_NAME}}` — every tool gets this, unconditionally. Appends a snippet to `~/.bashrc` that
+     prints which Tool Container the shell is in at the top of every new terminal.
+  3. [templates/<tool>/post-create-block.sh](templates/) (this tool's CLI install and config-volume ownership fix).
+  4. [templates/<tool>/yolo-alias-block.sh](templates/) — only if this tool's yolo answer was yes.
+  5. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it.
+  6. [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh) — only if this tool's SSH answer was yes, immediately after the SSH block above. Appends a snippet to `~/.bashrc` that surfaces any of this SSH layer's three standing warnings (setup skipped, signing key unregistered, deploy key missing on GitHub) at the top of every new terminal, not just once at attach — `postCreateCommand`/`postAttachCommand` each fire once per rebuild/attach, not per terminal tab.
 - `.devcontainer/<tool>/post-start.sh` (every selected tool gets one — Claude Code, Codex,
   Antigravity, and Copilot all sync skills identically) ←
   [templates/<tool>/post-start.sh](templates/), substituted with that tool's own
