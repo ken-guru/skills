@@ -6,6 +6,13 @@
   "shutdownAction": "none",
   "remoteUser": "vscode",
   "init": true,
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.initialHint": false
+      }
+    }
+  },
   "mounts": [
     "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
   ],

@@ -20,6 +20,9 @@ Selected tools this run: {{SELECTED_TOOLS_SUMMARY}}.
   tool's container can't read another's config, auth, or history.
 - `gh` CLI auth in every Tool Container comes from a `GH_TOKEN` env var
   supplied via one shared, gitignored `.devcontainer/.env` file — see below.
+- Every terminal you open prints a one-line banner naming which Tool
+  Container it is (e.g. `── Claude Code Tool Container ──`), so it's always
+  obvious which CLI's container a given shell belongs to.
 
 ## Opening a Tool Container
 
@@ -121,6 +124,16 @@ config volume mount after it's attached.
 Container uses `dockerComposeFile` + `service`, which is what makes
 concurrent use (above) possible in the first place; a plain-image
 `devcontainer.json` only ever supports one container per workspace at a time.
+
+**VS Code's own "Type `copilot` to use Copilot CLI" terminal hint is
+misleading here.** VS Code's built-in `terminal.integrated.initialHint`
+feature shows that suggestion in every fresh terminal based on the local VS
+Code window's Copilot/Chat entitlement state, not on what's actually
+installed in the attached container — so it appears even inside a Claude
+Code, Codex, or Antigravity Tool Container, where `copilot` isn't installed
+at all. Fix: every non-Copilot Tool Container's `devcontainer.json` disables
+it via `customizations.vscode.settings`; Copilot's own Tool Container leaves
+it enabled, since there the suggestion is correct.
 
 ## Troubleshooting
 

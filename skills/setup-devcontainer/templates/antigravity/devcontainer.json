@@ -6,6 +6,13 @@
   "shutdownAction": "none",
   "remoteUser": "vscode",
   "init": true,
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.initialHint": false
+      }
+    }
+  },
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/antigravity/post-create.sh",
   "postStartCommand": "bash .devcontainer/antigravity/post-start.sh",
