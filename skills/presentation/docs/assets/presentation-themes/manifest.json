@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "fixtureVersion": 1,
-  "sourceFingerprint": "762acb6a373f4d942e968fef3a22ad0101644fb9548a229a9a579b1eb56ff1df",
+  "sourceFingerprint": "0ad2c44b2bedab62687529d75d0d500444bf81f5d8ce962886a112a8499ae030",
   "sourceMedia": {
     "sha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb"
   },
@@ -20,8 +20,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 339535,
-      "sha256": "b076d183b5cea060ef13a737c23e9600778861eb76db9f122aebc19df3dc1aea"
+      "bytes": 339534,
+      "sha256": "b62e3be06f70f2a0fca46aac5d90d2cfbb78eafd185994d0a4a4ecf67a41b806"
     },
     "editorial-section.png": {
       "theme": "editorial",
@@ -129,7 +129,7 @@
       "width": 1280,
       "height": 720,
       "bytes": 46539,
-      "sha256": "f157aceb850433ffb731e83fba2d3a74cfcc455aa9346dead09b20dedd0c4994"
+      "sha256": "e38e4f3e4807f971d28f9bb1ad1dd623e4e1032d4e12e32e990afc852806fb78"
     },
     "signal-text-only.png": {
       "theme": "signal",
@@ -152,8 +152,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 496335,
-      "sha256": "041744a7654c5c625fffe1404b8506e5f313ac409e61e541f165e0f43dfc2a49"
+      "bytes": 496374,
+      "sha256": "a77f73e79db0db0a4dbd24394b9748d1f8d2d5794f4f6cd0523463d11093c075"
     },
     "signal-full-image.png": {
       "theme": "signal",
@@ -212,8 +212,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 580925,
-      "sha256": "8cdb6aca2ac2a38d691ded8a5af146b8d884a2df335b5acf4e6ea29bebc7a2e0"
+      "bytes": 580928,
+      "sha256": "dc0c6b485565fcacdc67da6f5e5774fccc448df18cc1acfef397ab189ac1c42f"
     },
     "compact-signal-section.png": {
       "theme": "compact-signal",
@@ -248,8 +248,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 444710,
-      "sha256": "e15337f9fc61543ed51d9766276f5f16c85cb124b64029d6e193e329b9bff49c"
+      "bytes": 444714,
+      "sha256": "4fed90e89c5a394d86ae30c485145ec02d07d5bb8f69d8f3994b526f4f794d46"
     },
     "compact-signal-full-image.png": {
       "theme": "compact-signal",
@@ -392,8 +392,8 @@
       "sourceMediaSha256": "5c835a31752a151c67a430cc8e7f71e58793084f74690383f5f8a4df2a61bcbb",
       "width": 1280,
       "height": 720,
-      "bytes": 65847,
-      "sha256": "7b362a0c7f88a475a887e5c9d12b70b279cc83ce3528c3ce0b6862f391c4761e"
+      "bytes": 65846,
+      "sha256": "269dd5f794946443fe163d0be75ab5e4f63cd8c9a09debe5cd6f1e51a59685af"
     }
   }
 }
