@@ -26,3 +26,13 @@ This tier is **not** run in CI: browser and font rendering differ enough machine
 - After you're happy with new gallery images, run `npm run approve-gallery -- --approve` to copy them into `docs/assets/presentation-themes/` and refresh `manifest.json`'s provenance record. This is bookkeeping for future readers, not something CI enforces — nothing blocks a PR if you skip it, but keeping it current makes the next `git blame` on a gallery image meaningful.
 
 Generated decks, screenshots, contact sheets, and reports are ignored and must not be committed; only the approved images under `../../docs/assets/presentation-themes/` are.
+
+## Known dependency warnings
+
+`npm ci`/`npm install` here prints an `mathjax-full@3.2.2` deprecation warning (bundled by `@marp-team/marp-core@4.4.0`, a `marp-cli` dependency). This is accepted and tracked, not a bug to fix:
+
+- `mathjax-full@3.2.2` is the newest 3.x release — there's no non-deprecated 3.x version to bump to. The deprecation notice points at `@mathjax/src` (v4), which only ships via `marp-core@5.x` as a peer dependency.
+- Forcing `marp-core@5.0.1` via an npm `overrides` entry was tested and found not viable yet: its default entrypoint ships with zero plugins registered (math/syntax-highlighting/mermaid all became opt-in imports), and `marp-cli@4.5.0` — the version this suite depends on — was never updated to request them. `marp-core@5.0.1` is also npm dist-tagged `next`, not `latest`, and marked a prerelease by its own maintainers.
+- Full findings: [`research/marp-core-5-compat.md`](https://github.com/ken-guru/skills/blob/research/marp-core-5-compat/research/marp-core-5-compat.md), from [ken-guru/skills#163](https://github.com/ken-guru/skills/issues/163).
+
+Revisit once **both** are true: `@marp-team/marp-core` promotes a 5.x release to its `latest` npm dist-tag, and `@marp-team/marp-cli` ships a release depending on `marp-core@^5`. Either alone repeats the plugin-registration gap the research found.
