@@ -135,16 +135,10 @@ For each **newly** selected tool, ask independently:
   session.) Each tool's `-yolo` alias reduces its permission checkpoints for
   faster iteration; the exact tradeoff differs per tool — see the README's
   "YOLO aliases" section for specifics.
-- **Copilot CLI version** (Copilot only): always install the latest release,
-  or lock to a specific version? Look up the current latest release
-  (`gh api repos/github/copilot-cli/releases/latest --jq .tag_name`) and
-  suggest it as the default value to lock to if the user wants to pin.
-  Record the answer as `{{COPILOT_CLI_VERSION}}` (`latest`, or the exact
-  version string with no leading `v`).
 
 Record these answers — they decide which template variants steps 5–6 use.
-All three are addable later per tool without redoing anything already
-generated (see the append-flows below).
+Both are addable later per tool without redoing anything already generated
+(see the append-flows below).
 
 ## 4. Resolve placeholders
 
@@ -154,9 +148,6 @@ generated (see the append-flows below).
   `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
   the base post-create script instead of the `:-` form, and drop the parenthetical in
   `.env.example`'s comment.
-- `{{COPILOT_CLI_VERSION}}` (Copilot only) — the answer collected in step 3 (`latest`, or an exact
-  version string). If Copilot wasn't newly selected this run (already existing, or not selected at
-  all), this placeholder doesn't apply.
 - `{{SKILLS_SOURCES_COMMANDS}}` (any selected tool — Claude Code, Codex, Antigravity, and Copilot
   all support this identically) — ask the user one combined question, asked once regardless of
   how many of the four tools are selected: sync AI-agent skills into every selected Tool Container
@@ -287,15 +278,9 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   Antigravity, and Copilot all sync skills identically) ←
   [templates/<tool>/post-start.sh](templates/), substituted with that tool's own
   `{{SKILLS_SOURCES_COMMANDS}}` block from step 4 (using that tool's `-a` value, never another
-  tool's). Copilot's template also reads `COPILOT_CLI_VERSION` from the container's own
-  environment at runtime for its unrelated version-staleness-check block, not from this skill.
-  Always rewritten (even on an already-existing Tool Container) to ensure skill sync stays
-  current.
+  tool's). Always rewritten (even on an already-existing Tool Container) to ensure skill sync
+  stays current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
-
-If **Copilot** was newly selected:
-
-- `.devcontainer/.env.example` gets [templates/env.copilot-block.example](templates/env.copilot-block.example) appended (only if not already present), substituting `{{COPILOT_CLI_VERSION}}` with this run's answer — unlike `GH_TOKEN`/`DEVCONTAINER_HOST`, this value is already known at setup time, so it's rendered directly rather than left as a static placeholder for the user to edit blindly.
 
 If **Codex** was newly selected, append the following caveat to `.devcontainer/README.md` (under
 a "Gotchas" or "CLI Notes" section, creating one if it doesn't exist):
@@ -399,13 +384,7 @@ now wants an additional tool:
    of tools (old and new together), so every already-existing tool's service
    definition is preserved automatically — nothing about an existing tool's
    files is touched by this flow.
-6. If **Copilot** was newly added and `.devcontainer/.env` already exists (it must, for the
-   already-existing tool(s) to have worked at all): step 6's env-block append only reaches
-   `.env.example`, not the live, gitignored `.env` — the same gap `DEVCONTAINER_HOST` has when SSH
-   is added later. Tell the user the exact `COPILOT_CLI_VERSION` line to add to their existing
-   `.env`, matching whatever this run's Copilot-version question answered (default: `latest`),
-   rather than leaving it to only take effect on some future fresh `.env`.
-7. Run step 7, scoped to the newly-added tool(s)' next steps only.
+6. Run step 7, scoped to the newly-added tool(s)' next steps only.
 
 Done when the new tool's files exist and pass the same step-6 checks, the
 existing tools' files are byte-for-byte unchanged (aside from
