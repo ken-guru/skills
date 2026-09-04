@@ -11,5 +11,7 @@
   ],
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/codex/post-create.sh",
-  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+  "postStartCommand": "bash .devcontainer/codex/post-start.sh",
+  "postAttachCommand": "bash .devcontainer/post-attach.sh",
+  "waitFor": "postStartCommand"
 }

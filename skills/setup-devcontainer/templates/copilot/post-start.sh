@@ -1,14 +1,26 @@
 #!/bin/bash
 set -euo pipefail
-# Runs on every container start (not just create/rebuild). Copilot-specific:
-# when COPILOT_CLI_VERSION is pinned (not "latest"), checks once per start
-# whether a newer release exists, caching the result to a local file so the
-# every-terminal warnings snippet in ~/.bashrc (appended below, once) can
-# show it without any terminal paying for its own network call. Any lookup
-# failure degrades to silence — never blocks or slows down startup. A slow
-# (not just failed) response is capped by `timeout` for the same reason: a
-# hung network call would otherwise stall `postStartCommand` itself, and
-# this container's `waitFor: postStartCommand` would then delay readiness.
+# Runs on every container start (not just create/rebuild). Two unrelated
+# jobs share this one script/hook, same as this skill's other concatenated
+# lifecycle scripts: skill sync below, then Copilot's own version-staleness
+# check.
+
+# Copilot skills are wiped and reinstalled from the configured sources on
+# every start, so the skill set stays current with upstream instead of
+# persisting a stale copy across rebuilds. This lives inside the existing
+# per-repo Copilot config volume, so no separate volume is needed.
+rm -rf /home/vscode/.copilot/skills/* 2>/dev/null || true
+{{SKILLS_SOURCES_COMMANDS}}
+
+# Copilot-specific: when COPILOT_CLI_VERSION is pinned (not "latest"), checks
+# once per start whether a newer release exists, caching the result to a
+# local file so the every-terminal warnings snippet in ~/.bashrc (appended
+# below, once) can show it without any terminal paying for its own network
+# call. Any lookup failure degrades to silence — never blocks or slows down
+# startup. A slow (not just failed) response is capped by `timeout` for the
+# same reason: a hung network call would otherwise stall `postStartCommand`
+# itself, and this container's `waitFor: postStartCommand` would then delay
+# readiness.
 
 CACHE_FILE="$HOME/.copilot-version-check"
 PINNED="${COPILOT_CLI_VERSION:-latest}"

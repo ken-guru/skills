@@ -52,9 +52,14 @@ time. If you only ever use one tool, you can skip this entirely.
 
 ## Automatic skill sync
 
-Claude Code only: {{SKILLS_SOURCES_SUMMARY}} sync into `~/.claude/skills`
-automatically on every container start — nothing to enable manually, and
-nothing to run yourself inside the container.
+{{SKILLS_SOURCES_SUMMARY}} sync automatically on every container start, into
+whichever of these tools is selected — nothing to enable manually, and
+nothing to run yourself inside the container:
+
+- Claude Code → `~/.claude/skills`
+- Codex → `~/.codex/skills`
+- Antigravity → `~/.gemini/antigravity/skills`
+- Copilot → `~/.copilot/skills`
 
 **Only naming a source you trust matters here.** Syncing installs and
 re-syncs that source's skills unattended, with no per-skill review step, and

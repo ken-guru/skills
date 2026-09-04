@@ -157,15 +157,19 @@ generated (see the append-flows below).
 - `{{COPILOT_CLI_VERSION}}` (Copilot only) — the answer collected in step 3 (`latest`, or an exact
   version string). If Copilot wasn't newly selected this run (already existing, or not selected at
   all), this placeholder doesn't apply.
-- `{{SKILLS_SOURCES_COMMANDS}}` (Claude Code only) — ask the user one combined question: sync AI-agent
-  skills into this container automatically on every start? Two ready-made suites are available:
-  `mattpocock/skills` (a broad general-purpose skill baseline) and `ken-guru/skills` (this
-  collection — includes this very Skill, useful if a layer needs adding later from inside the
-  container). For each, ask yes/no. In the same prompt, also invite the user to name any other
-  individual skills they want, in `owner/repo/skill-name` form (e.g.
-  `anthropics/skills/frontend-design`) — mixing and matching freely, including picking specific
-  skills out of the two suites above instead of taking them whole. If the user just wants both
-  suites in full, saying yes to both and skipping the rest is the fast path.
+- `{{SKILLS_SOURCES_COMMANDS}}` (any selected tool — Claude Code, Codex, Antigravity, and Copilot
+  all support this identically) — ask the user one combined question, asked once regardless of
+  how many of the four tools are selected: sync AI-agent skills into every selected Tool Container
+  automatically on every start? Two ready-made suites are available: `mattpocock/skills` (a broad
+  general-purpose skill baseline) and `ken-guru/skills` (this collection — includes this very
+  Skill, useful if a layer needs adding later from inside the container). For each, ask yes/no. In
+  the same prompt, also invite the user to name any other individual skills they want, in
+  `owner/repo/skill-name` form (e.g. `anthropics/skills/frontend-design`) — mixing and matching
+  freely, including picking specific skills out of the two suites above instead of taking them
+  whole. If the user just wants both suites in full, saying yes to both and skipping the rest is
+  the fast path. The same answer applies identically to every selected tool — this question is
+  about *which skills*, not *which tool*; the tool-specific part is handled entirely by the
+  rendering step below, invisibly to the user.
 
   Validate live in this same conversation before rendering anything, for **every individually
   named skill pick, from any source including the two named defaults** (a whole-suite accept
@@ -177,17 +181,30 @@ generated (see the append-flows below).
   of `mattpocock/skills` or `ken-guru/skills` individually rather than taken as a whole suite —
   those two sources are pre-named, not pre-validated for every skill inside them.
 
-  Render one line per **distinct source**, in the order first mentioned:
+  Render one block **per selected tool**, since the underlying `npx skills` CLI installs to a
+  specific agent's own skills directory, not a shared one — each tool's block is identical to
+  every other's except for its `-a` value, taken from this fixed mapping:
+
+  | Tool | `-a` value |
+  | --- | --- |
+  | Claude Code | `claude-code` |
+  | Codex | `codex` |
+  | Antigravity | `antigravity` |
+  | Copilot | `github-copilot` |
+
+  Within each tool's block, render one line per **distinct source**, in the order first
+  mentioned:
   - A source accepted as a whole suite (either of the two defaults, or any other source the user
-    chose to take in full): `npx -y skills add <source> --skill '*' -a '*' -y --copy -g`.
+    chose to take in full): `npx -y skills add <source> --skill '*' -a <tool's agent name> -y --copy -g`.
   - A source with only individual picks (not accepted as a whole suite): `npx -y skills add
-    <source> --skill '<name1>' --skill '<name2>' ... -a '*' -y --copy -g`, listing only that
-    source's picked skills.
+    <source> --skill '<name1>' --skill '<name2>' ... -a <tool's agent name> -y --copy -g`, listing
+    only that source's picked skills.
   - A source both accepted as a whole suite **and** separately named for an individual pick:
     render only the whole-suite line for it — the individual pick is redundant, not
     contradictory, so drop it silently rather than flagging it back to the user.
 
-  Use the resulting multi-line block everywhere `{{SKILLS_SOURCES_COMMANDS}}` appears. Also
+  Use tool T's resulting multi-line block everywhere `{{SKILLS_SOURCES_COMMANDS}}` appears inside
+  tool T's own template(s) — never mix one tool's `-a` value into another tool's file. Also
   record, for `{{SKILLS_SOURCES_SUMMARY}}` below: only naming a trusted source matters here —
   `-y --copy -g` installs and re-syncs that source's skills unattended on every container start,
   with no per-skill review step, and an installed skill's instructions can influence what the
@@ -266,13 +283,14 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   3. [templates/<tool>/yolo-alias-block.sh](templates/) — only if this tool's yolo answer was yes.
   4. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it.
   5. [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh) — only if this tool's SSH answer was yes, immediately after the SSH block above. Appends a snippet to `~/.bashrc` that surfaces any of this SSH layer's three standing warnings (setup skipped, signing key unregistered, deploy key missing on GitHub) at the top of every new terminal, not just once at attach — `postCreateCommand`/`postAttachCommand` each fire once per rebuild/attach, not per terminal tab.
-- `.devcontainer/claude-code/post-start.sh` (Claude Code only) ←
-  [templates/claude-code/post-start.sh](templates/claude-code/post-start.sh), substituted. Always rewritten (even on an
-  already-existing Claude Code Tool Container) to ensure skill sync stays current.
-- `.devcontainer/copilot/post-start.sh` (Copilot only) ←
-  [templates/copilot/post-start.sh](templates/copilot/post-start.sh) (no placeholders to substitute
-  — it reads `COPILOT_CLI_VERSION` from the container's own environment at runtime, not from this
-  skill). Always rewritten, same as Claude Code's, for consistency.
+- `.devcontainer/<tool>/post-start.sh` (every selected tool gets one — Claude Code, Codex,
+  Antigravity, and Copilot all sync skills identically) ←
+  [templates/<tool>/post-start.sh](templates/), substituted with that tool's own
+  `{{SKILLS_SOURCES_COMMANDS}}` block from step 4 (using that tool's `-a` value, never another
+  tool's). Copilot's template also reads `COPILOT_CLI_VERSION` from the container's own
+  environment at runtime for its unrelated version-staleness-check block, not from this skill.
+  Always rewritten (even on an already-existing Tool Container) to ensure skill sync stays
+  current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
 
 If **Copilot** was newly selected:
