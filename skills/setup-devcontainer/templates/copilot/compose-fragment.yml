@@ -2,6 +2,15 @@
     image: {{REPO_NAME}}-copilot:{{BASE_IMAGE_VERSION}}
     env_file:
       - .env
+    environment:
+      # Disables the copilot CLI's own background self-update check, which
+      # otherwise throws on startup ("Error auto updating: TypeError:
+      # Invalid Version: latest") — not user-configurable, since this
+      # container always installs whatever's current at build time and
+      # relies on rebuilds (not the CLI mutating its own binary underneath
+      # it) to pick up new releases, same as the other three Tool
+      # Containers.
+      - COPILOT_AUTO_UPDATE=false
     volumes:
       - ..:/workspace:cached
       - {{REPO_NAME}}-copilot-config:/home/vscode/.copilot

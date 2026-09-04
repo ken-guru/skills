@@ -12,10 +12,17 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu
 # Node.js — none of the four AI CLIs need this themselves (all install as
 # native binaries), but it's kept as a general-purpose amenity for repos
 # whose own project code is JS/TS, installed once here instead of once per
-# Tool Container.
+# Tool Container. npm is bumped to current right after install since
+# nodesource's bundled npm lags behind — otherwise every fresh terminal
+# nags with npm's own "New major version available" update-notifier the
+# first time npm runs. NPM_CONFIG_UPDATE_NOTIFIER=false is kept as a
+# permanent guard on top of the bump, so that notice can't resurface just
+# because this base image goes stale between rebuilds.
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g npm@latest \
     && rm -rf /var/lib/apt/lists/*
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
 # GitHub CLI — used by every Tool Container for auth (`GH_TOKEN`) and, for
 # tools whose SSH layer is enabled, deploy-key/signing-key registration.
