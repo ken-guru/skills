@@ -15,8 +15,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect presentation changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      presentation: ${{ steps.filter.outputs.presentation }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect presentation changes
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # Fail open when there's no usable base to diff against (manual
+          # dispatch, a brand-new branch, shallow history) — run the full
+          # suite rather than silently skip a required check.
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "presentation=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE_SHA" "${{ github.sha }}" -- skills/presentation .github/workflows/presentation-theme-contracts.yml; then
+            echo "presentation=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "presentation=true" >> "$GITHUB_OUTPUT"
+          fi
+
   contracts:
     name: Presentation theme contracts
+    needs: changes
+    # Always run on a manual dispatch, regardless of what changed. Otherwise, skip
+    # the expensive steps below when nothing under skills/presentation/** changed —
+    # but the job itself must still run and report, since main's ruleset requires
+    # this check by name; a workflow-level `paths:` filter would leave it
+    # permanently pending on unrelated PRs instead of skipping cleanly.
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.presentation == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
