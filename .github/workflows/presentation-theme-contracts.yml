@@ -15,8 +15,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect presentation changes
+    runs-on: ubuntu-24.04
+    outputs:
+      presentation: ${{ steps.filter.outputs.presentation }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            presentation:
+              - 'skills/presentation/**'
+              - '.github/workflows/presentation-theme-contracts.yml'
+
   contracts:
     name: Presentation theme contracts
+    needs: changes
+    # Always run on a manual dispatch, regardless of what changed. Otherwise, skip
+    # the expensive steps below when nothing under skills/presentation/** changed —
+    # but the job itself must still run and report, since main's ruleset requires
+    # this check by name; a workflow-level `paths:` filter would leave it
+    # permanently pending on unrelated PRs instead of skipping cleanly.
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.presentation == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
