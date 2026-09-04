@@ -31,31 +31,17 @@ jobs:
       - name: Detect presentation changes
         id: filter
         env:
-          EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
         run: |
-          # Fail open (treat as a presentation change) for anything we don't
-          # know how to diff, or a push with no real prior commit to diff
-          # against (new branch, history rewrite) — better to run the full
-          # suite unnecessarily than to silently skip it.
-          if [ "$EVENT_NAME" != "pull_request" ] && [ "$EVENT_NAME" != "push" ]; then
+          # Fail open when there's no usable base to diff against (manual
+          # dispatch, a brand-new branch, shallow history) — run the full
+          # suite rather than silently skip a required check.
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
             echo "presentation=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            echo "presentation=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          changed_files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
-          echo "Changed files:"
-          echo "$changed_files"
-
-          if echo "$changed_files" | grep -qE '^(skills/presentation/|\.github/workflows/presentation-theme-contracts\.yml$)'; then
-            echo "presentation=true" >> "$GITHUB_OUTPUT"
-          else
+          elif git diff --quiet "$BASE_SHA" "${{ github.sha }}" -- skills/presentation .github/workflows/presentation-theme-contracts.yml; then
             echo "presentation=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "presentation=true" >> "$GITHUB_OUTPUT"
           fi
 
   contracts:
