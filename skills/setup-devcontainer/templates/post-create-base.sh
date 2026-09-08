@@ -1,16 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# Trust the bind-mounted workspace regardless of host/container UID mismatch.
-# The base image pins the vscode user to a fixed UID 1000 (see base.Dockerfile)
-# so every Tool Container shares an identical identity — but that UID rarely
-# matches the *host* user's UID that actually owns the bind-mounted repo
-# outside the container. Git's own "dubious ownership" safety check then
-# refuses to operate on /workspace at all ("detected dubious ownership in
-# repository"), which surfaces through Claude Code's `--worktree` flag as
-# "git identity could not be verified" — a confusing wrapper around the same
-# underlying refusal. `*` (not just /workspace) also covers the nested git
-# worktrees `claude --worktree` creates under /workspace/.claude/worktrees/.
+# Trust /workspace regardless of who owns it. Private Checkout's own clone
+# (or git init) already runs as this container's vscode user, so UID
+# mismatch isn't the everyday case it was under the old bind-mounted
+# workspace — but this stays a defensive backstop against git's "dubious
+# ownership" safety check ("detected dubious ownership in repository",
+# surfacing through Claude Code's `--worktree` flag as "git identity could
+# not be verified") in any scenario where /workspace's ownership doesn't
+# match this container's UID regardless of cause. `*` (not just /workspace)
+# also covers the nested git worktrees `claude --worktree` creates under
+# /workspace/.claude/worktrees/ — now private to this container's own
+# Private Checkout, not host-visible noise.
 git config --global --add safe.directory '*'
 
 # Git identity — read from .devcontainer/.env (GIT_USER_EMAIL / GIT_USER_NAME).

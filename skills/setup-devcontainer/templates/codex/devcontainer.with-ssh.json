@@ -14,11 +14,12 @@
     }
   },
   "mounts": [
-    "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
+    "source={{REPO_NAME}}-codex-ssh,target=/home/vscode/.ssh,type=volume"
   ],
+  "onCreateCommand": "/usr/local/bin/clone-checkout.sh",
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/codex/post-create.sh",
   "postStartCommand": "bash .devcontainer/codex/post-start.sh",
   "postAttachCommand": "bash .devcontainer/post-attach.sh",
-  "waitFor": "postStartCommand"
+  "waitFor": "postAttachCommand"
 }

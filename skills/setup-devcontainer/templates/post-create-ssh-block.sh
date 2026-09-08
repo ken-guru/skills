@@ -1,9 +1,8 @@
 
-# SSH identity — two keys per host machine, both persisted in the
-# {{REPO_NAME}}-ssh-config volume, and SHARED across every Tool Container
-# that has this layer enabled (they all mount the same volume). Registration
-# happens ONCE FOR THE WHOLE REPO, never once per tool — see the signing-key
-# prompt from post-attach.sh, which says the same thing.
+# SSH identity — two keys per Tool Container, persisted in this tool's own
+# {{REPO_NAME}}-{{TOOL_NAME}}-ssh volume, private to this Tool Container (no
+# longer shared across tools — see the signing-key prompt from
+# post-attach.sh, which says the same thing).
 #   id_ed25519         — deploy key: scoped auth for this repo (registered automatically)
 #   id_ed25519_signing — signing key: commit verification (registered manually once)
 #
@@ -25,13 +24,10 @@ rm -f "$SSH_SKIP_MARKER"
 SSH_SETUP_OK=true
 REPO="{{REPO_SLUG}}"
 
-# Probed first, before generating or touching any keys, with its own call —
-# deliberately NOT reused for the real registration read below, which must
-# stay inside the flock further down so it sees a fresh view if another
-# concurrent Tool Container just registered the same key while this one
-# waited on the lock. This call's only job is classifying GH_TOKEN's error,
-# via the same `gh: <message> (HTTP <code>)` stderr format `gh api` always
-# uses on failure.
+# Probed first, before generating or touching any keys, so a bad token is
+# classified and reported before anything else runs. This call's only job is
+# classifying GH_TOKEN's error, via the same `gh: <message> (HTTP <code>)`
+# stderr format `gh api` always uses on failure.
 if ! probe_err=$(gh api "repos/${REPO}/keys" 2>&1 1>/dev/null); then
   case "$probe_err" in
     *"(HTTP 401)"*)
@@ -57,17 +53,14 @@ fi
 
 if [ "$SSH_SETUP_OK" = true ]; then
 
-# Every SSH-enabled Tool Container mounts this same shared volume. If two are
-# opened for the first time at once (exactly what Concurrent Workspace use
-# encourages), both would otherwise race to generate and register keys at the
-# same time — this lock serializes them: whichever container gets here first
-# does the real work, and any other container waits for the lock, then finds
-# the keys already in place and skips straight to "already registered".
-(
-flock -x 201
+# No lock needed here: this tool's {{REPO_NAME}}-{{TOOL_NAME}}-ssh volume is
+# private to this Tool Container's own Private Checkout, so there is no
+# sibling container racing to write the same volume the way there was when
+# every SSH-enabled tool shared one {{REPO_NAME}}-ssh-config volume.
 
-DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
-SIGNING_KEY_TITLE="{{REPO_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
+DEPLOY_KEY_TITLE="{{REPO_NAME}}-{{TOOL_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
+SIGNING_KEY_TITLE="{{REPO_NAME}}-{{TOOL_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
+OLD_SHARED_DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
 
 # Deploy key — used for git transport (push/pull)
 if [ ! -f ~/.ssh/id_ed25519 ]; then
@@ -105,7 +98,7 @@ DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
 ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys")
 
 # Check by key content — a title match with different content means the key was
-# rotated (e.g. the ssh-config volume was wiped). In that case remove the
+# rotated (e.g. this tool's ssh volume was wiped). In that case remove the
 # stale entry and re-register with the new key.
 existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
   --arg body "$DEPLOY_KEY_BODY" \
@@ -114,9 +107,11 @@ existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
 if [ -n "$existing_id" ]; then
   echo "Deploy key already registered: $DEPLOY_KEY_TITLE"
 else
+  # GitHub doesn't enforce title uniqueness, so bound this to exactly one
+  # match — a multi-line result here would break the DELETE call below.
   stale_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
     --arg title "$DEPLOY_KEY_TITLE" \
-    '.[] | select(.title == $title) | .id')
+    '.[] | select(.title == $title) | .id' | head -1)
   if [ -n "$stale_id" ]; then
     gh api "repos/${REPO}/keys/${stale_id}" -X DELETE
     echo "Removed stale deploy key (volume was rotated): $DEPLOY_KEY_TITLE"
@@ -126,7 +121,23 @@ else
   echo "Deploy key registered: $DEPLOY_KEY_TITLE"
 fi
 
-) 201>/home/vscode/.ssh/.setup.lock
+# Migration: this repo may still have the old repo-wide shared deploy key
+# registered from before Private Checkout, when every SSH-enabled tool
+# reused one key pair. It's now redundant — this tool has its own — so
+# remove it rather than leave an unused, unrevoked credential standing. Safe
+# to run unconditionally: a no-op once no key with the old title remains.
+# The old signing key has no equivalent here — GitHub exposes no deletion
+# API for signing keys — so it's left for the person migrating this repo to
+# remove by hand; the agent running this skill tells them to when it detects
+# a pre-Private-Checkout setup (see SKILL.md's migration guidance).
+# Same title-uniqueness caveat as stale_id above — bound to one match.
+old_shared_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
+  --arg title "$OLD_SHARED_DEPLOY_KEY_TITLE" \
+  '.[] | select(.title == $title) | .id' | head -1)
+if [ -n "$old_shared_id" ]; then
+  gh api "repos/${REPO}/keys/${old_shared_id}" -X DELETE
+  echo "Removed old shared deploy key (superseded by per-tool keys): $OLD_SHARED_DEPLOY_KEY_TITLE"
+fi
 
 # Signing key is separate from the deploy key so it can be registered on GitHub
 # without hitting the "key is already in use" constraint.

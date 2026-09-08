@@ -12,6 +12,6 @@
       # Containers.
       - COPILOT_AUTO_UPDATE=false
     volumes:
-      - ..:/workspace:cached
+      - {{REPO_NAME}}-copilot-checkout:/workspace
       - {{REPO_NAME}}-copilot-config:/home/vscode/.copilot
     command: sleep infinity

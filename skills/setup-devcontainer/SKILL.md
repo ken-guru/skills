@@ -10,7 +10,8 @@ independent **Tool Container** per selected AI CLI — Claude Code, Codex,
 Antigravity, and/or GitHub Copilot — instead of a single shared container
 bundling every tool together. See
 [CONTEXT.md](CONTEXT.md) for the vocabulary used throughout this skill
-(Tool Container, Shared Container, Collision, Concurrent Workspace).
+(Tool Container, Shared Container, Collision, Concurrent Workspace, Private
+Checkout, Local Checkout, Shared Checkout, Cross-Container Leakage).
 
 - **Shared base image** (`base.Dockerfile`) — Node.js, the GitHub CLI, and a
   fixed `vscode` user/UID/GID, built once and reused (via Docker's own layer
@@ -29,14 +30,33 @@ bundling every tool together. See
   from a registry, and fails hard since it was never pushed anywhere. Pre-
   building ourselves means VS Code never has a build step to run at all for
   these services — just an already-present image to start.
+- **Private Checkout** — every Tool Container clones its own copy of the repo
+  from `origin` into its own named volume (via `onCreateCommand`, before
+  `postCreateCommand` ever runs), instead of bind-mounting the host's
+  checkout. No Tool Container can read another's uncommitted work, unpushed
+  branches, or `claude --worktree` worktrees — the isolation `docker-compose.yml`
+  and `devcontainer.json` already gave each tool's compute now extends to its
+  filesystem too. Doesn't auto-sync with `origin` or any other Tool
+  Container — `git fetch`/`pull` manually; `post-attach.sh` prints a static
+  reminder of this on every attach.
+- **Local Checkout** — a Private Checkout with no GitHub `origin` at all: for
+  a brand-new or deliberately local-only project, with no resolvable repo
+  and no `GH_TOKEN` requirement. Chosen once per repo, at step 1, instead of
+  naming an existing GitHub repo; every Tool Container in that run gets one.
+  Initializes to a local `git init` (default) or a genuinely bare workspace,
+  by a separate yes/no answer — never automatic. Connectable to a real
+  GitHub repo later with no skill-level regeneration at all, just plain git
+  (see "Connecting a Local Checkout to a real GitHub repo").
 - **Concurrent Workspace** — every Tool Container is a service in the same
-  `docker-compose.yml`, bind-mounting this same repo checkout. Opening two
-  tools' containers in two separate VS Code windows runs them side by side.
+  `docker-compose.yml`, each with its own Private Checkout. Opening two
+  tools' containers in two separate VS Code windows runs them side by side,
+  with no shared on-disk state between them.
 - **SSH layer** — deploy-key/signing-key automation for agent-driven
   `git push` and signed commits. Optional per tool, addable to any tool after
-  the fact without touching that tool's existing files. Shared across every
-  SSH-enabled Tool Container (one registered key pair per repo, not one per
-  tool).
+  the fact without touching that tool's existing files. Each SSH-enabled Tool
+  Container registers and owns its own key pair — not shared with any other
+  tool, so a compromised or runaway agent in one container can't read the
+  key material another container's `git push`/commit signing depends on.
 - **YOLO alias** — a shell alias for fast, unattended iteration, named after
   the tool's actual CLI invocation, not its folder name: `claude-yolo`,
   `codex-yolo`, `agy-yolo` (Antigravity's binary is `agy`, not `antigravity`),
@@ -62,12 +82,31 @@ git remote get-url origin
 
 Parse `owner/repo` from it (works for both `git@github.com:owner/repo.git` and
 `https://github.com/owner/repo` forms) — this is `{{REPO_SLUG}}`. `{{REPO_NAME}}` is the `repo`
-part alone, used in volume names and SSH key titles.
+part alone, used in volume names and SSH key titles. `{{LOCAL_CHECKOUT}}` is `"false"`.
 
-If there's no `origin` remote yet (brand-new repo), ask the user for the intended `owner/repo`
-instead of guessing.
+If there's no `origin` remote yet, ask one question: "Does a GitHub repository already exist for
+this project? If yes, name it (`owner/repo`) — Tool Containers will clone from there, and
+`GH_TOKEN` will be required. If no, or you're not ready to connect yet, Tool Containers start as
+a local-only **Local Checkout** — connectable to GitHub later (see 'Connecting a Local Checkout
+to a real GitHub repo')."
 
-Done when you have both `{{REPO_SLUG}}` and `{{REPO_NAME}}`.
+- **Named an existing repo**: resolve `{{REPO_SLUG}}`/`{{REPO_NAME}}` from it, same as the
+  existing-`origin` case above. The named repo must already exist on GitHub — cloning it is what
+  populates each Tool Container's workspace. `{{LOCAL_CHECKOUT}}` is `"false"`.
+- **Local Checkout**: `{{REPO_SLUG}}` stays empty. `{{REPO_NAME}}` falls back to the local working
+  directory's basename (`basename "$(pwd)"`), sanitized to Docker's naming rules (lowercase,
+  invalid characters replaced with `-`) — state the resolved name back to the user as part of
+  your summary; don't decide it silently. `{{LOCAL_CHECKOUT}}` is `"true"`. Also ask, as a
+  separate yes/no question: "Initialize this workspace with `git init`?" Record the answer as
+  `{{LOCAL_CHECKOUT_GIT_INIT}}` (`"true"`/`"false"`). If yes, resolve `{{GIT_DEFAULT_BRANCH}}`
+  from the host's `git config --global init.defaultBranch` — substitute it as an empty string if
+  the host has none configured (the baked-in script checks for that emptiness at runtime to
+  decide whether to pass `--initial-branch` to `git init` at all; always substitute this
+  placeholder with *something*, even `""`, same as every other placeholder — never leave the
+  literal `{{GIT_DEFAULT_BRANCH}}` token in the written file).
+
+Done when you have `{{REPO_SLUG}}` (possibly empty), `{{REPO_NAME}}`, and `{{LOCAL_CHECKOUT}}` —
+plus, if Local Checkout, `{{LOCAL_CHECKOUT_GIT_INIT}}` and, if that's yes, `{{GIT_DEFAULT_BRANCH}}`.
 
 ## 2. Discover existing Tool Containers
 
@@ -90,7 +129,14 @@ test -f .devcontainer/devcontainer.json && echo "LEGACY Shared Container detecte
   later](#adding-another-tool-container-later) for any newly-requested tool,
   and to [Adding SSH to a tool later](#adding-ssh-to-a-tool-later) if the
   request is only to add SSH to an already-existing tool. Do not regenerate
-  already-existing tools' files.
+  already-existing tools' files — **except**: for each already-existing
+  tool, check whether it predates Private Checkout
+  (`jq -e '.onCreateCommand' .devcontainer/<tool>/devcontainer.json`; empty
+  or an error means it does). If any do and the user hasn't already asked
+  to migrate them, tell them these tools are still on the old shared
+  bind-mounted model and point them at [Migrating a Tool Container to
+  Private Checkout](#migrating-a-tool-container-to-private-checkout) — don't
+  migrate silently as a side effect of an unrelated request.
 - **Neither exists**: fresh setup, continue to step 3.
 
 For any tool whose Tool Container you're about to generate or reopen, also
@@ -132,12 +178,19 @@ those go through the append-flows instead):
   Claude Code as the common case; it's fully optional and symmetric with the
   other three, just recommended by default.
 
+If `{{LOCAL_CHECKOUT}}` is `"true"` (step 1), skip the SSH Layer question below entirely for
+every tool in this run — there's no GitHub repo yet to register deploy/signing keys against. Tell
+the user why it's not being offered: "SSH layer isn't available yet — this repo has no GitHub
+connection; add it once one exists (see 'Connecting a Local Checkout to a real GitHub repo')."
+The YOLO alias and skills-sync questions are unaffected — both are independent of git/GitHub
+remote status, ask them normally.
+
 For each **newly** selected tool, ask independently:
 
-- **SSH Layer**: Does this repo need agent-driven `git push` and signed
-  commits from this tool's Tool Container? (Adds deploy-key/signing-key
-  automation, shared with any other Tool Container that also has it
-  enabled.)
+- **SSH Layer** (skip if `{{LOCAL_CHECKOUT}}` is `"true"`, per above): Does this repo need
+  agent-driven `git push` and signed commits from this tool's Tool Container? (Adds
+  deploy-key/signing-key automation — this tool registers and owns its own key pair, not shared
+  with any other Tool Container that also has it enabled.)
 - **YOLO alias**: Should this tool get its `-yolo` alias for fast, unattended
   iteration — `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo`,
   matching the tool's actual CLI command, **not** its folder name (Antigravity's
@@ -222,18 +275,26 @@ Both are addable later per tool without redoing anything already generated
 - `{{TOOL_DISPLAY_NAME}}` — the tool's display name for the identity banner (step 6), matching its
   `devcontainer.json` `name` field exactly: `claude-code` → `Claude Code`, `codex` → `Codex`,
   `antigravity` → `Antigravity`, `copilot` → `Copilot`.
+- `{{TOOL_NAME}}` — the tool's own folder/service slug (`claude-code`, `codex`, `antigravity`,
+  `copilot` — the same value as `<tool>` throughout this skill). Only needed when substituting
+  [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (step 6), which is
+  shared across every tool and needs it to name that tool's own SSH deploy/signing keys and
+  volume distinctly from every other tool's.
 
 ## 5. Build or reuse the shared base image
 
 `{{BASE_IMAGE_VERSION}}` is the bare version string (`v1`, `v2`, ...);
 `{{BASE_IMAGE_TAG}}` is the full image reference built from it:
-`skills-tool-container-base:{{BASE_IMAGE_VERSION}}`.
+`{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}`.
 
 - If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
-  [templates/base.Dockerfile](templates/base.Dockerfile) (no placeholders to
-  substitute in this file itself). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
+  [templates/base.Dockerfile](templates/base.Dockerfile), substituting
+  `{{REPO_SLUG}}`, `{{LOCAL_CHECKOUT}}`, `{{LOCAL_CHECKOUT_GIT_INIT}}`, and
+  `{{GIT_DEFAULT_BRANCH}}` (all from step 1) — the baked-in Private
+  Checkout clone script needs them to know whether to clone, `git init`, or
+  leave the workspace bare. Set `{{BASE_IMAGE_VERSION}}` to `v1`.
   Build it:
-  `docker build -t skills-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
+  `docker build -t {{REPO_NAME}}-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
   Record the version and a content hash of the file
   (`sha256sum .devcontainer/base.Dockerfile`) into
   `.devcontainer/.base-image-version` as `<version> <sha256>`.
@@ -259,7 +320,7 @@ Both are addable later per tool without redoing anything already generated
       `{{BASE_IMAGE_VERSION}}` for this run's new tool(s).
 
 Done when `.devcontainer/base.Dockerfile` exists, `docker image inspect
-skills-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
+{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
 `.devcontainer/.base-image-version` records that exact version alongside a
 hash matching the file actually on disk.
 
@@ -281,7 +342,10 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 - `.devcontainer/<tool>/devcontainer.json`:
   use [templates/<tool>/devcontainer.json](templates/) (or
   [templates/<tool>/devcontainer.with-ssh.json](templates/) if this tool's SSH
-  answer was yes), substitute `{{REPO_NAME}}`, and write it.
+  answer was yes), substitute `{{REPO_NAME}}`, and write it. Both variants carry
+  `onCreateCommand`, which runs `/usr/local/bin/clone-checkout.sh` (baked into
+  the base image in step 5) to create this tool's Private Checkout — a fresh
+  `git clone` into this tool's own named volume, not the host's checkout.
 - `.devcontainer/<tool>/post-create.sh` — assembled by concatenating, in order:
   1. [templates/post-create-base.sh](templates/post-create-base.sh), substituted (git identity — shared across every tool).
   2. [templates/identity-banner-block.sh](templates/identity-banner-block.sh), substituted with this tool's
@@ -289,7 +353,7 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
      prints which Tool Container the shell is in at the top of every new terminal.
   3. [templates/<tool>/post-create-block.sh](templates/) (this tool's CLI install and config-volume ownership fix).
   4. [templates/<tool>/yolo-alias-block.sh](templates/) — only if this tool's yolo answer was yes.
-  5. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it.
+  5. [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh), substituted (including `{{TOOL_NAME}}`) — only if this tool's SSH answer was yes. This block never fails the build: an under-scoped or missing `GH_TOKEN` (or an unset `DEVCONTAINER_HOST`) degrades to skipping the rest of the SSH setup and recording why in `~/.ssh/.ssh-setup-skipped`, rather than aborting `postCreateCommand` — which would otherwise also skip every block concatenated after it. Registers this tool's own deploy/signing key pair on its own `{{REPO_NAME}}-<tool>-ssh` volume — no longer one shared pair per repo — and, on first run against a repo that still has the old shared-title deploy key registered, auto-removes it.
   6. [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh) — only if this tool's SSH answer was yes, immediately after the SSH block above. Appends a snippet to `~/.bashrc` that surfaces any of this SSH layer's three standing warnings (setup skipped, signing key unregistered, deploy key missing on GitHub) at the top of every new terminal, not just once at attach — `postCreateCommand`/`postAttachCommand` each fire once per rebuild/attach, not per terminal tab.
 - `.devcontainer/<tool>/post-start.sh` (every selected tool gets one — Claude Code, Codex,
   Antigravity, and Copilot all sync skills identically) ←
@@ -319,7 +383,6 @@ If **Antigravity** was newly selected, append the following caveat to `.devconta
 
 If **any** newly or already-selected tool has the SSH answer yes:
 
-- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted (shared across every SSH-enabled tool). Write once; `chmod +x` it.
 - `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example) appended (only if not already present), and its `GH_TOKEN` comment gets: `Required permissions: Administration (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
 - `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md) appended (only if not already present), and the baseline template's closing "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by the real section).
 
@@ -332,25 +395,40 @@ an image that no longer exists.
 
 Always (every run, regardless of which tools are new):
 
-- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool, **plus** one `{{REPO_NAME}}-<tool>-ssh:` volume line per SSH-enabled tool (one per tool now, not one shared line for the whole repo), under `volumes:`. The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted. Every selected tool gets this and its `postAttachCommand` wiring — not just SSH-enabled ones — since it carries Private Checkout's staleness hint (a static reminder to `git fetch`, shown on every attach) unconditionally; the SSH-specific logic inside guards itself when that particular tool's SSH layer isn't enabled. Write once (identical content across every tool); `chmod +x` it.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
-- If **Claude Code** is selected (newly or already), add `.claude/worktrees/` to `.gitignore` if
-  it isn't already ignored: `claude --worktree` (used by the `claude-yolo` alias, and available to
-  any Claude Code session regardless of the alias) creates isolated git worktrees directly inside
-  the bind-mounted `/workspace`, which the host sees as untracked noise in `git status` since the
-  mount is the same filesystem, not container-isolated. Apply the same reasoning to any other
-  tool-generated runtime noise you notice actually landing inside the workspace (as opposed to a
-  config volume, which is already container-isolated and needs no gitignore entry) — this list
-  isn't meant to be exhaustive up front, only to grow as real noise is observed.
+- Remove `.claude/worktrees/` from `.gitignore` if a prior run of this skill added it (check for
+  the exact line and delete it; leave every other line untouched). It existed only because
+  `claude --worktree` used to create isolated git worktrees directly inside the *bind-mounted*
+  `/workspace`, which the host saw as untracked noise in `git status` since the mount was the same
+  filesystem, not container-isolated. Now that every Tool Container has its own Private Checkout,
+  a worktree created inside one lives only in that tool's own volume — invisible to the host, so
+  nothing to gitignore. This is a no-op for a fresh repo (the line was never added); for a repo
+  migrating from before Private Checkout, this actively cleans it up.
 
 Done when every file above exists, every tool's `devcontainer.json` parses as valid JSON
-(`jq empty .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses as valid YAML
-with exactly one service per selected tool, every selected tool's image actually exists at the
-tag its Compose service references (`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}`
-succeeds for each), and no `{{...}}` placeholder remains in any written file
-(`grep -rn '{{' .devcontainer/`).
+(`jq empty .devcontainer/<tool>/devcontainer.json`) with a non-null `onCreateCommand`
+(`jq -e '.onCreateCommand' .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses
+as valid YAML with exactly one service per selected tool and one `{{REPO_NAME}}-<tool>-checkout:`
+volume line per selected tool (plus one `{{REPO_NAME}}-<tool>-ssh:` line per SSH-enabled tool),
+every selected tool's image actually exists at the tag its Compose service references
+(`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}` succeeds for each), the
+clone-checkout script landed executable in the base image
+(`docker run --rm {{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}} test -x /usr/local/bin/clone-checkout.sh`),
+every with-ssh `devcontainer.json`'s `mounts` entry references *that tool's own* SSH volume (not
+another tool's, and not a stale shared name), and no `{{...}}` placeholder remains in any written
+file (`grep -rn '{{' .devcontainer/`).
+
+Runtime behavior — the clone actually succeeding, SSH keys actually registering, the staleness
+hint actually appearing — is intentionally **not** part of this per-run check; it can only be
+confirmed by actually attaching a container, same scope boundary this checklist already draws for
+skill-sync and yolo-alias behavior. Cross-container isolation (two Tool Containers' Private
+Checkouts genuinely independent of each other) is a one-time sanity check worth doing yourself the
+first time you use more than one tool in a repo, not something to re-verify on every subsequent
+`setup-devcontainer` run — see the README's "Running tools concurrently" section.
 
 ## 7. Report next steps
 
@@ -368,10 +446,9 @@ Tell the user, adapted to which tools were selected and which have SSH/yolo:
    concurrently" section.}}
 6. {{If any tool has the SSH layer present: on attach, `post-attach.sh`
    prints a public key — paste it into github.com/settings/ssh as a Signing
-   Key, then `touch ~/.ssh/.signing-key-registered`. Do this **once**,
-   in whichever SSH-enabled tool's window shows the prompt first — the key
-   pair and the registration marker are shared across every SSH-enabled Tool
-   Container in this repo, not generated separately per tool.}}
+   Key, then `touch ~/.ssh/.signing-key-registered`. Do this **once per
+   SSH-enabled Tool Container** — each tool has its own key pair and its own
+   registration marker now, so this doesn't carry over between tools.}}
 7. {{For each tool with its YOLO alias present: a new shell in that tool's
    container has its alias available for fast, unattended iteration —
    `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo` (matching the
@@ -412,24 +489,24 @@ Tool Container.
 ## Adding SSH to a tool later
 
 For a tool that already has a Tool Container (`.devcontainer/<tool>/devcontainer.json`
-exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
+exists, no SSH `mounts` entry in it) and now needs agent-driven `git push` / signed commits.
+`postAttachCommand` already exists on every tool by construction (Private Checkout's staleness
+hint needs it regardless of SSH), so unlike before, this flow only adds the SSH mount — not the
+command itself:
 
 1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1.
 2. Replace `.devcontainer/<tool>/devcontainer.json` with
-   [templates/<tool>/devcontainer.with-ssh.json](templates/), substituted —
-   this only adds the SSH mount and `postAttachCommand` relative to the
-   existing file, so no other property changes.
-3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted),
-   then [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
+   [templates/<tool>/devcontainer.with-ssh.json](templates/), substituted (`{{REPO_NAME}}`) —
+   this only adds the SSH `mounts` entry (this tool's own `{{REPO_NAME}}-<tool>-ssh` volume)
+   relative to the existing file, so no other property changes.
+3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted,
+   including `{{TOOL_NAME}}`), then
+   [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
    (no placeholders), to the end of the existing `.devcontainer/<tool>/post-create.sh`.
-4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
-   substituted, and `chmod +x` it, if it doesn't already exist (it may already exist if another
-   tool already has SSH enabled — the file and the volume it manages are shared across every
-   SSH-enabled tool).
-5. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
+4. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
    `.devcontainer/.env.example` (only if not already present from another tool's SSH setup), and
    update its `GH_TOKEN` comment as in the main flow's step 6.
-6. `.devcontainer/.env` itself already exists in this flow (it's required for the Tool Container to
+5. `.devcontainer/.env` itself already exists in this flow (it's required for the Tool Container to
    have worked at all) and is gitignored — don't touch it programmatically, since it holds a live
    `GH_TOKEN`. `initializeCommand` only seeds `.env` from `.env.example` when
    `.env` doesn't yet exist, so appending to `.env.example` alone never reaches the file that's
@@ -442,15 +519,115 @@ exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` 
    Skipping this doesn't fail the build — `post-create-ssh-block.sh` degrades to skipping the SSH
    setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
    never activates, so set it before the first rebuild rather than relying on the warning to catch it.
-7. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
+6. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
    `.devcontainer/README.md` (only if not already present), and delete that file's "SSH deploy key
    and signing key automation — Not set up here" closing section.
-8. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 6 to
+7. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 5 to
    `.devcontainer/.env` now if it wasn't already there, before rebuilding — not after hitting the
    error; rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**, in that
    tool's window); and once attached, follow the signing-key prompt from `post-attach.sh`.
 
-Done when `.devcontainer/<tool>/devcontainer.json` still parses as valid JSON, has both the new
-mount and `postAttachCommand`, no `{{...}}` placeholder remains in any touched file, no other
-tool's files were modified, and the user has actually been told the `DEVCONTAINER_HOST` line to
-add to their existing `.env` — not just to `.env.example`.
+Done when `.devcontainer/<tool>/devcontainer.json` still parses as valid JSON, has the new SSH
+`mounts` entry referencing this tool's own volume (`postAttachCommand` already existed), no
+`{{...}}` placeholder remains in any touched file, no other tool's files were modified, and the
+user has actually been told the `DEVCONTAINER_HOST` line to add to their existing `.env` — not
+just to `.env.example`.
+
+## Migrating a Tool Container to Private Checkout
+
+For a tool whose `devcontainer.json` predates Private Checkout (step 2's detection: no
+`onCreateCommand`) — moving it from the old shared bind-mounted workspace to its own isolated
+clone. This changes what persists where, so it's opt-in per tool, never automatic:
+
+1. **Warn before touching anything.** The old bind-mounted workspace *is* this repo's host
+   checkout — any uncommitted changes or unpushed local branches made inside that Tool Container
+   are sitting on the host, not in any container-managed volume. Private Checkout clones fresh
+   from `origin`, so none of that carries over automatically. Tell the user, plainly: commit and
+   push everything they want to keep in this tool's Tool Container before rebuilding, or it
+   won't be there afterward. Get explicit confirmation before continuing.
+2. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1.
+3. Run step 5 (build or reuse the shared base image) exactly as written. `base.Dockerfile` now
+   carries the clone-checkout script, so this is a real content change — expect step 5's existing
+   content-hash check to detect it and prompt for a version bump the first time any repo migrates
+   a tool after upgrading this skill.
+4. Detect whether this tool's SSH layer is currently enabled (its `devcontainer.json` has a
+   `mounts` entry) — this decides which variant to regenerate with next.
+5. Regenerate `.devcontainer/<tool>/devcontainer.json` from
+   [templates/<tool>/devcontainer.json](templates/) (or
+   [templates/<tool>/devcontainer.with-ssh.json](templates/) if step 4 found SSH enabled),
+   substituted, replacing the file outright.
+6. If SSH is enabled for this tool: re-derive `.devcontainer/<tool>/post-create.sh`'s SSH block —
+   remove everything from the old
+   [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) content through the
+   end of the old [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
+   content (the old shared-title, no-`{{TOOL_NAME}}` versions), then re-append both current
+   templates (substituted, including `{{TOOL_NAME}}`) in their place. This tool will register a
+   *new* per-tool key pair on its first rebuild; the old shared deploy key is auto-removed by the
+   new script once that happens (see #172's resolution). The old shared *signing* key has no
+   deletion API, so it needs manual removal — steps 8 and 9 below cover exactly when and how to
+   tell the user this.
+7. Run step 6's "Always" bullets (`docker-compose.yml` rebuild in particular — it already
+   regenerates wholesale from the current tool set, so this tool's service picks up its new
+   checkout volume, and its SSH volume if applicable, without needing tool-specific handling
+   here) and the `.claude/worktrees/` `.gitignore` cleanup bullet, which now actively applies.
+8. If SSH was enabled for this tool, check whether it was the *last* SSH-enabled tool in the repo
+   still on the old shared-volume model: `grep -l "{{REPO_NAME}}-ssh-config"
+   .devcontainer/*/devcontainer.json` (after this tool's own file was just rewritten in step 5, so
+   it no longer matches). No remaining match means every SSH-enabled tool has migrated, and the
+   old `{{REPO_NAME}}-ssh-config` volume — still holding the old deploy *and* signing key material
+   — is safe to remove. Offer to remove it (`docker volume rm {{REPO_NAME}}-ssh-config`) and wait
+   for confirmation before running it, same as step 2's leftover-container handling: don't remove
+   it without asking. Skip this whole check if `docker` isn't installed or isn't running; note
+   that it couldn't be checked rather than failing the migration over it.
+9. Tell the user, as a checklist, not one run-on sentence:
+   - Confirm (again) everything they need was pushed before this point.
+   - Rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**).
+   - Once attached, confirm `/workspace` is a fresh clone (`git log -1`, `git status`).
+   - If SSH was enabled: register the new signing-key prompt from `post-attach.sh`.
+   - **⚠ ACTION REQUIRED, only if step 8 found this was the last SSH-enabled tool to migrate**:
+     remove the old shared signing key from GitHub by hand at
+     <https://github.com/settings/keys> — nothing else will do this, GitHub exposes no deletion
+     API for it (unlike the old deploy key and, now, the old shared volume, both already handled
+     automatically). If step 8 found another tool still unmigrated, skip this bullet for now —
+     it'll surface again when that tool migrates.
+
+Done when this tool's `devcontainer.json` has `onCreateCommand`, its SSH `mounts` entry (if any)
+references its own per-tool volume, `docker-compose.yml` lists its checkout (and SSH, if
+applicable) volume, no `{{...}}` placeholder remains in any touched file, no other tool's files
+were modified, the old shared SSH volume was offered for removal (and removed, if confirmed) when
+this was genuinely the last tool to migrate, and the user has been given the pre-rebuild push
+warning and the post-migration signing-key cleanup note (if applicable) — not just told to
+rebuild.
+
+## Connecting a Local Checkout to a real GitHub repo
+
+For a repo generated as Local Checkout (step 1) that now has a real GitHub repository to push
+to. This needs **no skill-level regeneration** — no rerunning this skill, no `devcontainer.json`
+changes, no `onCreateCommand` re-trigger. `onCreateCommand`'s clone-checkout script is already a
+permanent no-op once `/workspace/.git` exists (whether that came from `git init` or a real
+clone), and every Tool Container's `postCreateCommand` already configures the
+`gh auth setup-git` credential helper unconditionally, regardless of Local Checkout — so HTTPS
+push authentication is already wired up as soon as `GH_TOKEN` is actually loaded into the
+container.
+
+Tell the user the plain-git sequence, in order:
+
+1. Create the GitHub repository, outside this skill (github.com or `gh repo create`).
+2. If `.devcontainer/.env` doesn't already have a valid `GH_TOKEN` (it wasn't required for Local
+   Checkout), add one now. `GH_TOKEN` is loaded via `env_file` at container start, same as
+   `DEVCONTAINER_HOST` in the SSH flows above — adding it to `.env` for the first time needs
+   **Dev Containers: Rebuild Container** before it actually takes effect, it isn't picked up by
+   an already-running container.
+3. Inside the Tool Container, if this tool declined `git init` at generation time (a genuinely
+   bare workspace, no `.git` at all): `git init` first. Then, whether or not that step was
+   needed: `git remote add origin <url>`, then `git push -u origin <branch>`.
+
+That's it — the Tool Container is now connected. If this tool also wants agent-driven `git push`
+and signed commits via the SSH layer, that's the separate [Adding SSH to a tool
+later](#adding-ssh-to-a-tool-later) flow, run **after** this — not before, since that flow
+resolves `{{REPO_SLUG}}` from the now-real `origin` and registers deploy/signing keys against a
+repo that has to already exist.
+
+Done when the user has been given the steps above, in order (including the rebuild if `GH_TOKEN`
+was just added, and `git init` if this tool never had one), and — if confirmed by the user
+afterward — a real `git push` from inside the Tool Container actually succeeds.
