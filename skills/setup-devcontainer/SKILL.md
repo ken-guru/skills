@@ -102,7 +102,14 @@ test -f .devcontainer/devcontainer.json && echo "LEGACY Shared Container detecte
   later](#adding-another-tool-container-later) for any newly-requested tool,
   and to [Adding SSH to a tool later](#adding-ssh-to-a-tool-later) if the
   request is only to add SSH to an already-existing tool. Do not regenerate
-  already-existing tools' files.
+  already-existing tools' files — **except**: for each already-existing
+  tool, check whether it predates Private Checkout
+  (`jq -e '.onCreateCommand' .devcontainer/<tool>/devcontainer.json`; empty
+  or an error means it does). If any do and the user hasn't already asked
+  to migrate them, tell them these tools are still on the old shared
+  bind-mounted model and point them at [Migrating a Tool Container to
+  Private Checkout](#migrating-a-tool-container-to-private-checkout) — don't
+  migrate silently as a side effect of an unrelated request.
 - **Neither exists**: fresh setup, continue to step 3.
 
 For any tool whose Tool Container you're about to generate or reopen, also
@@ -489,3 +496,52 @@ Done when `.devcontainer/<tool>/devcontainer.json` still parses as valid JSON, h
 `{{...}}` placeholder remains in any touched file, no other tool's files were modified, and the
 user has actually been told the `DEVCONTAINER_HOST` line to add to their existing `.env` — not
 just to `.env.example`.
+
+## Migrating a Tool Container to Private Checkout
+
+For a tool whose `devcontainer.json` predates Private Checkout (step 2's detection: no
+`onCreateCommand`) — moving it from the old shared bind-mounted workspace to its own isolated
+clone. This changes what persists where, so it's opt-in per tool, never automatic:
+
+1. **Warn before touching anything.** The old bind-mounted workspace *is* this repo's host
+   checkout — any uncommitted changes or unpushed local branches made inside that Tool Container
+   are sitting on the host, not in any container-managed volume. Private Checkout clones fresh
+   from `origin`, so none of that carries over automatically. Tell the user, plainly: commit and
+   push everything they want to keep in this tool's Tool Container before rebuilding, or it
+   won't be there afterward. Get explicit confirmation before continuing.
+2. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1.
+3. Run step 5 (build or reuse the shared base image) exactly as written. `base.Dockerfile` now
+   carries the clone-checkout script, so this is a real content change — expect step 5's existing
+   content-hash check to detect it and prompt for a version bump the first time any repo migrates
+   a tool after upgrading this skill.
+4. Detect whether this tool's SSH layer is currently enabled (its `devcontainer.json` has a
+   `mounts` entry) — this decides which variant to regenerate with next.
+5. Regenerate `.devcontainer/<tool>/devcontainer.json` from
+   [templates/<tool>/devcontainer.json](templates/) (or
+   [templates/<tool>/devcontainer.with-ssh.json](templates/) if step 4 found SSH enabled),
+   substituted, replacing the file outright.
+6. If SSH is enabled for this tool: re-derive `.devcontainer/<tool>/post-create.sh`'s SSH block —
+   remove everything from the old
+   [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) content through the
+   end of the old [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
+   content (the old shared-title, no-`{{TOOL_NAME}}` versions), then re-append both current
+   templates (substituted, including `{{TOOL_NAME}}`) in their place. This tool will register a
+   *new* per-tool key pair on its first rebuild; the old shared deploy key is auto-removed by the
+   new script once that happens (see #172's resolution). The old shared *signing* key has no
+   deletion API — tell the user to remove it by hand from <https://github.com/settings/keys> once
+   every SSH-enabled tool in this repo has migrated and registered its own.
+7. Run step 6's "Always" bullets (`docker-compose.yml` rebuild in particular — it already
+   regenerates wholesale from the current tool set, so this tool's service picks up its new
+   checkout volume, and its SSH volume if applicable, without needing tool-specific handling
+   here) and the `.claude/worktrees/` `.gitignore` cleanup bullet, which now actively applies.
+8. Tell the user, in order: confirm (again) everything they need was pushed before this point;
+   rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**); once attached,
+   confirm `/workspace` is a fresh clone (`git log -1`, `git status`); and, if SSH was enabled,
+   register the new signing-key prompt from `post-attach.sh` and remove the old shared signing
+   key from GitHub once every migrated tool is done.
+
+Done when this tool's `devcontainer.json` has `onCreateCommand`, its SSH `mounts` entry (if any)
+references its own per-tool volume, `docker-compose.yml` lists its checkout (and SSH, if
+applicable) volume, no `{{...}}` placeholder remains in any touched file, no other tool's files
+were modified, and the user has been given the pre-rebuild push warning and the post-migration
+signing-key cleanup note (if applicable) — not just told to rebuild.
