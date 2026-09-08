@@ -155,8 +155,8 @@ For each **newly** selected tool, ask independently:
 
 - **SSH Layer**: Does this repo need agent-driven `git push` and signed
   commits from this tool's Tool Container? (Adds deploy-key/signing-key
-  automation, shared with any other Tool Container that also has it
-  enabled.)
+  automation — this tool registers and owns its own key pair, not shared
+  with any other Tool Container that also has it enabled.)
 - **YOLO alias**: Should this tool get its `-yolo` alias for fast, unattended
   iteration — `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo`,
   matching the tool's actual CLI command, **not** its folder name (Antigravity's

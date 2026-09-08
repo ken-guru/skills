@@ -61,10 +61,9 @@ fi
 SIGNING_KEY_TITLE=$(awk '{print $3}' ~/.ssh/id_ed25519_signing.pub 2>/dev/null || true)
 
 echo ""
-echo "This registration is shared across every SSH-enabled Tool Container in this"
-echo "repo — do this ONCE, from whichever tool's window shows this prompt first."
-echo "Dismissing it here (see below) dismisses it for every other tool too, since"
-echo "they all read the same marker file from the same shared volume."
+echo "This key pair is private to this Tool Container — register it here, and"
+echo "dismiss this prompt in this window only. It has no effect on any other"
+echo "SSH-enabled Tool Container's own key pair or registration."
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║  Devcontainer SSH setup status                                      ║"
 echo "╠══════════════════════════════════════════════════════════════════════╣"
@@ -77,7 +76,7 @@ fi
 
 echo "║                                                                      ║"
 echo "║  ⚠ ACTION REQUIRED — register your SSH signing key with GitHub      ║"
-echo "║    This is a one-time step per machine; it survives rebuilds.        ║"
+echo "║    This is a one-time step per Tool Container; it survives rebuilds. ║"
 echo "║                                                                      ║"
 echo "║  1. Open https://github.com/settings/ssh                            ║"
 echo "║  2. If a key named below already exists there, delete it first       ║"
