@@ -528,17 +528,21 @@ clone. This changes what persists where, so it's opt-in per tool, never automati
    templates (substituted, including `{{TOOL_NAME}}`) in their place. This tool will register a
    *new* per-tool key pair on its first rebuild; the old shared deploy key is auto-removed by the
    new script once that happens (see #172's resolution). The old shared *signing* key has no
-   deletion API — tell the user to remove it by hand from <https://github.com/settings/keys> once
-   every SSH-enabled tool in this repo has migrated and registered its own.
+   deletion API, so it needs manual removal — step 8 below covers exactly when and how to tell
+   the user this.
 7. Run step 6's "Always" bullets (`docker-compose.yml` rebuild in particular — it already
    regenerates wholesale from the current tool set, so this tool's service picks up its new
    checkout volume, and its SSH volume if applicable, without needing tool-specific handling
    here) and the `.claude/worktrees/` `.gitignore` cleanup bullet, which now actively applies.
-8. Tell the user, in order: confirm (again) everything they need was pushed before this point;
-   rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**); once attached,
-   confirm `/workspace` is a fresh clone (`git log -1`, `git status`); and, if SSH was enabled,
-   register the new signing-key prompt from `post-attach.sh` and remove the old shared signing
-   key from GitHub once every migrated tool is done.
+8. Tell the user, as a checklist, not one run-on sentence:
+   - Confirm (again) everything they need was pushed before this point.
+   - Rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**).
+   - Once attached, confirm `/workspace` is a fresh clone (`git log -1`, `git status`).
+   - If SSH was enabled: register the new signing-key prompt from `post-attach.sh`.
+   - **⚠ ACTION REQUIRED, if SSH was enabled**: once *every* SSH-enabled tool in this repo has
+     migrated, remove the old shared signing key from GitHub by hand at
+     <https://github.com/settings/keys> — nothing else will do this, GitHub exposes no deletion
+     API for it (unlike the old deploy key, which the new script already removed automatically).
 
 Done when this tool's `devcontainer.json` has `onCreateCommand`, its SSH `mounts` entry (if any)
 references its own per-tool volume, `docker-compose.yml` lists its checkout (and SSH, if
