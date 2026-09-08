@@ -5,6 +5,6 @@
     environment:
       CLAUDE_CONFIG_DIR: /home/vscode/.claude
     volumes:
-      - ..:/workspace:cached
+      - {{REPO_NAME}}-claude-code-checkout:/workspace
       - {{REPO_NAME}}-claude-config:/home/vscode/.claude
     command: sleep infinity

@@ -230,8 +230,9 @@ Both are addable later per tool without redoing anything already generated
 `skills-tool-container-base:{{BASE_IMAGE_VERSION}}`.
 
 - If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
-  [templates/base.Dockerfile](templates/base.Dockerfile) (no placeholders to
-  substitute in this file itself). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
+  [templates/base.Dockerfile](templates/base.Dockerfile), substituting
+  `{{REPO_SLUG}}` (the baked-in Private Checkout clone script needs it to
+  know what to clone). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
   Build it:
   `docker build -t skills-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
   Record the version and a content hash of the file
@@ -281,7 +282,10 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 - `.devcontainer/<tool>/devcontainer.json`:
   use [templates/<tool>/devcontainer.json](templates/) (or
   [templates/<tool>/devcontainer.with-ssh.json](templates/) if this tool's SSH
-  answer was yes), substitute `{{REPO_NAME}}`, and write it.
+  answer was yes), substitute `{{REPO_NAME}}`, and write it. Both variants carry
+  `onCreateCommand`, which runs `/usr/local/bin/clone-checkout.sh` (baked into
+  the base image in step 5) to create this tool's Private Checkout — a fresh
+  `git clone` into this tool's own named volume, not the host's checkout.
 - `.devcontainer/<tool>/post-create.sh` — assembled by concatenating, in order:
   1. [templates/post-create-base.sh](templates/post-create-base.sh), substituted (git identity — shared across every tool).
   2. [templates/identity-banner-block.sh](templates/identity-banner-block.sh), substituted with this tool's
@@ -319,7 +323,6 @@ If **Antigravity** was newly selected, append the following caveat to `.devconta
 
 If **any** newly or already-selected tool has the SSH answer yes:
 
-- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted (shared across every SSH-enabled tool). Write once; `chmod +x` it.
 - `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example) appended (only if not already present), and its `GH_TOKEN` comment gets: `Required permissions: Administration (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
 - `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md) appended (only if not already present), and the baseline template's closing "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by the real section).
 
@@ -332,7 +335,8 @@ an image that no longer exists.
 
 Always (every run, regardless of which tools are new):
 
-- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool under `volumes:` (plus `{{REPO_NAME}}-ssh-config:` once, if any tool has SSH enabled). The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted. Every selected tool gets this and its `postAttachCommand` wiring — not just SSH-enabled ones — since it carries Private Checkout's staleness hint (a static reminder to `git fetch`, shown on every attach) unconditionally; the SSH-specific logic inside guards itself when that particular tool's SSH layer isn't enabled. Write once (identical content across every tool); `chmod +x` it.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
@@ -346,11 +350,25 @@ Always (every run, regardless of which tools are new):
   isn't meant to be exhaustive up front, only to grow as real noise is observed.
 
 Done when every file above exists, every tool's `devcontainer.json` parses as valid JSON
-(`jq empty .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses as valid YAML
-with exactly one service per selected tool, every selected tool's image actually exists at the
-tag its Compose service references (`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}`
-succeeds for each), and no `{{...}}` placeholder remains in any written file
-(`grep -rn '{{' .devcontainer/`).
+(`jq empty .devcontainer/<tool>/devcontainer.json`) with a non-null `onCreateCommand`
+(`jq -e '.onCreateCommand' .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses
+as valid YAML with exactly one service per selected tool and one `{{REPO_NAME}}-<tool>-checkout:`
+volume line per selected tool (plus one `{{REPO_NAME}}-<tool>-ssh:` line per SSH-enabled tool),
+every selected tool's image actually exists at the tag its Compose service references
+(`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}` succeeds for each), the
+clone-checkout script landed executable in the base image
+(`docker run --rm skills-tool-container-base:{{BASE_IMAGE_VERSION}} test -x /usr/local/bin/clone-checkout.sh`),
+every with-ssh `devcontainer.json`'s `mounts` entry references *that tool's own* SSH volume (not
+another tool's, and not a stale shared name), and no `{{...}}` placeholder remains in any written
+file (`grep -rn '{{' .devcontainer/`).
+
+Runtime behavior — the clone actually succeeding, SSH keys actually registering, the staleness
+hint actually appearing — is intentionally **not** part of this per-run check; it can only be
+confirmed by actually attaching a container, same scope boundary this checklist already draws for
+skill-sync and yolo-alias behavior. Cross-container isolation (two Tool Containers' Private
+Checkouts genuinely independent of each other) is a one-time sanity check worth doing yourself the
+first time you use more than one tool in a repo, not something to re-verify on every subsequent
+`setup-devcontainer` run — see the README's "Running tools concurrently" section.
 
 ## 7. Report next steps
 

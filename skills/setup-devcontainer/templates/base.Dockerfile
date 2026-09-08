@@ -40,12 +40,45 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
 # The base image's non-root user is already `vscode` at UID/GID 1000:1000 —
 # pin it explicitly rather than relying on that staying true upstream, so
 # every Tool Container built on this image shares an identical user/UID/GID
-# by construction. This is what makes UID drift across Tool Containers
-# sharing one bind-mounted workspace structurally impossible: there is only
-# one place this identity is defined, not four.
+# by construction.
 RUN if ! id vscode >/dev/null 2>&1; then \
       groupadd --gid 1000 vscode && \
       useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode; \
     fi
+
+# Private Checkout's clone step, run via each Tool Container's
+# `onCreateCommand` — before `postCreateCommand`, while the workspace volume
+# is still empty, so it can't reference anything workspace-relative (that's
+# why this lives baked into the image rather than as a `.devcontainer/`
+# template). Self-sufficient for auth (`gh auth setup-git`) rather than
+# depending on `postCreateCommand`'s later, tool-specific credential-helper
+# setup, since `onCreateCommand` always fires first. Idempotent on
+# `/workspace/.git` existing, so a rebuild against an already-cloned volume
+# is a no-op. Unlike the optional SSH layer, a container with no repo at all
+# has nothing to degrade to, so a missing `GH_TOKEN` fails loudly rather than
+# skipping gracefully; an invalid one is left to surface via `git clone`'s
+# own authentication error.
+# Written via `printf`/backslash-continuation rather than a heredoc so this
+# builds on any Docker builder (heredocs in RUN need BuildKit; this skill
+# doesn't require it elsewhere).
+RUN printf '%s\n' \
+      '#!/bin/bash' \
+      'set -euo pipefail' \
+      '' \
+      'if [ -d /workspace/.git ]; then' \
+      '  echo "Private Checkout already exists at /workspace, skipping clone."' \
+      '  exit 0' \
+      'fi' \
+      '' \
+      'if [ -z "${GH_TOKEN:-}" ]; then' \
+      '  echo "✗ GH_TOKEN is not set in .devcontainer/.env — cannot clone the repo." >&2' \
+      '  echo "  Set it, then Dev Containers: Rebuild Container." >&2' \
+      '  exit 1' \
+      'fi' \
+      '' \
+      'gh auth setup-git' \
+      'git clone "https://github.com/{{REPO_SLUG}}.git" /workspace' \
+      > /usr/local/bin/clone-checkout.sh \
+    && chmod 755 /usr/local/bin/clone-checkout.sh
 
 USER vscode
