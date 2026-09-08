@@ -16,7 +16,7 @@ set -euo pipefail
 # Lifecycle:
 #   Prompt shows until the developer dismisses it with:
 #     touch ~/.ssh/.signing-key-registered
-#   That file persists in the {{REPO_NAME}}-ssh-config volume, so rebuilds stay quiet.
+#   That file persists in this tool's own SSH volume, so rebuilds stay quiet.
 #   Wiping the volume resets it and the prompt reappears.
 
 # Private Checkout staleness hint — static and network-free by design (no

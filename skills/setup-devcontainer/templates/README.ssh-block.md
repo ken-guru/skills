@@ -2,23 +2,22 @@
 ## SSH deploy key and signing key
 
 - Git push/pull and commit signing use two separate SSH keys, persisted
-  across rebuilds in one named volume (`{{REPO_NAME}}-ssh-config`) mounted at
-  `~/.ssh`. This volume is shared across every Tool Container that has the
-  SSH layer enabled — deploy/signing keys are a property of this repo's git
-  identity, not of any one AI CLI, so every SSH-enabled Tool Container reuses
-  the same registered key pair rather than each tool registering its own.
+  across rebuilds in **this Tool Container's own** named volume
+  (`{{REPO_NAME}}-<tool>-ssh`) mounted at `~/.ssh` — private to this tool,
+  not shared with any other Tool Container. Each SSH-enabled Tool Container
+  registers and manages its own key pair.
 
-**Why sharing one key pair doesn't widen the blast radius.** If either key's
-material is ever exfiltrated from a Tool Container, the attacker already has
-full push/sign capability for this repo's identity from wherever they
-extracted it — isolating each tool's keys wouldn't have prevented that,
-since Docker boundaries between Tool Containers don't apply once the key
-itself is out. Per-tool isolation would only buy *selective revocation*
-(distrust one tool without touching the others' keys), which isn't worth
-multiplying the signing key's manual GitHub-UI registration step by every
-enabled tool: wiping the shared volume and regenerating is already a
-fully-scripted, fast operation, so "revoke and redo for everyone" is an
-acceptable response to distrusting any one tool.
+**Why every tool gets its own key pair.** Once each Tool Container has its
+own Private Checkout (its own isolated on-disk clone — see
+[CONTEXT.md](../CONTEXT.md)), a shared SSH volume would be the one surface
+still connecting them: a compromised or runaway agent in one container could
+still read the key material every other container's `git push` and commit
+signing depend on. Per-tool keys close that surface and buy *selective
+revocation* — distrust one tool's key without touching any other's — at the
+cost of the signing key's manual GitHub-UI registration step happening once
+per SSH-enabled tool instead of once for the whole repo. See
+`docs/adr/0001-per-container-ssh-keys.md` in this skill's own repo for the
+full reasoning.
 
 Two separate ED25519 keys exist because GitHub rejects a public key as a
 signing key once that same key is already registered as a deploy key. Each
@@ -26,20 +25,30 @@ SSH-enabled Tool Container's `post-create.sh` generates `~/.ssh/id_ed25519`
 as the deploy key (git transport: push/pull this repo, registered
 automatically against `repos/{{REPO_SLUG}}/keys` via the `gh` API) and
 `~/.ssh/id_ed25519_signing` as the signing key (commit verification,
-registered manually once per machine via the GitHub UI — there's no
-API-driven way to do this without granting the token account-level
+registered manually once per tool via the GitHub UI — there's no API-driven
+way to do this without granting the token account-level
 `write:ssh_signing_key`, which would let it manage every signing key on the
 account, not just this project's).
 
-Both keys live in the `{{REPO_NAME}}-ssh-config` volume, so they and the
-`~/.ssh/.signing-key-registered` marker survive container rebuilds. Only
-wiping that volume regenerates the keys and resets the marker.
+Both keys live in that tool's own `{{REPO_NAME}}-<tool>-ssh` volume, so they
+and the `~/.ssh/.signing-key-registered` marker survive that tool's
+container rebuilds. Only wiping that specific volume regenerates that tool's
+keys and resets its marker — it has no effect on any other tool.
 
 Deploy-key registration is checked by key **content**, not title — if the
 volume is wiped and a new key is generated, the stale GitHub entry (same
 title, old content) is deleted and replaced. `postAttachCommand` re-verifies
 the deploy key on every attach so an accidental deletion on GitHub is caught
 immediately instead of failing silently on the next `git push`.
+
+**Migrating from a repo-wide shared key pair.** If this repo was previously
+set up before per-tool keys existed, each Tool Container's first rebuild
+under the new scheme automatically removes the old repo-wide shared deploy
+key once its own per-tool key is registered — no unused, unrevoked deploy
+key is left standing. The old shared *signing* key has no equivalent
+automatic cleanup (GitHub exposes no deletion API for it); remove it by hand
+from <https://github.com/settings/keys> once every tool has registered its
+own.
 
 `GH_TOKEN` needs the repo's **Administration (read/write)** permission to
 list, register, and delete deploy keys via `gh api repos/.../keys` — this is
@@ -49,15 +58,10 @@ Metadata). No account-level token permissions are needed for any of this.
 Register the signing key: `postAttachCommand` prints a one-time prompt with a
 public key to paste into <https://github.com/settings/ssh> as a **Signing
 Key**. Do that, then dismiss the prompt with
-`touch ~/.ssh/.signing-key-registered`. **Do this once for the whole repo —
-not once per Tool Container.** If more than one SSH-enabled tool is open,
-whichever one you dismiss the prompt in dismisses it for all of them too,
-since they all read the same marker file from the same shared volume. If you
-open two SSH-enabled Tool Containers for the very first time at the same
-moment, a lock in `post-create.sh` serializes key generation/registration
-between them so only one actually does the work — you may still see both
-print the prompt (each was waiting on the lock when it started), but there's
-only ever one real key pair and one registration behind it.
+`touch ~/.ssh/.signing-key-registered`. **Do this once per SSH-enabled Tool
+Container** — each tool has its own key pair and its own marker file on its
+own volume now, so dismissing the prompt in one tool's window has no effect
+on any other tool's.
 
 **An under-scoped or missing `GH_TOKEN`, or an unset `DEVCONTAINER_HOST`, never fails the
 container build.** `post-create-ssh-block.sh` probes `GH_TOKEN` before touching any keys; if it's
