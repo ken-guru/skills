@@ -587,3 +587,29 @@ were modified, the old shared SSH volume was offered for removal (and removed, i
 this was genuinely the last tool to migrate, and the user has been given the pre-rebuild push
 warning and the post-migration signing-key cleanup note (if applicable) — not just told to
 rebuild.
+
+## Connecting a Local Checkout to a real GitHub repo
+
+For a repo generated as Local Checkout (step 1) that now has a real GitHub repository to push
+to. This needs **no skill-level regeneration at all** — no rerunning this skill, no
+`devcontainer.json` changes, no rebuild. `onCreateCommand`'s clone-checkout script is already a
+permanent no-op once `/workspace/.git` exists (whether that came from `git init` or a real
+clone), and every Tool Container's `postCreateCommand` already configures the
+`gh auth setup-git` credential helper unconditionally, regardless of Local Checkout — so HTTPS
+push authentication is already wired up as soon as `GH_TOKEN` is present in `.env`.
+
+Tell the user the plain-git sequence, in order:
+
+1. Create the GitHub repository, outside this skill (github.com or `gh repo create`).
+2. If `.devcontainer/.env` doesn't already have a valid `GH_TOKEN` (it wasn't required for Local
+   Checkout), add one now.
+3. Inside the Tool Container: `git remote add origin <url>`, then `git push -u origin <branch>`.
+
+That's it — the Tool Container is now connected. If this tool also wants agent-driven `git push`
+and signed commits via the SSH layer, that's the separate [Adding SSH to a tool
+later](#adding-ssh-to-a-tool-later) flow, run **after** this — not before, since that flow
+resolves `{{REPO_SLUG}}` from the now-real `origin` and registers deploy/signing keys against a
+repo that has to already exist.
+
+Done when the user has been given the three steps above, in order, and — if confirmed by the
+user afterward — a real `git push` from inside the Tool Container actually succeeds.
