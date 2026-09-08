@@ -167,11 +167,18 @@ those go through the append-flows instead):
   Claude Code as the common case; it's fully optional and symmetric with the
   other three, just recommended by default.
 
+If `{{LOCAL_CHECKOUT}}` is `"true"` (step 1), skip the SSH Layer question below entirely for
+every tool in this run — there's no GitHub repo yet to register deploy/signing keys against. Tell
+the user why it's not being offered: "SSH layer isn't available yet — this repo has no GitHub
+connection; add it once one exists (see 'Connecting a Local Checkout to a real GitHub repo')."
+The YOLO alias and skills-sync questions are unaffected — both are independent of git/GitHub
+remote status, ask them normally.
+
 For each **newly** selected tool, ask independently:
 
-- **SSH Layer**: Does this repo need agent-driven `git push` and signed
-  commits from this tool's Tool Container? (Adds deploy-key/signing-key
-  automation — this tool registers and owns its own key pair, not shared
+- **SSH Layer** (skip if `{{LOCAL_CHECKOUT}}` is `"true"`, per above): Does this repo need
+  agent-driven `git push` and signed commits from this tool's Tool Container? (Adds
+  deploy-key/signing-key automation — this tool registers and owns its own key pair, not shared
   with any other Tool Container that also has it enabled.)
 - **YOLO alias**: Should this tool get its `-yolo` alias for fast, unattended
   iteration — `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo`,
