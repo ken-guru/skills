@@ -42,6 +42,21 @@ The single bind-mounted repo checkout every Tool Container used to share,
 superseded by one Private Checkout per tool.
 _Avoid_: bind mount, shared workspace
 
+**Scaffold**:
+A Tool Container's `.devcontainer/` directory itself — the generated
+Dockerfiles, `devcontainer.json`, and lifecycle scripts — as distinct from
+its Private Checkout (the `/workspace` clone of the repo's actual content).
+Not to be confused with Local Checkout, which is about the workspace repo
+having no `origin`, not about whether the Scaffold is tracked.
+_Avoid_: devcontainer config, setup files (too generic)
+
+**Committed Scaffold**:
+Today's only supported mode: the Scaffold is tracked in git like ordinary
+repo content, so Private Checkout's clone is what delivers it into the
+container — `postCreateCommand` and its siblings are only reachable inside
+the container because they were cloned along with everything else.
+_Avoid_: default mode, standard setup
+
 **Cross-Container Leakage**:
 The risk Private Checkout closes: one Tool Container's uncommitted edits,
 unpushed branches, or worktrees becoming visible to another because they
