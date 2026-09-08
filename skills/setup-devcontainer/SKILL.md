@@ -74,12 +74,28 @@ git remote get-url origin
 
 Parse `owner/repo` from it (works for both `git@github.com:owner/repo.git` and
 `https://github.com/owner/repo` forms) — this is `{{REPO_SLUG}}`. `{{REPO_NAME}}` is the `repo`
-part alone, used in volume names and SSH key titles.
+part alone, used in volume names and SSH key titles. `{{LOCAL_CHECKOUT}}` is `"false"`.
 
-If there's no `origin` remote yet (brand-new repo), ask the user for the intended `owner/repo`
-instead of guessing.
+If there's no `origin` remote yet, ask one question: "Does a GitHub repository already exist for
+this project? If yes, name it (`owner/repo`) — Tool Containers will clone from there, and
+`GH_TOKEN` will be required. If no, or you're not ready to connect yet, Tool Containers start as
+a local-only **Local Checkout** — connectable to GitHub later (see 'Connecting a Local Checkout
+to a real GitHub repo')."
 
-Done when you have both `{{REPO_SLUG}}` and `{{REPO_NAME}}`.
+- **Named an existing repo**: resolve `{{REPO_SLUG}}`/`{{REPO_NAME}}` from it, same as the
+  existing-`origin` case above. The named repo must already exist on GitHub — cloning it is what
+  populates each Tool Container's workspace. `{{LOCAL_CHECKOUT}}` is `"false"`.
+- **Local Checkout**: `{{REPO_SLUG}}` stays empty. `{{REPO_NAME}}` falls back to the local working
+  directory's basename (`basename "$(pwd)"`), sanitized to Docker's naming rules (lowercase,
+  invalid characters replaced with `-`) — state the resolved name back to the user as part of
+  your summary; don't decide it silently. `{{LOCAL_CHECKOUT}}` is `"true"`. Also ask, as a
+  separate yes/no question: "Initialize this workspace with `git init`?" Record the answer as
+  `{{LOCAL_CHECKOUT_GIT_INIT}}` (`"true"`/`"false"`). If yes, resolve `{{GIT_DEFAULT_BRANCH}}`
+  from the host's `git config --global init.defaultBranch` — leave it unset entirely (never an
+  empty string) if the host has none configured.
+
+Done when you have `{{REPO_SLUG}}` (possibly empty), `{{REPO_NAME}}`, and `{{LOCAL_CHECKOUT}}` —
+plus, if Local Checkout, `{{LOCAL_CHECKOUT_GIT_INIT}}` and, if that's yes, `{{GIT_DEFAULT_BRANCH}}`.
 
 ## 2. Discover existing Tool Containers
 
@@ -255,8 +271,10 @@ Both are addable later per tool without redoing anything already generated
 
 - If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
   [templates/base.Dockerfile](templates/base.Dockerfile), substituting
-  `{{REPO_SLUG}}` (the baked-in Private Checkout clone script needs it to
-  know what to clone). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
+  `{{REPO_SLUG}}`, `{{LOCAL_CHECKOUT}}`, `{{LOCAL_CHECKOUT_GIT_INIT}}`, and
+  `{{GIT_DEFAULT_BRANCH}}` (all from step 1) — the baked-in Private
+  Checkout clone script needs them to know whether to clone, `git init`, or
+  leave the workspace bare. Set `{{BASE_IMAGE_VERSION}}` to `v1`.
   Build it:
   `docker build -t {{REPO_NAME}}-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
   Record the version and a content hash of the file

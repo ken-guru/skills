@@ -53,11 +53,18 @@ RUN if ! id vscode >/dev/null 2>&1; then \
 # template). Self-sufficient for auth (`gh auth setup-git`) rather than
 # depending on `postCreateCommand`'s later, tool-specific credential-helper
 # setup, since `onCreateCommand` always fires first. Idempotent on
-# `/workspace/.git` existing, so a rebuild against an already-cloned volume
-# is a no-op. Unlike the optional SSH layer, a container with no repo at all
-# has nothing to degrade to, so a missing `GH_TOKEN` fails loudly rather than
-# skipping gracefully; an invalid one is left to surface via `git clone`'s
-# own authentication error.
+# `/workspace/.git` existing, so a rebuild against an already-cloned (or
+# already-`git init`'d) volume is a no-op.
+#
+# Branches on {{LOCAL_CHECKOUT}} for a repo with no GitHub connection at all
+# (see SKILL.md step 1): `{{LOCAL_CHECKOUT_GIT_INIT}}` decides between
+# `git init` (default branch from {{GIT_DEFAULT_BRANCH}}, if the host had
+# one configured) and leaving the workspace genuinely bare. Otherwise, falls
+# through to the existing clone path unchanged: unlike the optional SSH
+# layer, a container with no repo at all has nothing to degrade to, so a
+# missing `GH_TOKEN` fails loudly rather than skipping gracefully; an
+# invalid one is left to surface via `git clone`'s own authentication error.
+#
 # Written via `printf`/backslash-continuation rather than a heredoc so this
 # builds on any Docker builder (heredocs in RUN need BuildKit; this skill
 # doesn't require it elsewhere).
@@ -66,7 +73,21 @@ RUN printf '%s\n' \
       'set -euo pipefail' \
       '' \
       'if [ -d /workspace/.git ]; then' \
-      '  echo "Private Checkout already exists at /workspace, skipping clone."' \
+      '  echo "Private Checkout already exists at /workspace, skipping."' \
+      '  exit 0' \
+      'fi' \
+      '' \
+      'if [ "{{LOCAL_CHECKOUT}}" = "true" ]; then' \
+      '  if [ "{{LOCAL_CHECKOUT_GIT_INIT}}" = "true" ]; then' \
+      '    if [ -n "{{GIT_DEFAULT_BRANCH}}" ]; then' \
+      '      git init --initial-branch="{{GIT_DEFAULT_BRANCH}}" /workspace' \
+      '    else' \
+      '      git init /workspace' \
+      '    fi' \
+      '    echo "Local Checkout initialized: git repo, no origin."' \
+      '  else' \
+      '    echo "Local Checkout initialized: no git."' \
+      '  fi' \
       '  exit 0' \
       'fi' \
       '' \
