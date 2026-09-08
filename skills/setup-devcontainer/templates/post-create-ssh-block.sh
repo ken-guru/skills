@@ -107,9 +107,11 @@ existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
 if [ -n "$existing_id" ]; then
   echo "Deploy key already registered: $DEPLOY_KEY_TITLE"
 else
+  # GitHub doesn't enforce title uniqueness, so bound this to exactly one
+  # match — a multi-line result here would break the DELETE call below.
   stale_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
     --arg title "$DEPLOY_KEY_TITLE" \
-    '.[] | select(.title == $title) | .id')
+    '.[] | select(.title == $title) | .id' | head -1)
   if [ -n "$stale_id" ]; then
     gh api "repos/${REPO}/keys/${stale_id}" -X DELETE
     echo "Removed stale deploy key (volume was rotated): $DEPLOY_KEY_TITLE"
@@ -128,9 +130,10 @@ fi
 # API for signing keys — so it's left for the person migrating this repo to
 # remove by hand; the agent running this skill tells them to when it detects
 # a pre-Private-Checkout setup (see SKILL.md's migration guidance).
+# Same title-uniqueness caveat as stale_id above — bound to one match.
 old_shared_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
   --arg title "$OLD_SHARED_DEPLOY_KEY_TITLE" \
-  '.[] | select(.title == $title) | .id')
+  '.[] | select(.title == $title) | .id' | head -1)
 if [ -n "$old_shared_id" ]; then
   gh api "repos/${REPO}/keys/${old_shared_id}" -X DELETE
   echo "Removed old shared deploy key (superseded by per-tool keys): $OLD_SHARED_DEPLOY_KEY_TITLE"
