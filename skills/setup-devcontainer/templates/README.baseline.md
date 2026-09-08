@@ -41,17 +41,21 @@ Selected tools this run: {{SELECTED_TOOLS_SUMMARY}}.
 ## Running tools concurrently
 
 Every Tool Container is a service in the same `.devcontainer/docker-compose.yml`,
-bind-mounting this same repo checkout — they're built to run side by side, not
-just one at a time. VS Code only connects one container per window, so to use
-two tools at once: open a **second** VS Code window (File > New Window) on
-this same repo, then **Dev Containers: Reopen in Container** and pick a
+each with its own **Private Checkout** — its own isolated clone of this repo,
+not a shared bind mount — so they're built to run side by side, not just one
+at a time. VS Code only connects one container per window, so to use two
+tools at once: open a **second** VS Code window (File > New Window) on this
+same repo, then **Dev Containers: Reopen in Container** and pick a
 *different* Tool Container there. Each window's container keeps running
 independently — closing one window's container does not stop the other's.
 
 **One-time sanity check** (not required on every setup, only worth doing once
 if you plan to use more than one tool at a time): open two Tool Containers
 this way and confirm both stay attached in their own windows at the same
-time. If you only ever use one tool, you can skip this entirely.
+time, and that an uncommitted edit made in one is genuinely invisible in the
+other (Private Checkouts don't share a filesystem or auto-sync with each
+other — see `git fetch`/`pull` if you want one to pick up what another has
+pushed). If you only ever use one tool, you can skip this entirely.
 
 ## Automatic skill sync
 

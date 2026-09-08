@@ -10,7 +10,8 @@ independent **Tool Container** per selected AI CLI — Claude Code, Codex,
 Antigravity, and/or GitHub Copilot — instead of a single shared container
 bundling every tool together. See
 [CONTEXT.md](CONTEXT.md) for the vocabulary used throughout this skill
-(Tool Container, Shared Container, Collision, Concurrent Workspace).
+(Tool Container, Shared Container, Collision, Concurrent Workspace, Private
+Checkout, Shared Checkout, Cross-Container Leakage).
 
 - **Shared base image** (`base.Dockerfile`) — Node.js, the GitHub CLI, and a
   fixed `vscode` user/UID/GID, built once and reused (via Docker's own layer
@@ -29,14 +30,25 @@ bundling every tool together. See
   from a registry, and fails hard since it was never pushed anywhere. Pre-
   building ourselves means VS Code never has a build step to run at all for
   these services — just an already-present image to start.
+- **Private Checkout** — every Tool Container clones its own copy of the repo
+  from `origin` into its own named volume (via `onCreateCommand`, before
+  `postCreateCommand` ever runs), instead of bind-mounting the host's
+  checkout. No Tool Container can read another's uncommitted work, unpushed
+  branches, or `claude --worktree` worktrees — the isolation `docker-compose.yml`
+  and `devcontainer.json` already gave each tool's compute now extends to its
+  filesystem too. Doesn't auto-sync with `origin` or any other Tool
+  Container — `git fetch`/`pull` manually; `post-attach.sh` prints a static
+  reminder of this on every attach.
 - **Concurrent Workspace** — every Tool Container is a service in the same
-  `docker-compose.yml`, bind-mounting this same repo checkout. Opening two
-  tools' containers in two separate VS Code windows runs them side by side.
+  `docker-compose.yml`, each with its own Private Checkout. Opening two
+  tools' containers in two separate VS Code windows runs them side by side,
+  with no shared on-disk state between them.
 - **SSH layer** — deploy-key/signing-key automation for agent-driven
   `git push` and signed commits. Optional per tool, addable to any tool after
-  the fact without touching that tool's existing files. Shared across every
-  SSH-enabled Tool Container (one registered key pair per repo, not one per
-  tool).
+  the fact without touching that tool's existing files. Each SSH-enabled Tool
+  Container registers and owns its own key pair — not shared with any other
+  tool, so a compromised or runaway agent in one container can't read the
+  key material another container's `git push`/commit signing depends on.
 - **YOLO alias** — a shell alias for fast, unattended iteration, named after
   the tool's actual CLI invocation, not its folder name: `claude-yolo`,
   `codex-yolo`, `agy-yolo` (Antigravity's binary is `agy`, not `antigravity`),
@@ -345,14 +357,14 @@ Always (every run, regardless of which tools are new):
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
-- If **Claude Code** is selected (newly or already), add `.claude/worktrees/` to `.gitignore` if
-  it isn't already ignored: `claude --worktree` (used by the `claude-yolo` alias, and available to
-  any Claude Code session regardless of the alias) creates isolated git worktrees directly inside
-  the bind-mounted `/workspace`, which the host sees as untracked noise in `git status` since the
-  mount is the same filesystem, not container-isolated. Apply the same reasoning to any other
-  tool-generated runtime noise you notice actually landing inside the workspace (as opposed to a
-  config volume, which is already container-isolated and needs no gitignore entry) — this list
-  isn't meant to be exhaustive up front, only to grow as real noise is observed.
+- Remove `.claude/worktrees/` from `.gitignore` if a prior run of this skill added it (check for
+  the exact line and delete it; leave every other line untouched). It existed only because
+  `claude --worktree` used to create isolated git worktrees directly inside the *bind-mounted*
+  `/workspace`, which the host saw as untracked noise in `git status` since the mount was the same
+  filesystem, not container-isolated. Now that every Tool Container has its own Private Checkout,
+  a worktree created inside one lives only in that tool's own volume — invisible to the host, so
+  nothing to gitignore. This is a no-op for a fresh repo (the line was never added); for a repo
+  migrating from before Private Checkout, this actively cleans it up.
 
 Done when every file above exists, every tool's `devcontainer.json` parses as valid JSON
 (`jq empty .devcontainer/<tool>/devcontainer.json`) with a non-null `onCreateCommand`
@@ -391,10 +403,9 @@ Tell the user, adapted to which tools were selected and which have SSH/yolo:
    concurrently" section.}}
 6. {{If any tool has the SSH layer present: on attach, `post-attach.sh`
    prints a public key — paste it into github.com/settings/ssh as a Signing
-   Key, then `touch ~/.ssh/.signing-key-registered`. Do this **once**,
-   in whichever SSH-enabled tool's window shows the prompt first — the key
-   pair and the registration marker are shared across every SSH-enabled Tool
-   Container in this repo, not generated separately per tool.}}
+   Key, then `touch ~/.ssh/.signing-key-registered`. Do this **once per
+   SSH-enabled Tool Container** — each tool has its own key pair and its own
+   registration marker now, so this doesn't carry over between tools.}}
 7. {{For each tool with its YOLO alias present: a new shell in that tool's
    container has its alias available for fast, unattended iteration —
    `claude-yolo`, `codex-yolo`, `agy-yolo`, or `copilot-yolo` (matching the
@@ -435,24 +446,24 @@ Tool Container.
 ## Adding SSH to a tool later
 
 For a tool that already has a Tool Container (`.devcontainer/<tool>/devcontainer.json`
-exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` / signed commits:
+exists, no SSH `mounts` entry in it) and now needs agent-driven `git push` / signed commits.
+`postAttachCommand` already exists on every tool by construction (Private Checkout's staleness
+hint needs it regardless of SSH), so unlike before, this flow only adds the SSH mount — not the
+command itself:
 
 1. Resolve `{{REPO_SLUG}}`, `{{REPO_NAME}}` as in the main flow's step 1.
 2. Replace `.devcontainer/<tool>/devcontainer.json` with
-   [templates/<tool>/devcontainer.with-ssh.json](templates/), substituted —
-   this only adds the SSH mount and `postAttachCommand` relative to the
-   existing file, so no other property changes.
-3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted),
-   then [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
+   [templates/<tool>/devcontainer.with-ssh.json](templates/), substituted (`{{REPO_NAME}}`) —
+   this only adds the SSH `mounts` entry (this tool's own `{{REPO_NAME}}-<tool>-ssh` volume)
+   relative to the existing file, so no other property changes.
+3. Append [templates/post-create-ssh-block.sh](templates/post-create-ssh-block.sh) (substituted,
+   including `{{TOOL_NAME}}`), then
+   [templates/post-create-warnings-block.sh](templates/post-create-warnings-block.sh)
    (no placeholders), to the end of the existing `.devcontainer/<tool>/post-create.sh`.
-4. Write `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
-   substituted, and `chmod +x` it, if it doesn't already exist (it may already exist if another
-   tool already has SSH enabled — the file and the volume it manages are shared across every
-   SSH-enabled tool).
-5. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
+4. Append [templates/env.ssh-block.example](templates/env.ssh-block.example) to
    `.devcontainer/.env.example` (only if not already present from another tool's SSH setup), and
    update its `GH_TOKEN` comment as in the main flow's step 6.
-6. `.devcontainer/.env` itself already exists in this flow (it's required for the Tool Container to
+5. `.devcontainer/.env` itself already exists in this flow (it's required for the Tool Container to
    have worked at all) and is gitignored — don't touch it programmatically, since it holds a live
    `GH_TOKEN`. `initializeCommand` only seeds `.env` from `.env.example` when
    `.env` doesn't yet exist, so appending to `.env.example` alone never reaches the file that's
@@ -465,15 +476,16 @@ exists, no `postAttachCommand` key in it) and now needs agent-driven `git push` 
    Skipping this doesn't fail the build — `post-create-ssh-block.sh` degrades to skipping the SSH
    setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
    never activates, so set it before the first rebuild rather than relying on the warning to catch it.
-7. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
+6. Append [templates/README.ssh-block.md](templates/README.ssh-block.md) to
    `.devcontainer/README.md` (only if not already present), and delete that file's "SSH deploy key
    and signing key automation — Not set up here" closing section.
-8. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 6 to
+7. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 5 to
    `.devcontainer/.env` now if it wasn't already there, before rebuilding — not after hitting the
    error; rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**, in that
    tool's window); and once attached, follow the signing-key prompt from `post-attach.sh`.
 
-Done when `.devcontainer/<tool>/devcontainer.json` still parses as valid JSON, has both the new
-mount and `postAttachCommand`, no `{{...}}` placeholder remains in any touched file, no other
-tool's files were modified, and the user has actually been told the `DEVCONTAINER_HOST` line to
-add to their existing `.env` — not just to `.env.example`.
+Done when `.devcontainer/<tool>/devcontainer.json` still parses as valid JSON, has the new SSH
+`mounts` entry referencing this tool's own volume (`postAttachCommand` already existed), no
+`{{...}}` placeholder remains in any touched file, no other tool's files were modified, and the
+user has actually been told the `DEVCONTAINER_HOST` line to add to their existing `.env` — not
+just to `.env.example`.
