@@ -31,6 +31,12 @@ A Tool Container's own git clone of the repo — own `.git`, own persistent
 volume, cloned from `origin` — invisible to every other Tool Container.
 _Avoid_: isolated checkout, container clone (too generic)
 
+**Local Checkout**:
+A Private Checkout with no GitHub `origin` at all — a local `git init` or a
+genuinely bare workspace, for a project with no resolvable repo yet.
+Connectable to a real GitHub repo later with no skill-level regeneration.
+_Avoid_: offline mode, standalone checkout
+
 **Shared Checkout**:
 The single bind-mounted repo checkout every Tool Container used to share,
 superseded by one Private Checkout per tool.

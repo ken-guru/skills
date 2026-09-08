@@ -13,6 +13,6 @@
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/copilot/post-create.sh",
   "postStartCommand": "bash .devcontainer/copilot/post-start.sh",
-  "waitFor": "postStartCommand",
+  "waitFor": "postAttachCommand",
   "postAttachCommand": "bash .devcontainer/post-attach.sh"
 }
