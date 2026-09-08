@@ -39,6 +39,14 @@ Checkout, Shared Checkout, Cross-Container Leakage).
   filesystem too. Doesn't auto-sync with `origin` or any other Tool
   Container — `git fetch`/`pull` manually; `post-attach.sh` prints a static
   reminder of this on every attach.
+- **Local Checkout** — a Private Checkout with no GitHub `origin` at all: for
+  a brand-new or deliberately local-only project, with no resolvable repo
+  and no `GH_TOKEN` requirement. Chosen once per repo, at step 1, instead of
+  naming an existing GitHub repo; every Tool Container in that run gets one.
+  Initializes to a local `git init` (default) or a genuinely bare workspace,
+  by a separate yes/no answer — never automatic. Connectable to a real
+  GitHub repo later with no skill-level regeneration at all, just plain git
+  (see "Connecting a Local Checkout to a real GitHub repo").
 - **Concurrent Workspace** — every Tool Container is a service in the same
   `docker-compose.yml`, each with its own Private Checkout. Opening two
   tools' containers in two separate VS Code windows runs them side by side,
@@ -91,8 +99,11 @@ to a real GitHub repo')."
   your summary; don't decide it silently. `{{LOCAL_CHECKOUT}}` is `"true"`. Also ask, as a
   separate yes/no question: "Initialize this workspace with `git init`?" Record the answer as
   `{{LOCAL_CHECKOUT_GIT_INIT}}` (`"true"`/`"false"`). If yes, resolve `{{GIT_DEFAULT_BRANCH}}`
-  from the host's `git config --global init.defaultBranch` — leave it unset entirely (never an
-  empty string) if the host has none configured.
+  from the host's `git config --global init.defaultBranch` — substitute it as an empty string if
+  the host has none configured (the baked-in script checks for that emptiness at runtime to
+  decide whether to pass `--initial-branch` to `git init` at all; always substitute this
+  placeholder with *something*, even `""`, same as every other placeholder — never leave the
+  literal `{{GIT_DEFAULT_BRANCH}}` token in the written file).
 
 Done when you have `{{REPO_SLUG}}` (possibly empty), `{{REPO_NAME}}`, and `{{LOCAL_CHECKOUT}}` —
 plus, if Local Checkout, `{{LOCAL_CHECKOUT_GIT_INIT}}` and, if that's yes, `{{GIT_DEFAULT_BRANCH}}`.

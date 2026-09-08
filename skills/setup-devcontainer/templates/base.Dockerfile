@@ -54,7 +54,11 @@ RUN if ! id vscode >/dev/null 2>&1; then \
 # depending on `postCreateCommand`'s later, tool-specific credential-helper
 # setup, since `onCreateCommand` always fires first. Idempotent on
 # `/workspace/.git` existing, so a rebuild against an already-cloned (or
-# already-`git init`'d) volume is a no-op.
+# already-`git init`'d) volume is a no-op. A Local Checkout that declined
+# `git init` has no `.git` to short-circuit on, so this re-evaluates (and
+# re-prints its one status line) on every rebuild — harmless, since it has
+# no side effects beyond that echo, just not a true no-op like the other
+# two paths.
 #
 # Branches on {{LOCAL_CHECKOUT}} for a repo with no GitHub connection at all
 # (see SKILL.md step 1): `{{LOCAL_CHECKOUT_GIT_INIT}}` decides between
