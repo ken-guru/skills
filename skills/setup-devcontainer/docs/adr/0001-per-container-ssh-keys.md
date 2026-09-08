@@ -51,3 +51,10 @@ no equivalent removal API, so it's left for the person migrating the repo to rem
 - Migrating an already-set-up repo needs an explicit step — see SKILL.md's "Migrating a Tool
   Container to Private Checkout" — since old and new key titles don't collide, so nothing detects
   the migration automatically without a fresh clone.
+- N private keys now exist at rest instead of one, each on its own Docker volume. This doesn't
+  raise the *ceiling* a host-level attacker (direct access to Docker's volume storage, bypassing
+  container isolation entirely) could reach either way: every deploy key is equally repo-scoped,
+  so finding any single one — old shared or new per-tool — already grants full push access to
+  this repo. The isolation this decision buys is specifically *container-level*: compromising one
+  Tool Container no longer exposes every other tool's key, which a host-level compromise was
+  never going to respect regardless of how many keys existed.
