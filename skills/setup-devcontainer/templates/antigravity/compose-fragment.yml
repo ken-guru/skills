@@ -3,6 +3,6 @@
     env_file:
       - .env
     volumes:
-      - ..:/workspace:cached
+      - {{REPO_NAME}}-antigravity-checkout:/workspace
       - {{REPO_NAME}}-antigravity-config:/home/vscode/.antigravity
     command: sleep infinity

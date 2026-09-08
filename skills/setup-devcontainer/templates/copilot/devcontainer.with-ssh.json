@@ -7,8 +7,9 @@
   "remoteUser": "vscode",
   "init": true,
   "mounts": [
-    "source={{REPO_NAME}}-ssh-config,target=/home/vscode/.ssh,type=volume"
+    "source={{REPO_NAME}}-copilot-ssh,target=/home/vscode/.ssh,type=volume"
   ],
+  "onCreateCommand": "/usr/local/bin/clone-checkout.sh",
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/copilot/post-create.sh",
   "postStartCommand": "bash .devcontainer/copilot/post-start.sh",

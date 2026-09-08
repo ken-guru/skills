@@ -14,6 +14,6 @@
       - seccomp=unconfined
       - systempaths=unconfined
     volumes:
-      - ..:/workspace:cached
+      - {{REPO_NAME}}-codex-checkout:/workspace
       - {{REPO_NAME}}-codex-config:/home/vscode/.codex
     command: sleep infinity
