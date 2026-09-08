@@ -1,6 +1,6 @@
 .vscode/
 .envrc
-.devcontainer/
+.devcontainer/.env
 skills/presentation/verification/presentation-themes/.generated/
 skills/presentation/verification/presentation-themes/reports/
 skills/presentation/verification/presentation-themes/node_modules/
