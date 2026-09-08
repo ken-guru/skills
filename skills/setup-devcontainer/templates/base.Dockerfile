@@ -81,6 +81,13 @@ RUN printf '%s\n' \
       '  exit 0' \
       'fi' \
       '' \
+      '# A fresh named-volume mountpoint is always root:root regardless of the' \
+      '# base images default user (same issue documented for config volumes' \
+      '# in post-create-block.sh) -- but onCreateCommand runs before any of' \
+      '# postCreateCommands own chown fixes, so this has to be handled here' \
+      '# first, before git ever touches /workspace.' \
+      'sudo chown vscode:vscode /workspace' \
+      '' \
       'if [ "{{LOCAL_CHECKOUT}}" = "true" ]; then' \
       '  if [ "{{LOCAL_CHECKOUT_GIT_INIT}}" = "true" ]; then' \
       '    if [ -n "{{GIT_DEFAULT_BRANCH}}" ]; then' \
