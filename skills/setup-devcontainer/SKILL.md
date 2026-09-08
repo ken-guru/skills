@@ -251,14 +251,14 @@ Both are addable later per tool without redoing anything already generated
 
 `{{BASE_IMAGE_VERSION}}` is the bare version string (`v1`, `v2`, ...);
 `{{BASE_IMAGE_TAG}}` is the full image reference built from it:
-`skills-tool-container-base:{{BASE_IMAGE_VERSION}}`.
+`{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}`.
 
 - If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
   [templates/base.Dockerfile](templates/base.Dockerfile), substituting
   `{{REPO_SLUG}}` (the baked-in Private Checkout clone script needs it to
   know what to clone). Set `{{BASE_IMAGE_VERSION}}` to `v1`.
   Build it:
-  `docker build -t skills-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
+  `docker build -t {{REPO_NAME}}-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
   Record the version and a content hash of the file
   (`sha256sum .devcontainer/base.Dockerfile`) into
   `.devcontainer/.base-image-version` as `<version> <sha256>`.
@@ -284,7 +284,7 @@ Both are addable later per tool without redoing anything already generated
       `{{BASE_IMAGE_VERSION}}` for this run's new tool(s).
 
 Done when `.devcontainer/base.Dockerfile` exists, `docker image inspect
-skills-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
+{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
 `.devcontainer/.base-image-version` records that exact version alongside a
 hash matching the file actually on disk.
 
@@ -381,7 +381,7 @@ volume line per selected tool (plus one `{{REPO_NAME}}-<tool>-ssh:` line per SSH
 every selected tool's image actually exists at the tag its Compose service references
 (`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}` succeeds for each), the
 clone-checkout script landed executable in the base image
-(`docker run --rm skills-tool-container-base:{{BASE_IMAGE_VERSION}} test -x /usr/local/bin/clone-checkout.sh`),
+(`docker run --rm {{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}} test -x /usr/local/bin/clone-checkout.sh`),
 every with-ssh `devcontainer.json`'s `mounts` entry references *that tool's own* SSH volume (not
 another tool's, and not a stale shared name), and no `{{...}}` placeholder remains in any written
 file (`grep -rn '{{' .devcontainer/`).
