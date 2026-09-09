@@ -57,7 +57,7 @@ render_ssh_block() {
 }
 
 # The remaining four blocks carry no placeholders — always copied verbatim.
-install_lib_block() { cat "$TEMPLATES_DIR/install-cli-block.sh"; }
+install_cli_block() { cat "$TEMPLATES_DIR/install-cli-block.sh"; }
 tool_install_block() { cat "$TEMPLATES_DIR/$1/post-create-block.sh"; }
 yolo_alias_block() { cat "$TEMPLATES_DIR/$1/yolo-alias-block.sh"; }
 ssh_warnings_block() { cat "$TEMPLATES_DIR/post-create-warnings-block.sh"; }

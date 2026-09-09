@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Assembles one Tool Container's post-create.sh from the fixed 6-block
+# Assembles one Tool Container's post-create.sh from the fixed 7-block
 # template order described in SKILL.md step 6, replacing per-run
 # hand-concatenation by the invoking agent with one deterministic script.
 
@@ -80,7 +80,7 @@ fi
   echo
   render_identity_banner_block "$TOOL_DISPLAY_NAME"
   echo
-  install_lib_block
+  install_cli_block
   echo
   tool_install_block "$TOOL"
   echo
