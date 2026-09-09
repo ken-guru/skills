@@ -1,12 +1,15 @@
 # Shared base image for every Tool Container this skill generates. Each
-# tool's own Dockerfile does `FROM {{BASE_IMAGE_TAG}}` — Docker's layer store
-# shares these layers across every Tool Container built on this tag, so the
-# work below happens once, not once per tool.
+# tool's own Dockerfile does `FROM` this image's own built tag — Docker's
+# layer store shares these layers across every Tool Container built on that
+# tag, so the work below happens once, not once per tool. (Deliberately not
+# spelled out as a literal tag string here: the tag is content-addressed —
+# derived by hashing this file's own rendered content — so this file can
+# never actually contain it without a circular self-reference.)
 #
 # Rebuilt and retagged only when this file's rendered content changes (see
-# SKILL.md's base-image step); the resulting tag is versioned, never
-# `:latest`, so a base-layer change never silently cascades to every already-
-# built Tool Container.
+# SKILL.md's base-image step); the resulting tag embeds a content hash, so a
+# stale build can never masquerade as current, and a base-layer change never
+# silently cascades to every already-built Tool Container.
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Node.js — none of the four AI CLIs need this themselves (all install as

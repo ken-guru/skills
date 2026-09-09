@@ -296,46 +296,78 @@ generated (see the append-flows below).
 
 ## 5. Build or reuse the shared base image
 
-`{{BASE_IMAGE_VERSION}}` is the bare version string (`v1`, `v2`, ...);
-`{{BASE_IMAGE_TAG}}` is the full image reference built from it:
-`{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}`.
+`{{BASE_IMAGE_VERSION}}` is the bare, human-facing version string (`v1`,
+`v2`, ...) — used only in the bump-confirmation prompt below and as the
+first field of `.devcontainer/.base-image-version`. `{{BASE_IMAGE_HASH12}}`
+is the first 12 hex characters of that file's second field (the content
+sha256). Every actual Docker tag is **content-addressed, not just
+version-addressed**: `{{BASE_IMAGE_TAG}}` is
+`{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}-{{BASE_IMAGE_HASH12}}`,
+and each tool's own tag in step 6 follows the identical `<version>-<hash12>`
+shape.
 
-- If `.devcontainer/base.Dockerfile` doesn't exist yet: write it from
-  [templates/base.Dockerfile](templates/base.Dockerfile), substituting
-  `{{REPO_SLUG}}`, `{{LOCAL_CHECKOUT}}`, `{{LOCAL_CHECKOUT_GIT_INIT}}`, and
-  `{{GIT_DEFAULT_BRANCH}}` (all from step 1) — the baked-in Private
-  Checkout clone script needs them to know whether to clone, `git init`, or
-  leave the workspace bare. Set `{{BASE_IMAGE_VERSION}}` to `v1`.
-  Build it:
-  `docker build -t {{REPO_NAME}}-tool-container-base:v1 -f .devcontainer/base.Dockerfile .devcontainer`.
-  Record the version and a content hash of the file
-  (`sha256sum .devcontainer/base.Dockerfile`) into
+This is deliberate, not decoration: a bare `v1`/`v2` tag is a mutable
+pointer, and Docker will happily let a stale local image sit under it if any
+run — this skill, an interrupted session resuming by hand, a person
+hand-editing the generated files — ever writes `.base-image-version` (or the
+`Dockerfile`/`docker-compose.yml` files that reference its tag) without also
+re-running this step's `docker build`. Since step 6's Compose services
+reference the tag via `image:`, never `build:` (see below), nothing else
+would catch that mismatch at container-start time — the container would just
+silently run whatever old content happens to already be tagged that way.
+Suffixing every tag with the content hash makes that failure mode
+structurally impossible: a tag whose hash doesn't match its Dockerfile's
+current rendered content simply doesn't exist as a local image yet, so
+Compose fails loudly (`Error response from daemon: No such image`) instead
+of quietly starting stale content. Never truncate a tag's hash suffix to
+fewer than 12 hex characters — that's what keeps two different renders of
+`base.Dockerfile` (e.g. one with an unresolved `{{...}}` placeholder, one
+without) from ever landing on the same tag by coincidence.
+
+- If `.devcontainer/base.Dockerfile` doesn't exist yet — including a repo
+  that has one in git history but deleted, uncommitted, from the working
+  tree; treat that identically to never having existed, not as "unchanged":
+  write it from [templates/base.Dockerfile](templates/base.Dockerfile),
+  substituting `{{REPO_SLUG}}`, `{{LOCAL_CHECKOUT}}`,
+  `{{LOCAL_CHECKOUT_GIT_INIT}}`, and `{{GIT_DEFAULT_BRANCH}}` (all from step
+  1) — the baked-in Private Checkout clone script needs them to know whether
+  to clone, `git init`, or leave the workspace bare. Set
+  `{{BASE_IMAGE_VERSION}}` to `v1`, compute `{{BASE_IMAGE_HASH12}}` from the
+  file just written (`sha256sum .devcontainer/base.Dockerfile`), and build
+  it: `docker build -t {{BASE_IMAGE_TAG}} -f .devcontainer/base.Dockerfile .devcontainer`.
+  Record the version and the *full* content hash (not truncated) into
   `.devcontainer/.base-image-version` as `<version> <sha256>`.
 - If it already exists: compute the sha256 of
   [templates/base.Dockerfile](templates/base.Dockerfile)'s current rendered
   content and compare it to the hash recorded in
   `.devcontainer/.base-image-version`.
   - **Unchanged**: skip rebuilding. Use the version already recorded in
-    `.devcontainer/.base-image-version` as `{{BASE_IMAGE_VERSION}}`.
+    `.devcontainer/.base-image-version` as `{{BASE_IMAGE_VERSION}}` and its
+    hash's first 12 characters as `{{BASE_IMAGE_HASH12}}` — together they
+    resolve `{{BASE_IMAGE_TAG}}` to the exact tag that should already be
+    built (verified below, not assumed).
   - **Changed**: tell the user the shared base layer's template has changed
     and this would affect every Tool Container that extends it, and ask
     whether to bump the version (e.g. `v1` → `v2`) and rebuild. Never bump or
     rebuild silently.
-    - **Confirmed**: overwrite `.devcontainer/base.Dockerfile`, build and tag
-      the bumped version, update `.devcontainer/.base-image-version` with the
-      new version and hash, and use the new version as
-      `{{BASE_IMAGE_VERSION}}`. A version bump also forces every already-
-      generated tool's image to rebuild in step 6 (their tags are versioned
-      identically to the base — see below), even though their own
-      Dockerfiles didn't change.
+    - **Confirmed**: overwrite `.devcontainer/base.Dockerfile`, compute the
+      new full hash and its `{{BASE_IMAGE_HASH12}}`, build and tag the
+      bumped version at `{{BASE_IMAGE_TAG}}`, update
+      `.devcontainer/.base-image-version` with the new version and full
+      hash, and use the new version as `{{BASE_IMAGE_VERSION}}`. A version
+      bump also forces every already-generated tool's image to rebuild in
+      step 6 (their tags embed the base's hash — see below), even though
+      their own Dockerfiles didn't change.
     - **Declined**: leave `.devcontainer/base.Dockerfile` and the recorded
       version/hash untouched, and use the existing version as
       `{{BASE_IMAGE_VERSION}}` for this run's new tool(s).
 
 Done when `.devcontainer/base.Dockerfile` exists, `docker image inspect
-{{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}}` succeeds, and
-`.devcontainer/.base-image-version` records that exact version alongside a
-hash matching the file actually on disk.
+{{BASE_IMAGE_TAG}}` succeeds, and `.devcontainer/.base-image-version`
+records that exact version alongside a full hash whose first 12 characters
+are the hash suffix on the image you just confirmed exists — i.e. this step
+is never "done" on a recorded version/hash alone; the tag they resolve to
+has to actually be a local image, checked explicitly, not inferred.
 
 ## 6. Generate the compose file and each selected tool's folder
 
@@ -343,8 +375,15 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 
 - `.devcontainer/<tool>/Dockerfile` ← [templates/<tool>/Dockerfile](templates/), substitute
   `{{BASE_IMAGE_TAG}}` with the tag resolved in step 5.
-- **Build and tag this tool's own image**:
-  `docker build -t {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}} -f .devcontainer/<tool>/Dockerfile .devcontainer`.
+- **Build and tag this tool's own image**, at `{{TOOL_IMAGE_TAG}}` —
+  `{{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}-{{BASE_IMAGE_HASH12}}`, the
+  same `<version>-<hash12>` shape as `{{BASE_IMAGE_TAG}}` and, today, the
+  same hash12 too (every tool's Dockerfile is currently just `FROM
+  {{BASE_IMAGE_TAG}}` with no content of its own — see the four templates —
+  so it's byte-identical to the base image; if a tool's Dockerfile ever
+  grows real content of its own, hash *that rendered file* instead, so its
+  tag still changes whenever either the base or its own content does):
+  `docker build -t {{TOOL_IMAGE_TAG}} -f .devcontainer/<tool>/Dockerfile .devcontainer`.
   The Compose service references this exact pre-built tag via `image:` (see below) — never
   `build:` — specifically so VS Code's Dev Containers CLI never has a build step to run for these
   services at all. This matters because that CLI is known to pass `--pull` when it *does* build a
@@ -449,16 +488,17 @@ If **any** newly or already-selected tool has the SSH answer yes:
   scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
   ```
 
-If step 5 bumped `{{BASE_IMAGE_VERSION}}` this run (the **Confirmed** branch), rebuild and
-retag **every already-existing tool's image** too, at the new version — same build command as
-above, run again for each tool that already has a Tool Container even though none of its own
-files (Dockerfile, devcontainer.json, post-create.sh) need rewriting. Their Compose service's
-`image:` reference is versioned identically to the base, so without this their tag would point at
-an image that no longer exists.
+If step 5 bumped `{{BASE_IMAGE_VERSION}}` (and so `{{BASE_IMAGE_HASH12}}`) this run (the
+**Confirmed** branch), rebuild and retag **every already-existing tool's image** too, at its new
+`{{TOOL_IMAGE_TAG}}` — same build command as above, run again for each tool that already has a
+Tool Container even though none of its own files (Dockerfile, devcontainer.json, post-create.sh)
+need rewriting (its rendered `Dockerfile` content still changes, since its `FROM` line embeds
+`{{BASE_IMAGE_TAG}}`). Their Compose service's `image:` reference embeds the base's hash, so
+without this their tag would point at an image that was never built.
 
 Always (every run, regardless of which tools are new):
 
-- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool, **plus** one `{{REPO_NAME}}-<tool>-ssh:` volume line per SSH-enabled tool (one per tool now, not one shared line for the whole repo), under `volumes:`. The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
+- `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}`, `{{BASE_IMAGE_VERSION}}`, and `{{BASE_IMAGE_HASH12}}` — each fragment's `image:` line must resolve to that tool's exact `{{TOOL_IMAGE_TAG}}` from step 6, not just the bare version) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool, **plus** one `{{REPO_NAME}}-<tool>-ssh:` volume line per SSH-enabled tool (one per tool now, not one shared line for the whole repo), under `volumes:`. The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted. Every selected tool gets this and its `postAttachCommand` wiring — not just SSH-enabled ones — since it carries Private Checkout's staleness hint (a static reminder to `git fetch`, shown on every attach) unconditionally; the SSH-specific logic inside guards itself when that particular tool's SSH layer isn't enabled. Write once (identical content across every tool); `chmod +x` it.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
 - `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync", "CLI installer notes", and "YOLO aliases" sections** (matching heading) from the current template if any is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected — "CLI installer notes" in particular always documents all four tools regardless of which are selected this run, same convention "YOLO aliases" already uses. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists (a pre-existing "CLI installer notes" section from before the Codex-rationale correction stays as it was; only a missing section gets today's wording). Render each candidate section's current content to a scratch file first (substituted, same as the rest of this step), then, **in this order** (YOLO aliases before CLI installer notes before Automatic skill sync, so each later insert's anchor is guaranteed present even backfilling into a README old enough to be missing all three):
@@ -483,10 +523,12 @@ Done when every file above exists, every tool's `devcontainer.json` parses as va
 (`jq -e '.onCreateCommand' .devcontainer/<tool>/devcontainer.json`), `docker-compose.yml` parses
 as valid YAML with exactly one service per selected tool and one `{{REPO_NAME}}-<tool>-checkout:`
 volume line per selected tool (plus one `{{REPO_NAME}}-<tool>-ssh:` line per SSH-enabled tool),
-every selected tool's image actually exists at the tag its Compose service references
-(`docker image inspect {{REPO_NAME}}-<tool>:{{BASE_IMAGE_VERSION}}` succeeds for each), the
-clone-checkout script landed executable in the base image
-(`docker run --rm {{REPO_NAME}}-tool-container-base:{{BASE_IMAGE_VERSION}} test -x /usr/local/bin/clone-checkout.sh`),
+every selected tool's image actually exists at the exact tag its Compose service references
+(`docker image inspect {{TOOL_IMAGE_TAG}}` succeeds for each — this is the check that actually
+catches a stale/never-rebuilt image, since with content-addressed tags "inspect succeeds" and
+"content matches what's on disk" are the same fact), the clone-checkout script landed executable
+in the base image
+(`docker run --rm {{BASE_IMAGE_TAG}} test -x /usr/local/bin/clone-checkout.sh`),
 every with-ssh `devcontainer.json`'s `mounts` entry references *that tool's own* SSH volume (not
 another tool's, and not a stale shared name), no `{{...}}` placeholder remains in any written file
 (`grep -rn '{{' .devcontainer/`), and every selected tool's `post-create.sh` passes

@@ -31,10 +31,21 @@ clone. This changes what persists where, so it's opt-in per tool, never automati
    new script once that happens (see #172's resolution). The old shared *signing* key has no
    deletion API, so it needs manual removal — steps 8 and 9 below cover exactly when and how to
    tell the user this.
-7. Run step 6's "Always" bullets (`docker-compose.yml` rebuild in particular — it already
-   regenerates wholesale from the current tool set, so this tool's service picks up its new
-   checkout volume, and its SSH volume if applicable, without needing tool-specific handling
-   here) and the `.claude/worktrees/` `.gitignore` cleanup bullet, which now actively applies.
+7. If step 3 bumped the base image version (the expected case — see step 3's note): run step 6's
+   rebuild-cascade paragraph for **this tool specifically** (`docker build -t {{TOOL_IMAGE_TAG}}
+   ...`, its `Dockerfile`'s `FROM` line already resolves to the new `{{BASE_IMAGE_TAG}}`) — don't
+   skip this because the tool "already has a Tool Container": that's exactly the case the
+   rebuild-cascade paragraph exists for, and skipping it leaves `docker-compose.yml` about to
+   reference a tag that was never built. Then run step 6's "Always" bullets
+   (`docker-compose.yml` rebuild in particular — it already regenerates wholesale from the
+   current tool set, so this tool's service picks up its new checkout volume, its new
+   content-addressed image tag, and its SSH volume if applicable, without needing tool-specific
+   handling here) and the `.claude/worktrees/` `.gitignore` cleanup bullet, which now actively
+   applies. Verify with the same commands step 6's own "Done when" uses
+   (`docker image inspect {{TOOL_IMAGE_TAG}}` for this tool) before telling the user to rebuild —
+   a skipped rebuild here now fails loudly (Compose can't find the tag) rather than silently
+   starting stale content, but it's still better caught here than by the user's first "Reopen in
+   Container" attempt.
 8. If SSH was enabled for this tool, check whether it was the *last* SSH-enabled tool in the repo
    still on the old shared-volume model: `grep -l "{{REPO_NAME}}-ssh-config"
    .devcontainer/*/devcontainer.json` (after this tool's own file was just rewritten in step 5, so

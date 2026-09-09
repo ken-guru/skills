@@ -1,5 +1,5 @@
   copilot:
-    image: {{REPO_NAME}}-copilot:{{BASE_IMAGE_VERSION}}
+    image: {{REPO_NAME}}-copilot:{{BASE_IMAGE_VERSION}}-{{BASE_IMAGE_HASH12}}
     env_file:
       - .env
     environment:
