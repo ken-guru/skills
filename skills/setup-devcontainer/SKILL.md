@@ -199,20 +199,10 @@ For each **newly** selected tool, ask independently:
   session.) Each tool's `-yolo` alias reduces its permission checkpoints for
   faster iteration; the exact tradeoff differs per tool — see the README's
   "YOLO aliases" section for specifics.
-- **Claude Code CLI version** (Claude Code only): always install the latest
-  release (and keep auto-updating in the background afterward, the vendor's
-  own default), or lock to a specific version? Anthropic's installer accepts
-  an exact version string as a positional argument. If locking, look up the
-  current latest release (`npm view @anthropic-ai/claude-code version`) and
-  suggest it as the default value to lock to. Record the answer as
-  `{{CLAUDE_CODE_VERSION}}` (`latest`, or the exact version string), and
-  `{{DISABLE_AUTOUPDATER}}` (`false` for latest, `1` when locking — pinning
-  a version while Claude Code's own background auto-updater stays on isn't
-  really a pin, since the auto-updater would just move past it again).
 
 Record these answers — they decide which template variants steps 5–6 use.
-All three are addable later per tool without redoing anything already
-generated (see the append-flows below).
+Both are addable later per tool without redoing anything already generated
+(see the append-flows below).
 
 ## 4. Resolve placeholders
 
@@ -222,9 +212,6 @@ generated (see the append-flows below).
   `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
   the base post-create script instead of the `:-` form, and drop the parenthetical in
   `.env.example`'s comment.
-- `{{CLAUDE_CODE_VERSION}}`, `{{DISABLE_AUTOUPDATER}}` (Claude Code only) — the answers collected
-  in step 3. If Claude Code wasn't newly selected this run (already existing, or not selected at
-  all), neither placeholder applies.
 - `{{SKILLS_SOURCES_COMMANDS}}` (any selected tool — Claude Code, Codex, Antigravity, and Copilot
   all support this identically) — ask the user one combined question, asked once regardless of
   how many of the four tools are selected: sync AI-agent skills into every selected Tool Container
@@ -449,30 +436,16 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   stays current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
 
-If **Claude Code** was newly selected:
-
-- `.devcontainer/.env.example` gets [templates/env.claude-code-block.example](templates/env.claude-code-block.example) appended (only if not already present), substituting `{{CLAUDE_CODE_VERSION}}` and `{{DISABLE_AUTOUPDATER}}` with this run's answers — unlike `GH_TOKEN`/`DEVCONTAINER_HOST`, these values are already known at setup time, so they're rendered directly rather than left as static placeholders for the user to edit blindly.
-
-  ```bash
-  scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Claude Code CLI version pin (added by setup-devcontainer) ---" templates/env.claude-code-block.example
-  ```
-
-  The marker is a fixed comment line, not `CLAUDE_CODE_VERSION=...` itself — that line's value
-  changes per run, so it can't double as an idempotency marker (`patch-if-absent.sh append` matches
-  a marker line exactly; a value that changed between runs would never match and the block would
-  append twice).
-
 Worth knowing before generating any tool's files: every vendor installer already verifies a
 checksum or signed digest of its own download before installing, unconditionally — not only when a
 version happens to be pinned. And Codex's Tool Container `capAdd`/`securityOpt` grant
 (`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=unconfined`) exists to satisfy Docker's own
 default seccomp/OCI policy so Codex's Bubblewrap sandbox can create its namespace — it's not
 bubblewrap's own stated minimum requirement, and a narrower grant is plausible but unverified. Both
-facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's pin-revert
-history, Claude Code's version pinning), get their full explanation in README.baseline.md's
-unconditional "CLI installer notes" section instead of being appended ad hoc here — see the README
-backfill step below, which covers them the same way it covers "YOLO aliases" and "Automatic skill
-sync".
+facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's and Claude
+Code's pin-revert history), get their full explanation in README.baseline.md's unconditional "CLI
+installer notes" section instead of being appended ad hoc here — see the README backfill step
+below, which covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
 
 If **any** newly or already-selected tool has the SSH answer yes:
 

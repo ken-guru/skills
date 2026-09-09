@@ -92,17 +92,18 @@ None of the four offers a way to review or filter what a given release
 *contains* before installing — only that the bytes downloaded match what the
 vendor published.
 
-**Claude Code version pinning.** By default Claude Code always installs
-latest and keeps auto-updating itself in the background afterward, matching
-the vendor's own default behavior. Locking it to a specific version at setup
-time (`CLAUDE_CODE_VERSION` in `.devcontainer/.env`) also disables Claude
-Code's own background auto-updater (`DISABLE_AUTOUPDATER=1`, same file) —
-otherwise the pin would hold only until the next auto-update silently moved
-past it. When pinned, a stale-version notice appears in new terminals once a
-newer release exists on npm's registry (whose version numbers mirror the
-native binary's, per Anthropic's own docs); update `CLAUDE_CODE_VERSION` and
-rebuild to pick it up. To go back to always-latest, set both `.env` values
-back (`CLAUDE_CODE_VERSION=latest`, `DISABLE_AUTOUPDATER=false`) and rebuild.
+**Claude Code version pinning — tried and reverted.** A pinning feature was
+built here once (`CLAUDE_CODE_VERSION` to lock a version, paired with
+disabling Claude Code's own background auto-updater so the pin would hold)
+and reverted after three different mechanisms all failed to make the pin
+stick in practice: a container env var (Claude Code doesn't read the
+auto-updater setting from process environment at all), the user's own
+`settings.json` (Claude Code's first-run onboarding overwrites that file
+wholesale, silently dropping it), and finally `/etc/claude-code/managed-
+settings.json` (verified live to reject unprivileged writes and survive a
+simulated onboarding clobber — and still, on a real re-test, a version
+pinned to `2.1.265` silently installed `2.1.266` on startup anyway). Claude
+Code has no pinning option today.
 
 **Codex sandbox capability grant.** Codex's Tool Container carries `capAdd`/
 `securityOpt` grants (`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=
@@ -123,12 +124,13 @@ file. The `.antigravity` volume mount will not persist its login across
 rebuilds in a bare container. You may need to re-auth `agy` each time, or
 add a keyring daemon yourself later if that gets annoying.
 
-**Copilot version pinning — tried and reverted.** A pinning feature
-(mirroring Claude Code's above) was built here once and reverted after
-crashing Copilot's own background self-updater on startup. `COPILOT_AUTO_UPDATE=false`
-now ships by default regardless, for that same self-update instability —
-this may or may not avoid the crash if pinning were re-attempted under it;
-that's untested, and Copilot has no pinning option today.
+**Copilot version pinning — tried and reverted.** A pinning feature (the
+same idea attempted for Claude Code above, and reverted there too) was
+built here once and reverted after crashing Copilot's own background
+self-updater on startup. `COPILOT_AUTO_UPDATE=false` now ships by default
+regardless, for that same self-update instability — this may or may not
+avoid the crash if pinning were re-attempted under it; that's untested, and
+Copilot has no pinning option today.
 
 ## YOLO aliases
 

@@ -13,8 +13,9 @@
 # (confirmed by reading the live script, not by any OpenAI documentation)
 # to pin an exact release — left unadopted since depending on an
 # unpublished vendor interface risks silent breakage with no deprecation
-# notice, for less payoff than Claude Code's documented pin (see
-# claude-code/post-create-block.sh) since this installer already
-# checksum-verifies regardless of pinning.
+# notice, and this installer already checksum-verifies regardless of
+# pinning. Claude Code attempted an equivalent, vendor-documented pin (see
+# claude-code/post-create-block.sh) and it was reverted after failing to
+# hold in practice — further reason not to chase pinning here either.
 chown_config_volume "$HOME/.codex"
 install_cli "Codex" "$HOME/.local/bin/codex" "https://chatgpt.com/codex/install.sh" sh CODEX_NON_INTERACTIVE=1
