@@ -13,13 +13,14 @@ Usage: render-tool-container.sh --tool <name> --repo-name <name> --repo-slug <sl
 
 Writes .devcontainer/<tool>/post-create.sh-equivalent content to --out
 (chmod +x'd), assembled from skills/setup-devcontainer/templates/ in the
-fixed 6-block order:
+fixed 7-block order:
   1. post-create-base.sh          (always)
   2. identity-banner-block.sh     (always)
-  3. <tool>/post-create-block.sh  (always)
-  4. <tool>/yolo-alias-block.sh   (only with --yolo)
-  5. post-create-ssh-block.sh     (only with --ssh)
-  6. post-create-warnings-block.sh (only with --ssh)
+  3. install-cli-block.sh         (always)
+  4. <tool>/post-create-block.sh  (always)
+  5. <tool>/yolo-alias-block.sh   (only with --yolo)
+  6. post-create-ssh-block.sh     (only with --ssh)
+  7. post-create-warnings-block.sh (only with --ssh)
 
 --git-email-default/--git-name-default are optional: when omitted, the
 corresponding git identity line hard-requires the matching .env variable
@@ -78,6 +79,8 @@ fi
   render_base_block "$GIT_EMAIL_DEFAULT" "$HAVE_GIT_EMAIL_DEFAULT" "$GIT_NAME_DEFAULT" "$HAVE_GIT_NAME_DEFAULT"
   echo
   render_identity_banner_block "$TOOL_DISPLAY_NAME"
+  echo
+  install_lib_block
   echo
   tool_install_block "$TOOL"
   echo

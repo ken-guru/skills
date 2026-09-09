@@ -105,6 +105,11 @@ if ! contains "$CONTENT" "$expected_banner"; then
   fail "identity-banner block missing or not substituted for --tool-display-name '$TOOL_DISPLAY_NAME'"
 fi
 
+expected_install_lib="$(install_lib_block)"
+if ! contains "$CONTENT" "$expected_install_lib"; then
+  fail "install-cli-block.sh content missing (always required)"
+fi
+
 expected_tool_install="$(tool_install_block "$TOOL")"
 if ! contains "$CONTENT" "$expected_tool_install"; then
   fail "$TOOL's post-create-block.sh content missing (always required)"
