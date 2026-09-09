@@ -16,6 +16,18 @@
 # `</dev/null` redirect or subshell wrapper, so they don't disturb the piped
 # command's own stdin — see codex/post-create-block.sh for why that
 # distinction matters.
+#
+# Every one of these four vendor installers already verifies a checksum or
+# signed digest of what it downloads before installing — unconditionally,
+# not only when a version happens to be pinned: Claude Code (SHA256 vs. a
+# GPG-signed manifest), Codex (SHA256 digest vs. GitHub release metadata),
+# Antigravity (SHA512 vs. a signed manifest, halting the install on
+# mismatch), Copilot (SHA256SUMS.txt, downloaded and checked for whichever
+# release resolves, a hard failure on mismatch). None of this is visible
+# from this shared `curl | shell` shape alone — see README.baseline.md's
+# "CLI installer notes" section for the reader-facing version of this fact,
+# kept here too since that's what a maintainer editing this file actually
+# needs to know before assuming the pattern below is unverified.
 chown_config_volume() {
   sudo chown -R vscode:vscode "$1"
 }

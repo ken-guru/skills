@@ -199,10 +199,20 @@ For each **newly** selected tool, ask independently:
   session.) Each tool's `-yolo` alias reduces its permission checkpoints for
   faster iteration; the exact tradeoff differs per tool — see the README's
   "YOLO aliases" section for specifics.
+- **Claude Code CLI version** (Claude Code only): always install the latest
+  release (and keep auto-updating in the background afterward, the vendor's
+  own default), or lock to a specific version? Anthropic's installer accepts
+  an exact version string as a positional argument. If locking, look up the
+  current latest release (`npm view @anthropic-ai/claude-code version`) and
+  suggest it as the default value to lock to. Record the answer as
+  `{{CLAUDE_CODE_VERSION}}` (`latest`, or the exact version string), and
+  `{{DISABLE_AUTOUPDATER}}` (`false` for latest, `1` when locking — pinning
+  a version while Claude Code's own background auto-updater stays on isn't
+  really a pin, since the auto-updater would just move past it again).
 
 Record these answers — they decide which template variants steps 5–6 use.
-Both are addable later per tool without redoing anything already generated
-(see the append-flows below).
+All three are addable later per tool without redoing anything already
+generated (see the append-flows below).
 
 ## 4. Resolve placeholders
 
@@ -212,6 +222,9 @@ Both are addable later per tool without redoing anything already generated
   `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
   the base post-create script instead of the `:-` form, and drop the parenthetical in
   `.env.example`'s comment.
+- `{{CLAUDE_CODE_VERSION}}`, `{{DISABLE_AUTOUPDATER}}` (Claude Code only) — the answers collected
+  in step 3. If Claude Code wasn't newly selected this run (already existing, or not selected at
+  all), neither placeholder applies.
 - `{{SKILLS_SOURCES_COMMANDS}}` (any selected tool — Claude Code, Codex, Antigravity, and Copilot
   all support this identically) — ask the user one combined question, asked once regardless of
   how many of the four tools are selected: sync AI-agent skills into every selected Tool Container
@@ -397,23 +410,23 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   stays current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
 
-If **Codex** was newly selected, append the following caveat to `.devcontainer/README.md` (under
-a "Gotchas" or "CLI Notes" section, creating one if it doesn't exist):
+If **Claude Code** was newly selected:
 
-> **Codex Linux sandbox**: Codex's Tool Container carries `capAdd`/`securityOpt` grants so
-> Codex's own Bubblewrap sandbox (`codex-yolo`'s `--sandbox workspace-write`) can actually create
-> its namespace — scoped to Codex's own container only, never any other tool's. This skill does
-> not include a runtime health probe to verify the sandbox is confining anything on your specific
-> host — if `codex-yolo` ever behaves as though unsandboxed, that's the first thing to check by
-> hand.
+- `.devcontainer/.env.example` gets [templates/env.claude-code-block.example](templates/env.claude-code-block.example) appended (only if not already present), substituting `{{CLAUDE_CODE_VERSION}}` and `{{DISABLE_AUTOUPDATER}}` with this run's answers — unlike `GH_TOKEN`/`DEVCONTAINER_HOST`, these values are already known at setup time, so they're rendered directly rather than left as static placeholders for the user to edit blindly.
 
-If **Antigravity** was newly selected, append the following caveat to `.devcontainer/README.md`
-(same section):
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Claude Code CLI version pin (added by setup-devcontainer) ---" templates/env.claude-code-block.example
+  ```
 
-> **Antigravity CLI Auth**: `agy` stores auth in the system keyring, not a file. The
-> `.antigravity` volume mount will not persist its login across rebuilds in a bare container. You
-> may need to re-auth `agy` each time, or add a keyring daemon yourself later if that gets
-> annoying.
+  The marker is a fixed comment line, not `CLAUDE_CODE_VERSION=...` itself — that line's value
+  changes per run, so it can't double as an idempotency marker (`patch-if-absent.sh append` matches
+  a marker line exactly; a value that changed between runs would never match and the block would
+  append twice).
+
+Per-tool caveats (Codex's sandbox capability grant, Antigravity's keyring auth, Copilot's
+pin-revert history, Claude Code's version pinning) all live in README.baseline.md's unconditional
+"CLI installer notes" section instead of being appended ad hoc here — see the README backfill step
+below, which covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
 
 If **any** newly or already-selected tool has the SSH answer yes:
 
@@ -441,11 +454,12 @@ Always (every run, regardless of which tools are new):
 - `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool, **plus** one `{{REPO_NAME}}-<tool>-ssh:` volume line per SSH-enabled tool (one per tool now, not one shared line for the whole repo), under `volumes:`. The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted. Every selected tool gets this and its `postAttachCommand` wiring — not just SSH-enabled ones — since it carries Private Checkout's staleness hint (a static reminder to `git fetch`, shown on every attach) unconditionally; the SSH-specific logic inside guards itself when that particular tool's SSH layer isn't enabled. Write once (identical content across every tool); `chmod +x` it.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
-- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists. Render each candidate section's current content to a scratch file first (substituted, same as the rest of this step), then, **in this order** (YOLO aliases before Automatic skill sync, so Automatic skill sync's anchor is guaranteed present even backfilling into a README old enough to be missing both):
+- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync", "CLI installer notes", and "YOLO aliases" sections** (matching heading) from the current template if any is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected — "CLI installer notes" in particular always documents all four tools regardless of which are selected this run, same convention "YOLO aliases" already uses. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists (a pre-existing "CLI installer notes" section from before the Codex-rationale correction stays as it was; only a missing section gets today's wording). Render each candidate section's current content to a scratch file first (substituted, same as the rest of this step), then, **in this order** (YOLO aliases before CLI installer notes before Automatic skill sync, so each later insert's anchor is guaranteed present even backfilling into a README old enough to be missing all three):
 
   ```bash
   scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## YOLO aliases" "## Gotchas fixed here (and why)" <rendered-yolo-aliases-section>
-  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## Automatic skill sync" "## YOLO aliases" <rendered-skill-sync-section>
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## CLI installer notes" "## YOLO aliases" <rendered-cli-installer-notes-section>
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## Automatic skill sync" "## CLI installer notes" <rendered-skill-sync-section>
   ```
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
 - Remove `.claude/worktrees/` from `.gitignore` if a prior run of this skill added it (check for
