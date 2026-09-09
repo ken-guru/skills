@@ -109,25 +109,56 @@ chown_config_volume "$HOME/.claude"
 # right after install — a "pinned" version that keeps auto-updating isn't
 # actually pinned. Anthropic's own docs (code.claude.com/docs/en/setup,
 # "Disable auto-updates") are explicit that this only takes effect inside
-# the `env` key of Claude Code's own settings.json — Claude Code does NOT
-# read it from the process/container environment the way it reads, say,
+# the `env` key of a Claude Code settings file — Claude Code does NOT read
+# it from the process/container environment the way it reads, say,
 # CLAUDE_CONFIG_DIR. Setting it only via `.env`/`env_file` (as this
 # container otherwise does for every other Claude Code env var) is
 # therefore not enough on its own: verified live, a version pinned that way
-# still auto-updated past the pin on first start. So this writes it
-# directly into settings.json here, merging rather than overwriting since
-# the file may already hold other keys (and persists across rebuilds on the
-# mounted config volume). Runs on every postCreateCommand, unconditionally
-# on the current .env value — not gated behind the install's own
+# still auto-updated past the pin on first start.
+#
+# Writing it to the *user* settings file ($HOME/.claude/settings.json,
+# mounted on the config volume) isn't enough either, and re-applying it
+# there on every container start isn't a real fix: Claude Code's own
+# first-run onboarding (theme selection, notification prompt) overwrites
+# that file wholesale rather than merging into it, silently dropping the
+# key the moment a developer completes onboarding — confirmed live, pinned
+# to 2.1.265, onboarded, and the very next launch was already running a
+# silently auto-updated 2.1.266. A reapply on the next container *start*
+# can't catch that: onboarding happens interactively inside an
+# already-started container, not between starts.
+#
+# So this writes to the *managed* settings file instead
+# (code.claude.com/docs/en/managed-settings) — /etc/claude-code on Linux,
+# same as this container's OS. Two properties make it hold where the user
+# file doesn't: onboarding is a user-level flow and never touches an
+# admin-level file it has no write access to (hence `sudo` below — `/etc`
+# isn't vscode-writable, same as this skill's other `sudo`-gated system
+# paths), and managed settings apply "above every other level" per
+# Anthropic's docs — no user, project, or local value overrides them,
+# regardless of write order. Nothing left needs healing after onboarding,
+# so unlike the settings.json approach this doesn't need re-applying in
+# post-start.sh too.
+#
+# Per-variable merging within `env` (rather than one selected source
+# supplying its whole `env` block) needs Claude Code 2.1.223+ — moot here,
+# since a value old enough to predate that is far below anything this
+# skill would ever suggest pinning to, and this container only ever writes
+# this one `env` key to this one managed-settings source anyway (nothing
+# else to merge against).
+#
+# Merges rather than overwrites since the file may already hold other
+# managed policy. Runs on every postCreateCommand, unconditionally on the
+# current .env value — not gated behind the install's own
 # already-installed check below — so flipping DISABLE_AUTOUPDATER back to
 # "false" and rebuilding (the documented way back to always-latest) also
-# clears it from settings.json, not just leaves a stale "1" behind.
-settings_file="$HOME/.claude/settings.json"
-[ -f "$settings_file" ] || echo '{}' > "$settings_file"
+# clears it, not just leaves a stale "1" behind.
+managed_settings_file="/etc/claude-code/managed-settings.json"
+sudo mkdir -p "$(dirname "$managed_settings_file")"
+[ -f "$managed_settings_file" ] || echo '{}' | sudo tee "$managed_settings_file" > /dev/null
 if [ "${DISABLE_AUTOUPDATER:-false}" = "1" ]; then
-  jq '.env.DISABLE_AUTOUPDATER = "1"' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+  jq '.env.DISABLE_AUTOUPDATER = "1"' "$managed_settings_file" | sudo tee "$managed_settings_file.tmp" > /dev/null && sudo mv "$managed_settings_file.tmp" "$managed_settings_file"
 else
-  jq 'if .env then .env |= del(.DISABLE_AUTOUPDATER) else . end' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
+  jq 'if .env then .env |= del(.DISABLE_AUTOUPDATER) else . end' "$managed_settings_file" | sudo tee "$managed_settings_file.tmp" > /dev/null && sudo mv "$managed_settings_file.tmp" "$managed_settings_file"
 fi
 
 if [ ! -x "$HOME/.local/bin/claude" ]; then
