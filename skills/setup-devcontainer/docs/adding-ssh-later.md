@@ -16,8 +16,12 @@ command itself:
    [../templates/post-create-warnings-block.sh](../templates/post-create-warnings-block.sh)
    (no placeholders), to the end of the existing `.devcontainer/<tool>/post-create.sh`.
 4. Append [../templates/env.ssh-block.example](../templates/env.ssh-block.example) to
-   `.devcontainer/.env.example` (only if not already present from another tool's SSH setup), and
-   update its `GH_TOKEN` comment as in the main flow's step 6.
+   `.devcontainer/.env.example`, idempotently (a no-op if already present from another tool's SSH
+   setup), and update its `GH_TOKEN` comment as in the main flow's step 6:
+
+   ```bash
+   scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
+   ```
 5. `.devcontainer/.env` itself already exists in this flow (it's required for the Tool Container to
    have worked at all) and is gitignored — don't touch it programmatically, since it holds a live
    `GH_TOKEN`. `initializeCommand` only seeds `.env` from `.env.example` when
@@ -32,8 +36,13 @@ command itself:
    setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
    never activates, so set it before the first rebuild rather than relying on the warning to catch it.
 6. Append [../templates/README.ssh-block.md](../templates/README.ssh-block.md) to
-   `.devcontainer/README.md` (only if not already present), and delete that file's "SSH deploy key
-   and signing key automation — Not set up here" closing section.
+   `.devcontainer/README.md`, idempotently, and delete that file's "SSH deploy key and signing key
+   automation — Not set up here" closing section:
+
+   ```bash
+   scripts/patch-if-absent.sh append .devcontainer/README.md "## SSH deploy key and signing key" templates/README.ssh-block.md
+   scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
+   ```
 7. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 5 to
    `.devcontainer/.env` now if it wasn't already there, before rebuilding — not after hitting the
    error; rebuild this tool's Tool Container (**Dev Containers: Rebuild Container**, in that
