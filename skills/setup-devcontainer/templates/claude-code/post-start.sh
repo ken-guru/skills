@@ -12,29 +12,6 @@ set -euo pipefail
 rm -rf /home/vscode/.claude/skills/* 2>/dev/null || true
 {{SKILLS_SOURCES_COMMANDS}}
 
-# Re-applies post-create-block.sh's DISABLE_AUTOUPDATER → settings.json merge
-# on every start, not just once at container create. Claude Code's own
-# onboarding flow (theme selection, notification prompt, on first `claude`
-# run) overwrites settings.json wholesale rather than merging into it,
-# silently stripping the env.DISABLE_AUTOUPDATER key post-create.sh just
-# wrote — confirmed in the wild: pinned to 2.1.265, onboarded, and the very
-# next launch was already running a silently auto-updated 2.1.266. A
-# one-time write in postCreateCommand can't survive that; reapplying it
-# here, on every postStartCommand, makes the guard self-healing on the next
-# container start instead of a single point-in-time write an interactive
-# flow can silently undo. (Doesn't cover re-running `claude` again in the
-# same still-running container without a start in between — Claude Code's
-# own periodic background check could still fire in that narrow window; a
-# full fix would need to wrap the `claude` binary itself, which is more
-# invasive than this skill takes on.)
-settings_file="$HOME/.claude/settings.json"
-[ -f "$settings_file" ] || echo '{}' > "$settings_file"
-if [ "${DISABLE_AUTOUPDATER:-false}" = "1" ]; then
-  jq '.env.DISABLE_AUTOUPDATER = "1"' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-else
-  jq 'if .env then .env |= del(.DISABLE_AUTOUPDATER) else . end' "$settings_file" > "$settings_file.tmp" && mv "$settings_file.tmp" "$settings_file"
-fi
-
 # Claude-Code-specific: when CLAUDE_CODE_VERSION is pinned (not "latest"),
 # checks once per start whether a newer release exists, caching the result
 # to a local file so the every-terminal warnings snippet in ~/.bashrc
