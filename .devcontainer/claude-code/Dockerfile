@@ -3,4 +3,4 @@
 # container-create time in post-create.sh, not here, matching the idempotent
 # runtime-install pattern already proven for Codex/Antigravity/Copilot rather
 # than introducing a fifth, image-build-time install path.
-FROM skills-tool-container-base:v2
+FROM skills-tool-container-base:v3-3adc81359b62

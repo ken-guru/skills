@@ -1,12 +1,15 @@
 # Shared base image for every Tool Container this skill generates. Each
-# tool's own Dockerfile does `FROM {{BASE_IMAGE_TAG}}` — Docker's layer store
-# shares these layers across every Tool Container built on this tag, so the
-# work below happens once, not once per tool.
+# tool's own Dockerfile does `FROM` this image's own built tag — Docker's
+# layer store shares these layers across every Tool Container built on that
+# tag, so the work below happens once, not once per tool. (Deliberately not
+# spelled out as a literal tag string here: the tag is content-addressed —
+# derived by hashing this file's own rendered content — so this file can
+# never actually contain it without a circular self-reference.)
 #
 # Rebuilt and retagged only when this file's rendered content changes (see
-# SKILL.md's base-image step); the resulting tag is versioned, never
-# `:latest`, so a base-layer change never silently cascades to every already-
-# built Tool Container.
+# SKILL.md's base-image step); the resulting tag embeds a content hash, so a
+# stale build can never masquerade as current, and a base-layer change never
+# silently cascades to every already-built Tool Container.
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Node.js — none of the four AI CLIs need this themselves (all install as
@@ -47,7 +50,7 @@ RUN if ! id vscode >/dev/null 2>&1; then \
     fi
 
 # Private Checkout's clone step, run via each Tool Container's
-# `onCreateCommand` — before `postCreateCommand` ever runs, while the workspace volume
+# `onCreateCommand` — before `postCreateCommand`, while the workspace volume
 # is still empty, so it can't reference anything workspace-relative (that's
 # why this lives baked into the image rather than as a `.devcontainer/`
 # template). Self-sufficient for auth (`gh auth setup-git`) rather than
@@ -60,9 +63,9 @@ RUN if ! id vscode >/dev/null 2>&1; then \
 # no side effects beyond that echo, just not a true no-op like the other
 # two paths.
 #
-# Branches on {{LOCAL_CHECKOUT}} for a repo with no GitHub connection at all
-# (see SKILL.md step 1): `{{LOCAL_CHECKOUT_GIT_INIT}}` decides between
-# `git init` (default branch from {{GIT_DEFAULT_BRANCH}}, if the host had
+# Branches on false for a repo with no GitHub connection at all
+# (see SKILL.md step 1): `false` decides between
+# `git init` (default branch from , if the host had
 # one configured) and leaving the workspace genuinely bare. Otherwise, falls
 # through to the existing clone path unchanged: unlike the optional SSH
 # layer, a container with no repo at all has nothing to degrade to, so a

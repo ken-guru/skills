@@ -22,6 +22,7 @@ git config --global credential.helper '!gh auth setup-git'
 git config --global user.email "${GIT_USER_EMAIL:-ken.paulsen@gmail.com}"
 git config --global user.name "${GIT_USER_NAME:-Ken Sørevåge}"
 
+
 # Prints which Tool Container this shell belongs to, at the top of every new
 # terminal — cheap insurance against mistaking one CLI's container for
 # another's. This matters even beyond user error: VS Code's own built-in
@@ -42,23 +43,74 @@ fi
 EOF
 fi
 
-# Fix ownership on the mounted Claude config volume — Docker creates a fresh
-# named-volume mountpoint root:root regardless of the parent directory's
-# ownership, even under /home/vscode.
-sudo chown -R vscode:vscode /home/vscode/.claude
 
-# Install Claude Code via the official native installer, as a plain piped
-# one-liner rather than a download-then-run wrapper — this is exactly
-# Anthropic's own documented invocation
-# (code.claude.com/docs/en/quickstart), not npm. The native install auto-
-# updates in the background and is what Anthropic's own docs lead with;
-# installs to ~/.local/bin/claude, matching the same binary-path
-# idempotency-check pattern already used for Codex/Antigravity/Copilot.
-# Checked by binary path, not `command -v` — this non-login script's PATH
-# doesn't include ~/.local/bin, so a PATH-based check would miss an already-
-# installed binary and re-run the installer on every rebuild. A failure here
-# is a warning, not a postCreateCommand-aborting error, matching the other
-# three tools' pattern.
+# Mechanical install skeleton shared by every Tool Container flavor: fix the
+# per-tool config volume's ownership (Docker creates a fresh named-volume
+# mountpoint root:root regardless of the parent directory's ownership, even
+# under /home/vscode), then run a curl-piped installer exactly once. Each
+# tool's own post-create-block.sh calls these two functions and keeps only
+# the rationale that's genuinely tool-specific (see there for it).
+#
+# install_cli checks by binary path, not `command -v` — this non-login
+# script's PATH doesn't include ~/.local/bin, so a PATH-based check would
+# miss an already-installed binary and re-run the network installer on every
+# rebuild. A failed install is a warning, not a postCreateCommand-aborting
+# error: every CLI installed this way is optional tooling and shouldn't
+# block the rest of setup. Extra `VAR=val` arguments (Codex's
+# CODEX_NON_INTERACTIVE=1) are passed to the piped shell via `env`, not a
+# `</dev/null` redirect or subshell wrapper, so they don't disturb the piped
+# command's own stdin — see codex/post-create-block.sh for why that
+# distinction matters.
+#
+# Every one of these four vendor installers already verifies a checksum or
+# signed digest of what it downloads before installing — unconditionally,
+# not only when a version happens to be pinned: Claude Code (SHA256 vs. a
+# GPG-signed manifest), Codex (SHA256 digest vs. GitHub release metadata),
+# Antigravity (SHA512 vs. a signed manifest, halting the install on
+# mismatch), Copilot (SHA256SUMS.txt, downloaded and checked for whichever
+# release resolves, a hard failure on mismatch). None of this is visible
+# from this shared `curl | shell` shape alone — see README.baseline.md's
+# "CLI installer notes" section for the reader-facing version of this fact,
+# kept here too since that's what a maintainer editing this file actually
+# needs to know before assuming the pattern below is unverified.
+chown_config_volume() {
+  sudo chown -R vscode:vscode "$1"
+}
+
+install_cli() {
+  local label="$1" bin_path="$2" url="$3" shell_bin="$4"
+  shift 4
+  if [ ! -x "$bin_path" ]; then
+    curl -fsSL "$url" | env "$@" "$shell_bin" \
+      || echo "Warning: $label CLI install failed, continuing without it" >&2
+  fi
+}
+
+
+# Fix ownership on the mounted Claude config volume, then install Claude
+# Code via the official native installer — exactly Anthropic's own
+# documented invocation (code.claude.com/docs/en/setup), not npm. Checked by
+# binary path, matching install_cli's own idempotency pattern (see
+# install-cli-block.sh) — this tool doesn't go through install_cli itself
+# because pinning needs a positional `-s <value>` argument to the piped
+# `bash`, which install_cli's signature has no way to pass (it only
+# forwards `VAR=val` environment arguments, via `env`).
+#
+# CLAUDE_CODE_VERSION comes from .env, defaulting to "latest": unset or
+# "latest" runs the installer's own documented default invocation, which
+# auto-updates in the background afterward same as always; any other value
+# is passed straight through as the installer's own `-s` argument to pin an
+# exact version. When pinned, DISABLE_AUTOUPDATER (also from .env — see
+# templates/env.claude-code-block.example) is expected to be "1", stopping
+# Claude Code's own background auto-updater from silently drifting the pin
+# away right after install — a "pinned" version that keeps auto-updating
+# isn't actually pinned.
+chown_config_volume "$HOME/.claude"
 if [ ! -x "$HOME/.local/bin/claude" ]; then
-  curl -fsSL https://claude.ai/install.sh | bash || echo "Warning: Claude Code CLI install failed, continuing without it" >&2
+  if [ "${CLAUDE_CODE_VERSION:-latest}" = "latest" ]; then
+    curl -fsSL https://claude.ai/install.sh | bash
+  else
+    curl -fsSL https://claude.ai/install.sh | bash -s "${CLAUDE_CODE_VERSION}"
+  fi || echo "Warning: Claude Code CLI install failed, continuing without it" >&2
 fi
+

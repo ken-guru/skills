@@ -74,6 +74,62 @@ an installed skill's instructions can influence what the agent does inside
 the container. To change which sources sync, re-run this skill and answer
 the skill-sources question differently.
 
+## CLI installer notes
+
+Every tool's install script already verifies a checksum or signed digest of
+its own download before installing — unconditionally, not only when a
+version happens to be pinned:
+
+- **Claude Code**: SHA256 checksum against a GPG-signed manifest.
+- **Codex**: SHA256 digest verified against GitHub release metadata for
+  whichever release resolves (latest or pinned).
+- **Antigravity**: SHA512 checksum against a signed manifest, halting the
+  install on mismatch.
+- **Copilot**: `SHA256SUMS.txt`, downloaded and checked for whichever
+  release resolves; a mismatch is a hard install failure, not a warning.
+
+None of the four offers a way to review or filter what a given release
+*contains* before installing — only that the bytes downloaded match what the
+vendor published.
+
+**Claude Code version pinning.** By default Claude Code always installs
+latest and keeps auto-updating itself in the background afterward, matching
+the vendor's own default behavior. Locking it to a specific version at setup
+time (`CLAUDE_CODE_VERSION` in `.devcontainer/.env`) also disables Claude
+Code's own background auto-updater (`DISABLE_AUTOUPDATER=1`, same file) —
+otherwise the pin would hold only until the next auto-update silently moved
+past it. When pinned, a stale-version notice appears in new terminals once a
+newer release exists on npm's registry (whose version numbers mirror the
+native binary's, per Anthropic's own docs); update `CLAUDE_CODE_VERSION` and
+rebuild to pick it up. To go back to always-latest, set both `.env` values
+back (`CLAUDE_CODE_VERSION=latest`, `DISABLE_AUTOUPDATER=false`) and rebuild.
+
+**Codex sandbox capability grant.** Codex's Tool Container carries `capAdd`/
+`securityOpt` grants (`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=
+unconfined`) so Codex's own Bubblewrap sandbox (`codex-yolo`'s `--sandbox
+workspace-write`) can actually create its namespace — scoped to Codex's own
+container only, never any other tool's. These settings satisfy Docker's own
+default seccomp/OCI policy for creating an unprivileged user namespace
+inside an already-containerized environment; they are not bubblewrap's own
+stated minimum requirement (bubblewrap's modern mode doesn't itself need
+`SYS_ADMIN`). A narrower grant is plausible but unverified by any primary
+source at time of writing, so it isn't changed here without empirical
+testing. This skill does not include a runtime health probe to verify the
+sandbox is confining anything on your specific host — if `codex-yolo` ever
+behaves as though unsandboxed, that's the first thing to check by hand.
+
+**Antigravity CLI Auth.** `agy` stores auth in the system keyring, not a
+file. The `.antigravity` volume mount will not persist its login across
+rebuilds in a bare container. You may need to re-auth `agy` each time, or
+add a keyring daemon yourself later if that gets annoying.
+
+**Copilot version pinning — tried and reverted.** A pinning feature
+(mirroring Claude Code's above) was built here once and reverted after
+crashing Copilot's own background self-updater on startup. `COPILOT_AUTO_UPDATE=false`
+now ships by default regardless, for that same self-update instability —
+this may or may not avoid the crash if pinning were re-attempted under it;
+that's untested, and Copilot has no pinning option today.
+
 ## YOLO aliases
 
 Each tool's `-yolo` alias trades some of its normal permission checkpoints

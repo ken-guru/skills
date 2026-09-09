@@ -3,4 +3,4 @@
 # binary path), matching the existing pattern. The SYS_ADMIN/seccomp grants
 # Codex's Bubblewrap sandbox needs live on this tool's own devcontainer.json
 # and Compose service — never on the shared base or any other tool.
-FROM skills-tool-container-base:v2
+FROM skills-tool-container-base:v3-3adc81359b62
