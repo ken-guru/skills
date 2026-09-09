@@ -417,8 +417,17 @@ If **Antigravity** was newly selected, append the following caveat to `.devconta
 
 If **any** newly or already-selected tool has the SSH answer yes:
 
-- `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example) appended (only if not already present), and its `GH_TOKEN` comment gets: `Required permissions: Administration (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
-- `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md) appended (only if not already present), and the baseline template's closing "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by the real section).
+- `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example) appended, idempotently, and its `GH_TOKEN` comment gets: `Required permissions: Administration (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
+
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
+  ```
+- `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md) appended, idempotently, and the baseline template's closing "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by the real section):
+
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/README.md "## SSH deploy key and signing key" templates/README.ssh-block.md
+  scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
+  ```
 
 If step 5 bumped `{{BASE_IMAGE_VERSION}}` this run (the **Confirmed** branch), rebuild and
 retag **every already-existing tool's image** too, at the new version — same build command as
@@ -432,7 +441,12 @@ Always (every run, regardless of which tools are new):
 - `.devcontainer/docker-compose.yml` ← rebuilt from [templates/docker-compose.yml](templates/docker-compose.yml): concatenate every currently-selected tool's [templates/<tool>/compose-fragment.yml](templates/) (substituted `{{REPO_NAME}}` and `{{BASE_IMAGE_VERSION}}`) under `services:`, and list one `{{REPO_NAME}}-<tool>-config:` volume line **and** one `{{REPO_NAME}}-<tool>-checkout:` volume line per selected tool, **plus** one `{{REPO_NAME}}-<tool>-ssh:` volume line per SSH-enabled tool (one per tool now, not one shared line for the whole repo), under `volumes:`. The checkout volume backs that tool's Private Checkout — the named volume `onCreateCommand`'s clone script populates, replacing the old shared bind mount. **Safely rebuild, don't hand-edit around**: since this file only ever holds what this skill generated, it's fine to regenerate it wholesale from the current set of selected tools each run — never drop an already-existing tool's service just because this particular run didn't ask about it again.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh), substituted. Every selected tool gets this and its `postAttachCommand` wiring — not just SSH-enabled ones — since it carries Private Checkout's staleness hint (a static reminder to `git fetch`, shown on every attach) unconditionally; the SSH-specific logic inside guards itself when that particular tool's SSH layer isn't enabled. Write once (identical content across every tool); `chmod +x` it.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted, if it doesn't already exist.
-- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists.
+- `.devcontainer/README.md` ← [templates/README.baseline.md](templates/README.baseline.md), substituted, if it doesn't already exist. If it already exists, update `{{SELECTED_TOOLS_SUMMARY}}`'s rendered value in place, and **backfill the "Automatic skill sync" and "YOLO aliases" sections** (matching heading) from the current template if either is missing, inserting each at the same position it holds in the current template — a README from before these sections existed should end up with them added, not left stale. Render each with current values regardless of what's configured this run (e.g. `{{SKILLS_SOURCES_SUMMARY}}` renders as "none configured" when no source is set up), the same as the rest of the baseline template already does for tools that aren't selected. If a section is already present, leave it as-is — this backfill only inserts what's missing, it doesn't reconcile wording drift in a section that already exists. Render each candidate section's current content to a scratch file first (substituted, same as the rest of this step), then, **in this order** (YOLO aliases before Automatic skill sync, so Automatic skill sync's anchor is guaranteed present even backfilling into a README old enough to be missing both):
+
+  ```bash
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## YOLO aliases" "## Gotchas fixed here (and why)" <rendered-yolo-aliases-section>
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## Automatic skill sync" "## YOLO aliases" <rendered-skill-sync-section>
+  ```
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
 - Remove `.claude/worktrees/` from `.gitignore` if a prior run of this skill added it (check for
   the exact line and delete it; leave every other line untouched). It existed only because

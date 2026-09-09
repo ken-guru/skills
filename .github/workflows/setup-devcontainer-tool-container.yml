@@ -62,3 +62,6 @@ jobs:
 
       - name: Run render/verify across every tool x ssh x yolo combination
         run: skills/setup-devcontainer/scripts/test-tool-container.sh
+
+      - name: Run patch-if-absent.sh subcommand tests
+        run: skills/setup-devcontainer/scripts/test-patch-if-absent.sh
