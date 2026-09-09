@@ -423,10 +423,17 @@ If **Claude Code** was newly selected:
   a marker line exactly; a value that changed between runs would never match and the block would
   append twice).
 
-Per-tool caveats (Codex's sandbox capability grant, Antigravity's keyring auth, Copilot's
-pin-revert history, Claude Code's version pinning) all live in README.baseline.md's unconditional
-"CLI installer notes" section instead of being appended ad hoc here — see the README backfill step
-below, which covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
+Worth knowing before generating any tool's files: every vendor installer already verifies a
+checksum or signed digest of its own download before installing, unconditionally — not only when a
+version happens to be pinned. And Codex's Tool Container `capAdd`/`securityOpt` grant
+(`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=unconfined`) exists to satisfy Docker's own
+default seccomp/OCI policy so Codex's Bubblewrap sandbox can create its namespace — it's not
+bubblewrap's own stated minimum requirement, and a narrower grant is plausible but unverified. Both
+facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's pin-revert
+history, Claude Code's version pinning), get their full explanation in README.baseline.md's
+unconditional "CLI installer notes" section instead of being appended ad hoc here — see the README
+backfill step below, which covers them the same way it covers "YOLO aliases" and "Automatic skill
+sync".
 
 If **any** newly or already-selected tool has the SSH answer yes:
 
