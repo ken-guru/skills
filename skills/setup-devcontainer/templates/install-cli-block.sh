@@ -1,4 +1,3 @@
-
 # Mechanical install skeleton shared by every Tool Container flavor: fix the
 # per-tool config volume's ownership (Docker creates a fresh named-volume
 # mountpoint root:root regardless of the parent directory's ownership, even

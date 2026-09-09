@@ -1,4 +1,3 @@
-
 # Fix ownership on the mounted Claude config volume, then install Claude
 # Code via the official native installer — exactly Anthropic's own
 # documented invocation (code.claude.com/docs/en/quickstart), not npm. The

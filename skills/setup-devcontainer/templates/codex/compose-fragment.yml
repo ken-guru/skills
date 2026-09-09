@@ -5,21 +5,28 @@
     environment:
       CODEX_HOME: /home/vscode/.codex
     # Codex's Linux sandbox uses Bubblewrap, which needs to create an
-    # unprivileged user namespace — these settings satisfy Docker's own
-    # default seccomp/OCI policy for doing that inside an already-
-    # containerized environment, scoped to Codex's own service only (no
-    # other Tool Container's service carries this grant). This is not
-    # bubblewrap's own stated minimum requirement: bubblewrap's modern
-    # (non-setuid) mode doesn't itself need SYS_ADMIN — Docker's default
-    # seccomp profile is what gates clone/unshare/mount behind that
-    # capability at container-creation time. A narrower grant (a custom
-    # seccomp allowlist instead of `unconfined`, dropping SYS_ADMIN once
-    # that allowlist exists) is plausible but unverified by any primary
-    # source as of this writing — not changed here without empirical
-    # testing against Codex's actual sandboxed command set, since a wrong
-    # guess would silently break the sandbox rather than fail loudly. See
-    # README.baseline.md's "CLI installer notes" section for the
-    # reader-facing version of this.
+    # unprivileged user namespace — scoped to Codex's own service only (no
+    # other Tool Container's service carries this grant). Two distinct
+    # causes, not one grant for one reason:
+    # - SYS_ADMIN + seccomp=unconfined satisfy Docker's own default
+    #   seccomp/OCI policy for creating that namespace inside an already-
+    #   containerized environment. This is not bubblewrap's own stated
+    #   minimum requirement: bubblewrap's modern (non-setuid) mode doesn't
+    #   itself need SYS_ADMIN — Docker's default seccomp profile is what
+    #   gates clone/unshare/mount behind that capability at
+    #   container-creation time.
+    # - systempaths=unconfined is Moby's MaskedPaths/ReadonlyPaths OCI
+    #   mechanism (not an AppArmor-only setting, despite the name reading
+    #   that way) — it fixes a distinct /proc-remount failure bubblewrap
+    #   hits under Docker's default masked/read-only path set, unrelated to
+    #   the seccomp/capability issue above.
+    # A narrower grant (a custom seccomp allowlist instead of `unconfined`,
+    # dropping SYS_ADMIN once that allowlist exists) is plausible but
+    # unverified by any primary source as of this writing — not changed
+    # here without empirical testing against Codex's actual sandboxed
+    # command set, since a wrong guess would silently break the sandbox
+    # rather than fail loudly. See README.baseline.md's "CLI installer
+    # notes" section for the reader-facing version of this.
     cap_add:
       - SYS_ADMIN
     security_opt:

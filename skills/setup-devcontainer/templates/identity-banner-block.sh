@@ -1,4 +1,3 @@
-
 # Prints which Tool Container this shell belongs to, at the top of every new
 # terminal — cheap insurance against mistaking one CLI's container for
 # another's. This matters even beyond user error: VS Code's own built-in

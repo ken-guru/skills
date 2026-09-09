@@ -438,13 +438,14 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
 
 Worth knowing before generating any tool's files: every vendor installer already verifies a
 checksum or signed digest of its own download before installing, unconditionally — not only when a
-version happens to be pinned. And Codex's Tool Container `capAdd`/`securityOpt` grant
-(`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=unconfined`) exists to satisfy Docker's own
-default seccomp/OCI policy so Codex's Bubblewrap sandbox can create its namespace — it's not
-bubblewrap's own stated minimum requirement, and a narrower grant is plausible but unverified. Both
-facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's and Claude
-Code's pin-revert history), get their full explanation in README.baseline.md's unconditional "CLI
-installer notes" section instead of being appended ad hoc here — see the README backfill step
+version happens to be pinned. And Codex's Tool Container `capAdd`/`securityOpt` grant has two
+distinct causes, not one: `SYS_ADMIN`/`seccomp=unconfined` satisfy Docker's own default seccomp/OCI
+policy so Codex's Bubblewrap sandbox can create its namespace (not bubblewrap's own stated minimum
+requirement, and a narrower grant is plausible but unverified), while `systempaths=unconfined` is a
+separate fix for a distinct `/proc`-remount failure under Docker's default masked/read-only path
+set. Both facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's and
+Claude Code's pin-revert history), get their full explanation in README.baseline.md's unconditional
+"CLI installer notes" section instead of being appended ad hoc here — see the README backfill step
 below, which covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
 
 If **any** newly or already-selected tool has the SSH answer yes:

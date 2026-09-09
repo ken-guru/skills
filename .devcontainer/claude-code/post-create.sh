@@ -22,7 +22,6 @@ git config --global credential.helper '!gh auth setup-git'
 git config --global user.email "${GIT_USER_EMAIL:-ken.paulsen@gmail.com}"
 git config --global user.name "${GIT_USER_NAME:-Ken Sørevåge}"
 
-
 # Prints which Tool Container this shell belongs to, at the top of every new
 # terminal — cheap insurance against mistaking one CLI's container for
 # another's. This matters even beyond user error: VS Code's own built-in
@@ -42,7 +41,6 @@ if [[ $- == *i* ]]; then
 fi
 EOF
 fi
-
 
 # Mechanical install skeleton shared by every Tool Container flavor: fix the
 # per-tool config volume's ownership (Docker creates a fresh named-volume
@@ -85,7 +83,6 @@ install_cli() {
       || echo "Warning: $label CLI install failed, continuing without it" >&2
   fi
 }
-
 
 # Fix ownership on the mounted Claude config volume, then install Claude
 # Code via the official native installer — exactly Anthropic's own

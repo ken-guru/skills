@@ -1,4 +1,3 @@
-
 # Add YOLO alias for fast development — classifier-based auto permission mode,
 # isolated worktree, and remote control. Opt-in: only present because this was
 # accepted during setup. Do not swap in --dangerously-skip-permissions: it

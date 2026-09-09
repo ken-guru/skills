@@ -1,4 +1,3 @@
-
 # Standing setup warnings, surfaced at the top of every new terminal — not
 # just once at attach. postCreateCommand/postAttachCommand each fire once per
 # rebuild/attach, not per terminal tab, so anything that should stay visible

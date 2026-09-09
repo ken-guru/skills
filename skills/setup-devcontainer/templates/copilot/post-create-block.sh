@@ -1,4 +1,3 @@
-
 # Fix ownership on the .copilot config volume mount, then install GitHub
 # Copilot CLI via the official install script, as GitHub's own install docs
 # invoke it. Always installs whatever's current at build time (VERSION left

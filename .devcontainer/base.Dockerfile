@@ -63,10 +63,10 @@ RUN if ! id vscode >/dev/null 2>&1; then \
 # no side effects beyond that echo, just not a true no-op like the other
 # two paths.
 #
-# Branches on false for a repo with no GitHub connection at all
-# (see SKILL.md step 1): `false` decides between
-# `git init` (default branch from , if the host had
-# one configured) and leaving the workspace genuinely bare. Otherwise, falls
+# Branches on the Local Checkout setting for a repo with no GitHub connection
+# at all (see SKILL.md step 1): the Local Checkout git-init answer decides
+# between `git init` (default branch from the host's configured default, if
+# it had one) and leaving the workspace genuinely bare. Otherwise, falls
 # through to the existing clone path unchanged: unlike the optional SSH
 # layer, a container with no repo at all has nothing to degrade to, so a
 # missing `GH_TOKEN` fails loudly rather than skipping gracefully; an

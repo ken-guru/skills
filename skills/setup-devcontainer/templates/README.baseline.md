@@ -109,15 +109,20 @@ Code has no pinning option today.
 `securityOpt` grants (`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=
 unconfined`) so Codex's own Bubblewrap sandbox (`codex-yolo`'s `--sandbox
 workspace-write`) can actually create its namespace — scoped to Codex's own
-container only, never any other tool's. These settings satisfy Docker's own
+container only, never any other tool's. Two distinct causes, not one grant
+for one reason: `SYS_ADMIN`/`seccomp=unconfined` satisfy Docker's own
 default seccomp/OCI policy for creating an unprivileged user namespace
 inside an already-containerized environment; they are not bubblewrap's own
 stated minimum requirement (bubblewrap's modern mode doesn't itself need
-`SYS_ADMIN`). A narrower grant is plausible but unverified by any primary
-source at time of writing, so it isn't changed here without empirical
-testing. This skill does not include a runtime health probe to verify the
-sandbox is confining anything on your specific host — if `codex-yolo` ever
-behaves as though unsandboxed, that's the first thing to check by hand.
+`SYS_ADMIN`). `systempaths=unconfined` is a separate fix, for a distinct
+`/proc`-remount failure bubblewrap hits under Docker's default masked/
+read-only path set (Moby's `MaskedPaths`/`ReadonlyPaths` OCI mechanism —
+not an AppArmor-only setting despite the name). A narrower grant is
+plausible but unverified by any primary source at time of writing, so it
+isn't changed here without empirical testing. This skill does not include a
+runtime health probe to verify the sandbox is confining anything on your
+specific host — if `codex-yolo` ever behaves as though unsandboxed, that's
+the first thing to check by hand.
 
 **Antigravity CLI Auth.** `agy` stores auth in the system keyring, not a
 file. The `.antigravity` volume mount will not persist its login across

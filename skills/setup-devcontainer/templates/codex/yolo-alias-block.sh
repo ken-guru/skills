@@ -1,4 +1,3 @@
-
 # Add YOLO alias for fast development. Opt-in: only present because this was
 # accepted during setup. Do not swap in
 # --dangerously-bypass-approvals-and-sandbox: that's Codex's full-bypass

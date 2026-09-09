@@ -1,4 +1,3 @@
-
 # SSH identity — two keys per Tool Container, persisted in this tool's own
 # {{REPO_NAME}}-{{TOOL_NAME}}-ssh volume, private to this Tool Container (no
 # longer shared across tools — see the signing-key prompt from

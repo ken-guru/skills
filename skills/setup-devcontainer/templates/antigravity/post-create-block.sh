@@ -1,4 +1,3 @@
-
 # Fix ownership on the .antigravity config volume mount, then install
 # Antigravity CLI via the official installer — its own shebang (#!/bin/bash)
 # is why this pipes into `bash`, not `sh`.
