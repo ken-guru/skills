@@ -4,6 +4,20 @@
       - .env
     environment:
       CLAUDE_CONFIG_DIR: /home/vscode/.claude
+      # Untried fix for a real-world failure of #234's npm-based install and
+      # pinning: Anthropic's own VS Code extension docs (code.claude.com/
+      # docs/en/vs-code) say running `claude` in a VS Code integrated
+      # terminal auto-installs a *separate* native build and, per live
+      # observation, appears to make Claude Code report and run from that
+      # native install instead of the npm one this container just set up —
+      # silently defeating the pin (confirmed live: a version pinned to
+      # 2.1.260 via npm showed as 2.1.267/native inside a real VS Code Dev
+      # Containers session, though the exact causal mechanism isn't fully
+      # confirmed — see #235's research). Set as a container-level env var,
+      # not just during install, since it needs to be present in every VS
+      # Code integrated terminal this extension might auto-trigger from, not
+      # only during postCreateCommand.
+      CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL: "1"
     volumes:
       - {{REPO_NAME}}-claude-code-checkout:/workspace
       - {{REPO_NAME}}-claude-code-config:/home/vscode/.claude
