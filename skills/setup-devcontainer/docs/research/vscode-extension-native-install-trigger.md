@@ -10,7 +10,12 @@ Research date: 2026-09-10. All URLs below were fetched live on that date via `We
 
 ## Verdict, up front
 
-**Hypothesis (a) — the VS Code extension — is strongly supported.** The native installer itself (`curl -fsSL https://claude.ai/install.sh | bash`) is documented to auto-install the VS Code extension as a side effect. That extension, once active in a Dev Container environment, appears to trigger its own native-build self-management logic independent of however the CLI was already installed. This explains the observed symptoms: the install method silently becomes "native" in real VS Code Dev Containers sessions (where the extension runs) but not in isolated `docker exec` testing (where it does not).
+**Hypothesis (a) — the VS Code extension — is strongly supported, but via a different, more directly applicable mechanism than this document's own §1 citation first suggests.** Two distinct, separately documented extension-related behaviors are in play, and it matters which one is doing the work here:
+
+- §1's citation (issue [#48415](https://github.com/anthropics/claude-code/issues/48415)) documents that the **native curl installer** (`curl -fsSL https://claude.ai/install.sh | bash`) auto-installs the VS Code extension as a side effect of *that specific install method*. **This repo does not use the native curl installer** — PR #225 (commit `2f0b2c3`) deliberately swapped Claude Code's install to `npm install -g @anthropic-ai/claude-code` specifically to get away from the native install path. So #48415's mechanism, as literally stated, should not fire in this repo's containers, and cannot by itself be the trigger here — flagging this as a correction to an earlier draft of this document's reasoning, which cited #48415 as if it applied unconditionally.
+- §3's citation (Anthropic's own VS Code extension docs) documents a **second, install-method-independent** behavior: *"If you run `claude` in a VS Code integrated terminal, Claude Code reinstalls the extension automatically."* This fires whenever `claude` (however it got there — npm or native) is invoked in a VS Code integrated terminal, which is exactly what happens in a real Dev Containers session and never happens in bare `docker exec` testing. This is the mechanism that actually fits this repo's setup and the observed npm-testing-clean-vs-real-session-broken split.
+
+What §3's own docs do **not** fully close is the last link: how the *extension's* auto-reinstall converts what `claude doctor` reports for the **CLI's own** install method/path from `npm-global` to `native` at `/home/vscode/.local/share/claude/versions/...` — the same docs say "the extension does not add `claude` to your PATH" (quoted in full in §2), which is in tension with the CLI-on-PATH reporting a native path afterward. That specific causal step is not found stated outright in any primary source below; it is the strongest remaining gap, not an assumption already closed. Treat "which install-method trigger explains the symptom" as **confirmed to be extension-related (a), narrowed to the run-in-terminal auto-reinstall behavior, not the curl-installer side effect** — but the *exact mechanics* of how that reinstall clobbers the CLI's own reported install path are still unconfirmed pending the live-environment tests in the "What would prove this definitively" section below.
 
 **Hypothesis (b) — the base image or VS Code Server — is ruled out.** The `devcontainers/base:ubuntu` image is a standard Microsoft generic base with no Claude Code or auto-install logic. VS Code Server itself is also generic and has no vendor-specific logic.
 
@@ -160,15 +165,15 @@ Other examples:
 
 ## Summary: The evidence points to (a), not (b) or unknown causes
 
-1. **Issue #48415 (closed, inactivity)**: Explicit documentation that the native installer auto-installs the VS Code extension as a known, named problem.
-2. **VS Code extension docs**: Confirmation that the extension bundles and manages its own CLI, and has auto-install logic (`autoInstallIdeExtension`).
-3. **Issue #92072 (fresh, 2026-09-04)**: Recent crash report specifically in VS Code Dev Containers, suggesting active extension logic in that environment.
-4. **VS Code's own docs**: Confirmation that extensions are NOT automatically forwarded by default, so the extension must have arrived via the native installer.
-5. **Base image ruled out**: No Claude Code logic in the generic `devcontainers/base:ubuntu` image.
-6. **Community workarounds**: Multiple third-party projects created specifically to work around the native installer's auto-install behavior in container scenarios.
-7. **Anthropic's own docs**: npm install is documented as an alternative that avoids the extension auto-install problem.
+1. **VS Code extension docs (§3)**: The CLI itself — regardless of npm vs. native origin — auto-installs the VS Code extension the first time `claude` runs in a VS Code integrated terminal, gated by a real, named suppression knob (`autoInstallIdeExtension` / `CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL`). This is the mechanism that actually fits a repo already on npm install, and explains how the extension gets into the container without host-extension forwarding (§5) or the native curl installer (§1) being involved at all.
+2. **VS Code extension docs (§2)**: The extension bundles and manages its own copy of the CLI, separate from whatever's on PATH.
+3. **Issue #92072 (fresh, 2026-09-04)**: Corroborating, not conclusive — a recent crash report specific to VS Code Dev Containers shows the extension is an active, fragile component in that exact environment, but doesn't itself demonstrate the install-method flip.
+4. **VS Code's own docs (§5)**: Confirms extensions are NOT forwarded from host to container by default — ruling out "the developer's host extension leaked in" as the explanation, and pointing back at #3's CLI-triggered install as the more likely arrival path for a repo already on npm.
+5. **Base image ruled out (§6)**: No Claude Code logic in the generic `devcontainers/base:ubuntu` image.
+6. **Community workarounds (§7)**: General corroboration that Claude Code in devcontainers is a known pain point, not proof of this specific mechanism.
+7. **Issue #48415 (§1)**: Real and Anthropic-tracked, but describes a *different* trigger (the native curl installer auto-installing the extension) that does not apply to this repo's already-npm setup — kept here as adjacent context, not as this ticket's root-cause citation.
 
-**The root cause is (a): the native installer auto-installs the VS Code extension, which then manages its own "native" build installation inside the container, bypassing the npm install from `postCreateCommand`.** This is not a mystery or hidden behavior — it is explicitly described in issue #48415 as the documented problem, and multiple independent solutions have been built around it.
+**The root cause is (a): the Claude Code CLI's own documented "auto-install the IDE extension on first run in an integrated terminal" behavior (§3) is the best-fitting trigger for a repo already on npm install.** The still-open gap is the exact mechanics connecting "extension gets installed" to "PATH's own `claude doctor` output flips to a native path" — no primary source below closes that specific link; see "What would prove this definitively" below for the test that would.
 
 ---
 
@@ -185,12 +190,13 @@ The evidence above is strong but circumstantial. To move from "highly likely (a)
 
 ## Recommended action for issue #214/235
 
-Given that this root cause is documented (issue #48415), do NOT use the native installer in `postCreateCommand`. Use npm install instead:
+**Correction to this document's original draft:** switching `postCreateCommand` to npm install (issue #48415's own recommended workaround) is **not a new lever available here** — this repo already made that exact switch in PR #225, and the symptom in #235 was observed *after* that switch, in the real Dev Containers session. #48415's fix does not apply to this repo's starting point.
 
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+The concrete, untried lever this research surfaces instead is §3's documented suppression knob for the mechanism that *does* plausibly apply (run-in-terminal auto-reinstall of the extension, independent of original CLI install method):
 
-This is what issue #48415 explicitly recommends as a workaround. Anthropic docs support this install method, and it avoids the extension auto-install side effect entirely.
+- Env var: `CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL=1`
+- Or the equivalent persistent setting: `autoInstallIdeExtension: false` (settable via `/config` inside `claude`, or presumably in `~/.claude/settings.json` / this repo's own managed-settings mechanism — not yet confirmed against the settings-reference schema; verify the exact key name and valid locations there before shipping).
 
-Alternatively, if the native installer is desired, suppress the extension auto-install by using environment variables or settings flags documented in issue #48415 if they exist (check `claude install --help` for `--no-extension` or similar flag), or file a new issue referencing the closed #48415 to request the `--no-extension` flag if it was not yet implemented.
+Both are quoted from Anthropic's own VS Code extension docs in §3 above. Setting either **before** `claude` is first run inside the Dev Container (e.g. baked into `postCreateCommand`'s env, alongside the existing `DISABLE_UPDATES` managed-settings write) is the most direct, cheaply testable next step: if the extension's auto-(re)install is genuinely what converts the reported install method, suppressing it should keep `claude doctor` reporting `npm-global` and the pinned version inside a real VS Code Dev Containers session, closing the gap this ticket describes. This is **untried** — no evidence below confirms it works for *this* symptom (install-method drift), only that it exists and is documented to stop the extension's own reinstall. It has not been verified to also prevent whatever downstream effect (if any) is doing the actual CLI-path clobbering per the open gap noted in the verdict above.
+
+If that test doesn't hold, the next-cheapest untried lever is confirming §3's causal gap directly: run `claude doctor` in a fresh real Dev Containers session immediately on first terminal open (before any extension chat-panel interaction), then again after using the extension's UI once, to see whether the drift correlates with terminal use alone or requires the extension's graphical panel to activate.
