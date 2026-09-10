@@ -25,7 +25,7 @@ if [[ $- == *i* ]]; then
     echo "⚠ SSH signing key not yet registered with GitHub — run: cat ~/.ssh/id_ed25519_signing.pub"
   fi
   if [ -f "$HOME/.ssh/.deploy-key-status" ] && [ "$(cat "$HOME/.ssh/.deploy-key-status")" = "missing" ]; then
-    echo "⚠ Deploy key NOT found on GitHub — git push/pull will fail. Rebuild this Tool Container to re-register it."
+    echo "⚠ Deploy key NOT found on GitHub — git push/pull will fail. Rebuild the container to re-register it."
   fi
 fi
 EOF

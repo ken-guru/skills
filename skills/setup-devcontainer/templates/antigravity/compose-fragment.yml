@@ -1,8 +1,0 @@
-  antigravity:
-    image: {{REPO_NAME}}-antigravity:{{BASE_IMAGE_VERSION}}
-    env_file:
-      - .env
-    volumes:
-      - {{REPO_NAME}}-antigravity-checkout:/workspace
-      - {{REPO_NAME}}-antigravity-config:/home/vscode/.antigravity
-    command: sleep infinity

@@ -1,9 +1,15 @@
 #!/bin/bash
-# Shared rendering primitives for render-tool-container.sh and
-# verify-tool-container.sh. Sourced, not executed. Both scripts need to agree
+# Shared rendering primitives for render-devcontainer.sh and
+# verify-devcontainer.sh. Sourced, not executed. Both scripts need to agree
 # on exactly how each template's placeholders resolve — this is that single
 # shared source of truth, so verify checks against the same substitution
 # rules render writes with, not a hand-copied guess at them.
+#
+# Scoped only to what's still genuinely parameterized per repo (git-identity
+# defaults, SSH). The old per-tool lookup functions (tool_install_block,
+# yolo_alias_block) are gone: each CLI skill now owns static, single-tool
+# content directly in its own templates/, with nothing left to parameterize
+# across tools.
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="$(cd "$LIB_DIR/../../templates" && pwd)"
@@ -22,9 +28,11 @@ sed_escape() {
 # it isn't the line changes shape entirely to `${VAR:?required}` (see
 # SKILL.md step 4). Reads the current template rather than a hand-copied
 # line, so a future reformat of post-create-base.sh doesn't silently drift
-# out of sync with this substitution.
+# out of sync with this substitution. Also substitutes the Local Checkout
+# git-init placeholders.
 render_base_block() {
   local email_value="$1" have_email="$2" name_value="$3" have_name="$4"
+  local local_checkout_git_init="$5" git_default_branch="$6"
   local content
   content="$(cat "$TEMPLATES_DIR/post-create-base.sh")"
 
@@ -40,24 +48,20 @@ render_base_block() {
     content="$(printf '%s\n' "$content" | sed 's|${GIT_USER_NAME:-{{GIT_NAME_DEFAULT}}}|${GIT_USER_NAME:?Set GIT_USER_NAME in .devcontainer/.env}|')"
   fi
 
+  content="$(printf '%s\n' "$content" | sed \
+    -e "s|{{LOCAL_CHECKOUT_GIT_INIT}}|$(sed_escape "$local_checkout_git_init")|g" \
+    -e "s|{{GIT_DEFAULT_BRANCH}}|$(sed_escape "$git_default_branch")|g")"
+
   printf '%s\n' "$content"
 }
 
-render_identity_banner_block() {
-  local tool_display_name="$1"
-  sed "s|{{TOOL_DISPLAY_NAME}}|$(sed_escape "$tool_display_name")|g" "$TEMPLATES_DIR/identity-banner-block.sh"
-}
-
 render_ssh_block() {
-  local repo_name="$1" repo_slug="$2" tool_name="$3"
-  sed -e "s|{{REPO_NAME}}|$(sed_escape "$repo_name")|g" \
-      -e "s|{{REPO_SLUG}}|$(sed_escape "$repo_slug")|g" \
-      -e "s|{{TOOL_NAME}}|$(sed_escape "$tool_name")|g" \
+  local repo_slug="$1" repo_name="$2"
+  sed -e "s|{{REPO_SLUG}}|$(sed_escape "$repo_slug")|g" \
+      -e "s|{{REPO_NAME}}|$(sed_escape "$repo_name")|g" \
       "$TEMPLATES_DIR/post-create-ssh-block.sh"
 }
 
-# The remaining four blocks carry no placeholders — always copied verbatim.
+# The remaining two blocks carry no placeholders — always copied verbatim.
 install_cli_block() { cat "$TEMPLATES_DIR/install-cli-block.sh"; }
-tool_install_block() { cat "$TEMPLATES_DIR/$1/post-create-block.sh"; }
-yolo_alias_block() { cat "$TEMPLATES_DIR/$1/yolo-alias-block.sh"; }
 ssh_warnings_block() { cat "$TEMPLATES_DIR/post-create-warnings-block.sh"; }

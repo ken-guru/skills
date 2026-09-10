@@ -1,0 +1,19 @@
+{
+  "name": "{{REPO_NAME}} devcontainer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "init": true,
+  "mounts": [
+    "source={{REPO_NAME}}-config,target=/home/vscode,type=volume",
+    "source={{REPO_NAME}}-ssh,target=/home/vscode/.ssh,type=volume"
+  ],
+  "runArgs": [],
+  "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  "waitFor": "postAttachCommand",
+  "postAttachCommand": "bash .devcontainer/post-attach.sh"
+}
