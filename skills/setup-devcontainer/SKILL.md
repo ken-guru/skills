@@ -199,9 +199,21 @@ For each **newly** selected tool, ask independently:
   session.) Each tool's `-yolo` alias reduces its permission checkpoints for
   faster iteration; the exact tradeoff differs per tool — see the README's
   "YOLO aliases" section for specifics.
+- **CLI version** (Claude Code, Codex, and Copilot only — all three now install via npm; not
+  Antigravity, which has no npm package): always install the latest release via npm (and, for
+  Claude Code, keep auto-updating in the background afterward — the vendor's own default; Codex
+  and Copilot have no background auto-updater to fight either way, they only update via their own
+  explicit `<tool> update` command), or lock to a specific version? npm accepts an exact version
+  string via `@<version>` syntax for all three. If locking, look up the current latest release
+  (`npm view <package> version` — `@anthropic-ai/claude-code`, `@openai/codex`, or `@github/copilot`)
+  and suggest it as the default value to lock to. Record the answer as `{{CLAUDE_CODE_VERSION}}`,
+  `{{CODEX_VERSION}}`, or `{{COPILOT_VERSION}}` (`latest`, or the exact version string) — for
+  Claude Code only, locking also disables its own auto-updater (`DISABLE_UPDATES` in managed
+  settings, applied automatically by the generated install step whenever this isn't `latest`; no
+  separate question needed, and no equivalent setting exists or is needed for Codex/Copilot).
 
 Record these answers — they decide which template variants steps 5–6 use.
-Both are addable later per tool without redoing anything already generated
+All are addable later per tool without redoing anything already generated
 (see the append-flows below).
 
 ## 4. Resolve placeholders
@@ -212,6 +224,9 @@ Both are addable later per tool without redoing anything already generated
   `${GIT_USER_EMAIL:?Set GIT_USER_EMAIL in .devcontainer/.env}` (no `-default` fallback) in
   the base post-create script instead of the `:-` form, and drop the parenthetical in
   `.env.example`'s comment.
+- `{{CLAUDE_CODE_VERSION}}`, `{{CODEX_VERSION}}`, `{{COPILOT_VERSION}}` (each only for its own
+  tool) — the CLI-version answer collected in step 3. If a given tool wasn't newly selected this
+  run (already existing, or not selected at all), its placeholder doesn't apply.
 - `{{SKILLS_SOURCES_COMMANDS}}` (any selected tool — Claude Code, Codex, Antigravity, and Copilot
   all support this identically) — ask the user one combined question, asked once regardless of
   how many of the four tools are selected: sync AI-agent skills into every selected Tool Container
@@ -436,17 +451,42 @@ For **each newly selected tool** (`claude-code`, `codex`, `antigravity`, or `cop
   stays current.
 - Make the new `.devcontainer/<tool>/*.sh` files executable: `chmod +x .devcontainer/<tool>/*.sh`.
 
-Worth knowing before generating any tool's files: every vendor installer already verifies a
+If **Claude Code**, **Codex**, or **Copilot** was newly selected (each independently — this is
+three separate per-tool checks, not one combined question):
+
+- `.devcontainer/.env.example` gets that tool's env-block template appended (only if not already
+  present), substituting its version placeholder with this run's answer — unlike
+  `GH_TOKEN`/`DEVCONTAINER_HOST`, this value is already known at setup time, so it's rendered
+  directly rather than left as a static placeholder for the user to edit blindly:
+
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Claude Code CLI version pin (added by setup-devcontainer) ---" templates/env.claude-code-block.example
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Codex CLI version pin (added by setup-devcontainer) ---" templates/env.codex-block.example
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Copilot CLI version pin (added by setup-devcontainer) ---" templates/env.copilot-block.example
+  ```
+
+  Each marker is a fixed comment line, not the `<TOOL>_VERSION=...` line itself — that line's value
+  changes per run, so it can't double as an idempotency marker (`patch-if-absent.sh append` matches
+  a marker line exactly; a value that changed between runs would never match and the block would
+  append twice).
+
+Worth knowing before generating any tool's files: Antigravity's installer already verifies a
 checksum or signed digest of its own download before installing, unconditionally — not only when a
-version happens to be pinned. And Codex's Tool Container `capAdd`/`securityOpt` grant has two
-distinct causes, not one: `SYS_ADMIN`/`seccomp=unconfined` satisfy Docker's own default seccomp/OCI
-policy so Codex's Bubblewrap sandbox can create its namespace (not bubblewrap's own stated minimum
-requirement, and a narrower grant is plausible but unverified), while `systempaths=unconfined` is a
-separate fix for a distinct `/proc`-remount failure under Docker's default masked/read-only path
-set. Both facts, and the rest of the per-tool caveats (Antigravity's keyring auth, Copilot's and
-Claude Code's pin-revert history), get their full explanation in README.baseline.md's unconditional
-"CLI installer notes" section instead of being appended ad hoc here — see the README backfill step
-below, which covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
+version happens to be pinned (no npm/Homebrew/apt package exists for it to swap to). Claude Code,
+Codex, and Copilot install via npm instead, whose own registry signature (plus, for Codex, SLSA
+provenance) is their integrity model (see each tool's own `post-create-block.sh`) — all three offer
+a version-pin option today, verified to actually hold: Claude Code via `DISABLE_UPDATES` in managed
+settings (the only one of the three with a background auto-updater to suppress), Codex and Copilot
+on npm's pin alone, since neither has a background auto-updater at all — both only update via their
+own explicit `<tool> update` command. And Codex's Tool Container `capAdd`/`securityOpt` grant has
+two distinct causes, not one: `SYS_ADMIN`/`seccomp=unconfined` satisfy Docker's own default
+seccomp/OCI policy so Codex's Bubblewrap sandbox can create its namespace (not bubblewrap's own
+stated minimum requirement, and a narrower grant is plausible but unverified), while
+`systempaths=unconfined` is a separate fix for a distinct `/proc`-remount failure under Docker's
+default masked/read-only path set. All of this, and the rest of the per-tool caveats (Antigravity's
+keyring auth), get their full explanation in README.baseline.md's unconditional "CLI installer
+notes" section instead of being appended ad hoc here — see the README backfill step below, which
+covers them the same way it covers "YOLO aliases" and "Automatic skill sync".
 
 If **any** newly or already-selected tool has the SSH answer yes:
 

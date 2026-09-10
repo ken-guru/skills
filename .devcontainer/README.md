@@ -76,34 +76,66 @@ the skill-sources question differently.
 
 ## CLI installer notes
 
-Every tool's install script already verifies a checksum or signed digest of
-its own download before installing — unconditionally, not only when a
-version happens to be pinned:
+**Antigravity**'s install script already verifies a checksum or signed
+digest of its own download before installing — unconditionally, not only
+when a version happens to be pinned: SHA512 checksum against a signed
+manifest, halting the install on mismatch. It's the only one of the four
+still installed this way — no npm/Homebrew/apt package exists for it to
+swap to (confirmed by research for #232/#234).
 
-- **Claude Code**: SHA256 checksum against a GPG-signed manifest.
-- **Codex**: SHA256 digest verified against GitHub release metadata for
-  whichever release resolves (latest or pinned).
-- **Antigravity**: SHA512 checksum against a signed manifest, halting the
-  install on mismatch.
-- **Copilot**: `SHA256SUMS.txt`, downloaded and checked for whichever
-  release resolves; a mismatch is a hard install failure, not a warning.
+**Claude Code, Codex, and Copilot** install via npm instead of a vendor
+curl|bash script (`npm install -g @anthropic-ai/claude-code`, `@openai/
+codex`, `@github/copilot`) — npm's own registry signature is their
+integrity model, verified independently of any version pin (Codex's
+package additionally carries SLSA provenance, the strongest integrity
+evidence of the four). None of the four offers a way to review or filter
+what a given release *contains* before installing — only that the bytes
+downloaded match what was published, to the npm registry or (Antigravity)
+the vendor directly.
 
-None of the four offers a way to review or filter what a given release
-*contains* before installing — only that the bytes downloaded match what the
-vendor published.
+**CLI version pinning.** All three npm-installed tools support locking to
+an exact version via `CLAUDE_CODE_VERSION`, `CODEX_VERSION`, or
+`COPILOT_VERSION` in `.env` — but they needed different amounts of work to
+actually hold, since only one of the three fights a background
+auto-updater:
 
-**Claude Code version pinning — tried and reverted.** A pinning feature was
-built here once (`CLAUDE_CODE_VERSION` to lock a version, paired with
-disabling Claude Code's own background auto-updater so the pin would hold)
-and reverted after three different mechanisms all failed to make the pin
-stick in practice: a container env var (Claude Code doesn't read the
-auto-updater setting from process environment at all), the user's own
-`settings.json` (Claude Code's first-run onboarding overwrites that file
-wholesale, silently dropping it), and finally `/etc/claude-code/managed-
-settings.json` (verified live to reject unprivileged writes and survive a
-simulated onboarding clobber — and still, on a real re-test, a version
-pinned to `2.1.265` silently installed `2.1.266` on startup anyway). Claude
-Code has no pinning option today.
+- **Claude Code — adopted, after three earlier attempts failed.** Locking
+  also writes `DISABLE_UPDATES` (not the weaker `DISABLE_AUTOUPDATER`) into
+  `/etc/claude-code/managed-settings.json`, the one delivery channel
+  onboarding can't overwrite. Three earlier mechanisms each failed
+  differently before this one held: a container env var (Claude Code
+  doesn't read the auto-updater setting from process environment at all),
+  the user's own `settings.json` (Claude Code's first-run onboarding
+  overwrites that file wholesale, silently dropping it), and
+  `DISABLE_AUTOUPDATER` in managed settings itself (survived onboarding,
+  but — verified live — a version pinned to `2.1.265` still silently
+  installed `2.1.266` on startup anyway, since that setting only stops the
+  background update check, not every update path). `DISABLE_UPDATES` is
+  documented as blocking every update path; verified live, `claude doctor`
+  reports `Auto-updates: disabled (set by env: DISABLE_UPDATES)`
+  immediately after a pinned install, and both the reported version and
+  that status still hold from a fresh container start against a filesystem
+  snapshot taken right after install — the same "next launch" moment that
+  caught the prior mechanism's failure.
+- **Codex — adopted, simpler than Claude Code's case.** `codex doctor`
+  self-reports no background auto-updater at all — Codex only updates via
+  the explicit `codex update` subcommand, never silently. Verified live: an
+  npm-pinned version holds on its own, no extra setting needed, across the
+  same fresh-container-start check used for Claude Code.
+- **Copilot — adopted; the earlier crash doesn't reproduce here.** A prior
+  pinning attempt, on the old curl|bash installer, crashed Copilot's own
+  self-updater on startup (`Error auto updating: TypeError: Invalid
+  Version: latest`) — the literal string `"latest"` breaking that
+  installer's own version-comparison code. npm always resolves an install
+  to a concrete semver, never that literal string; verified live, an
+  npm-pinned version holds cleanly across a fresh container start, both
+  with and without `COPILOT_AUTO_UPDATE=false` present. That env var stays
+  set unconditionally regardless, as defensive insurance against the same
+  underlying self-update instability, even though holding the pin didn't
+  end up needing it.
+
+Leave any of the three `_VERSION` variables unset (or `latest`) to skip all
+of this and keep that tool's always-latest, auto-updating default.
 
 **Codex sandbox capability grant.** Codex's Tool Container carries `capAdd`/
 `securityOpt` grants (`SYS_ADMIN`, `seccomp=unconfined`, `systempaths=
@@ -128,14 +160,6 @@ the first thing to check by hand.
 file. The `.antigravity` volume mount will not persist its login across
 rebuilds in a bare container. You may need to re-auth `agy` each time, or
 add a keyring daemon yourself later if that gets annoying.
-
-**Copilot version pinning — tried and reverted.** A pinning feature (the
-same idea attempted for Claude Code above, and reverted there too) was
-built here once and reverted after crashing Copilot's own background
-self-updater on startup. `COPILOT_AUTO_UPDATE=false` now ships by default
-regardless, for that same self-update instability — this may or may not
-avoid the crash if pinning were re-attempted under it; that's untested, and
-Copilot has no pinning option today.
 
 ## YOLO aliases
 

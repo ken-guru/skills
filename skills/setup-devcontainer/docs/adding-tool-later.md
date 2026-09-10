@@ -16,7 +16,14 @@ now wants an additional tool:
    of tools (old and new together), so every already-existing tool's service
    definition is preserved automatically — nothing about an existing tool's
    files is touched by this flow.
-6. Run step 7, scoped to the newly-added tool(s)' next steps only.
+6. If **Claude Code**, **Codex**, or **Copilot** was newly added and `.devcontainer/.env` already
+   exists (it must, for the already-existing tool(s) to have worked at all): step 6's env-block
+   append only reaches `.env.example`, not the live, gitignored `.env` — the same gap
+   `DEVCONTAINER_HOST` has when SSH is added later. Tell the user the exact
+   `CLAUDE_CODE_VERSION`/`CODEX_VERSION`/`COPILOT_VERSION` line to add to their existing `.env`
+   (whichever tool(s) were added), matching whatever this run's CLI version question answered
+   (default: `latest`), rather than leaving it to only take effect on some future fresh `.env`.
+7. Run step 7, scoped to the newly-added tool(s)' next steps only.
 
 Done when the new tool's files exist and pass the same step-6 checks, the
 existing tools' files are byte-for-byte unchanged (aside from
