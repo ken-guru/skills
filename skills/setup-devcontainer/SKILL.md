@@ -1,6 +1,6 @@
 ---
 name: setup-devcontainer
-description: Generate a shared devcontainer (Ubuntu base image, Node, GitHub CLI, one persistent config volume) in the current repo — one container every AI CLI installs into, added independently via setup-claude-devcontainer/setup-codex-devcontainer/setup-antigravity-devcontainer/setup-copilot-devcontainer — optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits. Use when the user wants to add a devcontainer to a repo, add SSH key automation to an existing devcontainer, or connect a Local Checkout to a real GitHub repo. Not for adding an AI CLI itself — run the matching setup-<tool>-devcontainer skill for that, after this one.
+description: Generate a shared devcontainer (Ubuntu base image, Node, GitHub CLI, one persistent config volume) in the current repo — one container every AI CLI installs into, added independently via its four companion setup-<tool>-devcontainer skills — optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits. Use when the user wants to add a devcontainer to a repo, add SSH key automation to an existing devcontainer, or connect a Local Checkout to a real GitHub repo. Not for adding an AI CLI itself — run the matching setup-<tool>-devcontainer skill for that, after this one.
 ---
 
 # Setup Devcontainer

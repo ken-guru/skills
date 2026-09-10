@@ -27,6 +27,36 @@ TOOLS=(
   "setup-copilot-devcontainer:# --- Copilot ---"
 )
 
+marker_for_tool() {
+  local tool_dir="$1"
+  local entry
+  for entry in "${TOOLS[@]}"; do
+    if [ "${entry%%:*}" = "$tool_dir" ]; then
+      echo "${entry#*:}"
+      return
+    fi
+  done
+}
+
+# Applies every tool's own install-block/readme-bullet/capability-seam
+# patches, in the given order, to the fixture files in $1.
+apply_all_patches() {
+  local fixture_dir="$1"
+  shift
+  local tool_order=("$@")
+
+  local tool_dir marker tool_templates
+  for tool_dir in "${tool_order[@]}"; do
+    marker="$(marker_for_tool "$tool_dir")"
+    tool_templates="$SKILLS_ROOT/$tool_dir/templates"
+    "$PATCH" append "$fixture_dir/post-create.sh" "$marker" "$tool_templates/install-block.sh"
+    "$PATCH" append "$fixture_dir/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
+    if [ -f "$tool_templates/capability-seam-entries.json" ]; then
+      "$PATCH_JSON" "$fixture_dir/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
+    fi
+  done
+}
+
 run_scenario() {
   local order_desc="$1"
   shift
@@ -39,20 +69,7 @@ run_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
 
-  for tool_dir in "${tool_order[@]}"; do
-    local marker=""
-    for entry in "${TOOLS[@]}"; do
-      if [ "${entry%%:*}" = "$tool_dir" ]; then
-        marker="${entry#*:}"
-      fi
-    done
-    local tool_templates="$SKILLS_ROOT/$tool_dir/templates"
-    "$PATCH" append "$TMP_DIR/post-create.sh" "$marker" "$tool_templates/install-block.sh"
-    "$PATCH" append "$TMP_DIR/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
-    if [ -f "$tool_templates/capability-seam-entries.json" ]; then
-      "$PATCH_JSON" "$TMP_DIR/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
-    fi
-  done
+  apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
   # Assertions, pass 1
   local marker_count
@@ -83,20 +100,7 @@ run_scenario() {
   cp "$TMP_DIR/README.md" "$TMP_DIR/README.md.before-pass2"
   cp "$TMP_DIR/devcontainer.json" "$TMP_DIR/devcontainer.json.before-pass2"
 
-  for tool_dir in "${tool_order[@]}"; do
-    local marker=""
-    for entry in "${TOOLS[@]}"; do
-      if [ "${entry%%:*}" = "$tool_dir" ]; then
-        marker="${entry#*:}"
-      fi
-    done
-    local tool_templates="$SKILLS_ROOT/$tool_dir/templates"
-    "$PATCH" append "$TMP_DIR/post-create.sh" "$marker" "$tool_templates/install-block.sh"
-    "$PATCH" append "$TMP_DIR/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
-    if [ -f "$tool_templates/capability-seam-entries.json" ]; then
-      "$PATCH_JSON" "$TMP_DIR/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
-    fi
-  done
+  apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
   if ! diff -q "$TMP_DIR/post-create.sh.before-pass2" "$TMP_DIR/post-create.sh" >/dev/null; then
     fail "[$order_desc] second pass changed post-create.sh — not idempotent"
