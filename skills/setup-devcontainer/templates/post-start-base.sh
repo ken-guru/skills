@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# See post-create-base.sh for why this is needed — devcontainer.json never
-# loads .devcontainer/.env into the container environment on its own. A
+# BASH_ENV (see post-create-base.sh) already sources this before this
+# script's first line runs, but source it again directly, defensively, in
+# case this script is ever run by hand outside that containerEnv. A
 # skill-sync block appended below may need GH_TOKEN (private skill sources).
 ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
 if [ -f "$ENV_FILE" ]; then
