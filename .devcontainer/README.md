@@ -128,6 +128,26 @@ hands over the other.
 If `DEVCONTAINER_CREDENTIALS_DIR` is unset or unsafe, SSH setup fails closed.
 Configure the host directory and rebuild the Shared Container.
 
+## Security boundary
+
+Workspace-derived commands run through `devcontainer-code-runner` as the
+unprivileged code identity. The agent-operation identity separately performs
+GitHub API calls, signed commits, pushes, and pull requests. Never bypass the
+runner for repository-controlled scripts if the generated-code boundary is
+required.
+
+The Shared Container fails closed when credential isolation or the required
+runtime profile cannot be established. A weaker explicit opt-out is recorded
+as residual risk. This boundary does not protect against a deliberately
+malicious agent-operation process using its own authorized credentials, and it
+does not guarantee safety against compromised upstream Curated Skill Set
+sources.
+
+Automatic skill refresh replaces only the container-owned Curated Skill Set.
+It stages and validates all configured sources before an atomic swap, keeps
+the current and immediately previous manifests, restores the previous set on
+total failure, and leaves Workspace Skills untouched.
+
 ## GitHub authority
 
 Use a repository-scoped fine-grained token. Issues and pull requests are

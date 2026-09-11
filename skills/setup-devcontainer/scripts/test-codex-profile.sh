@@ -9,6 +9,7 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 jq empty "$PROFILE" || fail "Codex seccomp profile is not valid JSON"
 jq -e '.defaultAction == "SCMP_ACT_ERRNO"' "$PROFILE" >/dev/null || fail "profile must fail closed by default"
 jq -e '.syscalls[].names | index("clone") and index("unshare") and index("setns") and index("mount") and index("pivot_root")' "$PROFILE" >/dev/null || fail "sandbox namespace syscalls missing"
+jq -e '.syscalls[].names | index("setxattr") and index("getxattr")' "$PROFILE" >/dev/null || fail "ACL extended-attribute syscalls missing"
 grep -q 'seccomp=unconfined' "$PROFILE" && fail "profile must not be unconfined"
 grep -q 'SYS_ADMIN' "$PROFILE" && fail "profile must not require SYS_ADMIN"
 

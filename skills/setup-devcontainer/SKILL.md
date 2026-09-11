@@ -203,8 +203,9 @@ rendered with.
 Tell the user, adapted to whether SSH is present:
 
 1. Install Docker Desktop and the **Dev Containers** VS Code extension.
-2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
-   `DEVCONTAINER_HOST` (run `hostname`) if SSH is present}}.
+2. Export `GH_TOKEN` in the host environment. Copy `.devcontainer/.env.example`
+   to `.devcontainer/.env` only for non-secret settings, and configure
+   `DEVCONTAINER_CREDENTIALS_DIR` in the host environment when SSH is enabled.
 3. Reopen the repo in the container (**Dev Containers: Reopen in Container**).
 4. Run whichever `setup-<tool>-devcontainer` skill(s) you want, to add AI CLIs.
 5. {{If SSH is present: on attach, `post-attach.sh` prints setup instructions for whichever of the

@@ -58,6 +58,7 @@ rm -rf "$previous_target"
 if [ -d "$TARGET" ]; then mv "$TARGET" "$previous_target"; fi
 mv "$STAGE_TARGET" "$TARGET"
 mv "$manifest_tmp" "$CURRENT_MANIFEST"
+rm -rf "$previous_target"
 
 echo "Curated Skill Set refreshed for $AGENT"
 if [ -f "$PREVIOUS_MANIFEST" ]; then

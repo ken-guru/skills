@@ -15,8 +15,8 @@ as many times as you like.
   shared named volume (`{{REPO_NAME}}-config`, mounted at `/home/vscode`) —
   each CLI keeps its own subdirectory within it (`~/.claude`, `~/.codex`,
   `~/.antigravity`, `~/.copilot`).
-- `gh` CLI auth comes from a `GH_TOKEN` env var supplied via one shared,
-  gitignored `.devcontainer/.env` file — see below.
+- `gh` CLI auth comes from a host-provided `GH_TOKEN`; secrets are never read
+  from the Shared Checkout.
 - The workspace at `/workspace` is a live bind-mount of this repo's own
   working directory, not a clone — uncommitted or gitignored changes,
   including to `.devcontainer/` itself, are visible immediately.
@@ -25,11 +25,9 @@ as many times as you like.
 
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
-2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and paste in a
-   GitHub token (a fine-grained PAT scoped to this repo). If you skip this,
-   `initializeCommand` creates an empty `.env` for you so the build doesn't
-   fail, but `gh` won't be authenticated until you fill in a real token and
-   rebuild.
+2. Export a repository-scoped fine-grained `GH_TOKEN` in the host environment.
+   Copy `.devcontainer/.env.example` to `.devcontainer/.env` only for
+   non-secret identity/host-label settings.
 3. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
    (Cmd+Shift+P).
 4. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
@@ -49,6 +47,26 @@ of the parent directory's ownership. Without a fix, a CLI's login or config
 write fails to persist: the process (running as `vscode`) can't write into a
 directory it doesn't own. Fix: each CLI's install block chowns its own config
 subdirectory after the container starts.
+
+## Security boundary
+
+Workspace-derived commands run through `devcontainer-code-runner` as the
+unprivileged code identity. The agent-operation identity separately performs
+GitHub API calls, signed commits, pushes, and pull requests. Never bypass the
+runner for repository-controlled scripts if the generated-code boundary is
+required.
+
+The Shared Container fails closed when credential isolation or the required
+runtime profile cannot be established. A weaker explicit opt-out is recorded
+as residual risk. This boundary does not protect against a deliberately
+malicious agent-operation process using its own authorized credentials, and it
+does not guarantee safety against compromised upstream Curated Skill Set
+sources.
+
+Automatic skill refresh replaces only the container-owned Curated Skill Set.
+It stages and validates all configured sources before an atomic swap, keeps
+the current and immediately previous manifests, restores the previous set on
+total failure, and leaves Workspace Skills untouched.
 
 ## Troubleshooting
 

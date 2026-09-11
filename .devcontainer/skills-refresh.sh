@@ -20,6 +20,11 @@ find "$STAGE_TARGET" -name SKILL.md -type f -print -quit | grep -q . || { echo "
 installer_version="$(HOME="$STAGE_HOME" npx -y skills --version 2>/dev/null || echo unknown)"; manifest_tmp="$STAGE/manifest"
 { printf 'installer\t%s\n' "$installer_version"; printf 'source\t%s\n' "${SOURCES[*]}"; find "$STAGE_TARGET" -name SKILL.md -type f -print0 | sort -z | while IFS= read -r -d '' file; do name="${file#"$STAGE_TARGET"/}"; printf 'skill\t%s\t%s\n' "$name" "$(sha256sum "$file" | awk '{print $1}')"; done; } > "$manifest_tmp"
 if [ -f "$CURRENT_MANIFEST" ]; then cp "$CURRENT_MANIFEST" "$PREVIOUS_MANIFEST"; fi
-previous_target="$TARGET.previous"; rm -rf "$previous_target"; if [ -d "$TARGET" ]; then mv "$TARGET" "$previous_target"; fi; mv "$STAGE_TARGET" "$TARGET"; mv "$manifest_tmp" "$CURRENT_MANIFEST"
+previous_target="$TARGET.previous"; rm -rf "$previous_target"; if [ -d "$TARGET" ]; then mv "$TARGET" "$previous_target"; fi; mv "$STAGE_TARGET" "$TARGET"; mv "$manifest_tmp" "$CURRENT_MANIFEST"; rm -rf "$previous_target"
 echo "Curated Skill Set refreshed for $AGENT"
-if [ -f "$PREVIOUS_MANIFEST" ]; then old_skills="$(awk -F '\t' '$1 == "skill" {print $2}' "$PREVIOUS_MANIFEST" | sort)"; new_skills="$(awk -F '\t' '$1 == "skill" {print $2}' "$CURRENT_MANIFEST" | sort)"; added="$(comm -13 <(printf '%s\n' "$old_skills") <(printf '%s\n' "$new_skills"))"; removed="$(comm -23 <(printf '%s\n' "$old_skills") <(printf '%s\n' "$new_skills"))"; [ -z "$added" ] || printf '  added: %s\n' "$added"; [ -z "$removed" ] || printf '  removed: %s\n' "$removed"; fi
+if [ -f "$PREVIOUS_MANIFEST" ]; then
+  old_skills="$(awk -F '\t' '$1 == "skill" {print $2}' "$PREVIOUS_MANIFEST" | sort)"; new_skills="$(awk -F '\t' '$1 == "skill" {print $2}' "$CURRENT_MANIFEST" | sort)"
+  added="$(comm -13 <(printf '%s\n' "$old_skills") <(printf '%s\n' "$new_skills"))"; removed="$(comm -23 <(printf '%s\n' "$old_skills") <(printf '%s\n' "$new_skills"))"
+  changed="$(comm -12 <(printf '%s\n' "$old_skills") <(printf '%s\n' "$new_skills") | while read -r name; do old_hash="$(awk -F '\t' -v n="$name" '$1 == "skill" && $2 == n {print $3}' "$PREVIOUS_MANIFEST")"; new_hash="$(awk -F '\t' -v n="$name" '$1 == "skill" && $2 == n {print $3}' "$CURRENT_MANIFEST")"; [ "$old_hash" != "$new_hash" ] && echo "$name"; done)"
+  [ -z "$added" ] || printf '  added: %s\n' "$added"; [ -z "$removed" ] || printf '  removed: %s\n' "$removed"; [ -z "$changed" ] || printf '  changed: %s\n' "$changed"
+fi

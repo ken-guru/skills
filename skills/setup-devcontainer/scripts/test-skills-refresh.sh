@@ -31,6 +31,7 @@ FAKE_REFRESH_CONTENT="new content" HOME="$TMP_DIR/home" PATH="$FAKE_BIN:$PATH" "
   --agent claude-code --target "$TMP_DIR/home/.claude/skills" --source second/source --skill '*'
 grep -q 'new content' "$TMP_DIR/home/.claude/skills/demo/SKILL.md"
 [ -f "$TMP_DIR/home/.claude/.skills-manifest.previous" ]
+[ ! -d "$TMP_DIR/home/.claude/skills.previous" ]
 
 if FAKE_REFRESH_FAIL=1 HOME="$TMP_DIR/home" PATH="$FAKE_BIN:$PATH" "$REFRESH" \
   --agent claude-code --target "$TMP_DIR/home/.claude/skills" --source failed/source --skill '*'; then
