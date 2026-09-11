@@ -58,6 +58,13 @@ test -f .devcontainer/devcontainer.json && echo "devcontainer already exists"
   adding SSH to an existing devcontainer is [Adding SSH to a tool
   later](docs/adding-ssh-later.md). Stop here unless the user is specifically asking to
   reconfigure the base devcontainer itself.
+
+  Exception: if `devcontainer.json` sets `workspaceFolder` without a matching `workspaceMount`,
+  it predates the fix below and will fail to mount the repo at all. Patch it in place (add
+  `"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"`
+  next to `workspaceFolder`) and check for a stale container from the earlier failed attempt (see
+  below) — a restart alone won't pick up the fix, since the mount is baked in at container
+  creation.
 - **Doesn't exist**: fresh setup, continue to step 3.
 
 Also check for a leftover container from an unrelated prior setup of this same workspace folder —
@@ -74,6 +81,13 @@ setup won't have the `vscode` user this setup expects, and reopening fails with 
 to find user vscode: no matching entries in passwd file`. Offer to remove it (`docker rm -f <id>`),
 but don't remove it without asking. Skip this check entirely if `docker` isn't installed or isn't
 running.
+
+The same applies to a container built before the `workspaceMount` fix above: it fails on reopen
+with `chdir to cwd ("/workspace") set in config.json failed: no such file or directory`, followed
+by `postCreateCommand ... failed with exit code 127` (the script can't even be reached because the
+shell never got into `/workspace`). The container built successfully, so this isn't caught until
+reopen. Same remedy — remove it with `docker rm -f <id>` after confirming with the user — since the
+mount config is fixed at creation and won't update on restart.
 
 ## 3. Ask SSH layer
 
