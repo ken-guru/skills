@@ -1,21 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer.json's BASH_ENV containerEnv entry already sources
-# bash-env.sh (same .env, same `set -a` export) before this script's own
-# first line runs, since this is itself a non-interactive bash invocation —
-# but source it again directly, defensively, in case this script is ever
-# run by hand outside that containerEnv (e.g. `bash post-create.sh` on a
-# host shell during local testing). `set -a` exports every var this script
-# and its appended blocks read (GH_TOKEN, GIT_USER_EMAIL, GIT_USER_NAME,
-# DEVCONTAINER_HOST) for the rest of this script, including every CLI
-# skill's block appended after it.
-ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
-fi
+# BASH_ENV loads only non-secret settings. GH_TOKEN is supplied by the
+# developer's host environment and is never read from the Shared Checkout.
 
 # The BASH_ENV mechanism above only fires for non-interactive shells (any
 # AI CLI's own tool calls, which run `bash -c ...`) — it's never consulted

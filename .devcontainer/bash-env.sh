@@ -1,7 +1,7 @@
 #!/bin/bash
-# Loads .devcontainer/.env into the environment. Sourced from two places so
-# every shell in this container sees GH_TOKEN, GIT_USER_EMAIL, and
-# GIT_USER_NAME — not just the postCreate/postStart/postAttach lifecycle
+# Loads the non-secret .devcontainer/.env settings. Sourced from two places so
+# every shell in this container sees git identity and host-label settings — not
+# just the postCreate/postStart/postAttach lifecycle
 # scripts, which each run once per rebuild/start/attach and exit, so nothing
 # they export on their own survives into a shell opened afterward:
 #   - as BASH_ENV (containerEnv in devcontainer.json) — bash reads this
@@ -12,7 +12,15 @@
 #     human's VS Code terminal.
 ENV_FILE="/workspace/.devcontainer/.env"
 if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      GIT_USER_EMAIL=*|GIT_USER_NAME=*|DEVCONTAINER_HOST=*)
+        key="${line%%=*}"
+        value="${line#*=}"
+        value="${value#\"}"
+        value="${value%\"}"
+        export "$key=$value"
+        ;;
+    esac
+  done < "$ENV_FILE"
 fi

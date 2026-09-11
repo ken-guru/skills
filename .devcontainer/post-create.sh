@@ -1,21 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer.json's BASH_ENV containerEnv entry already sources
-# bash-env.sh (same .env, same `set -a` export) before this script's own
-# first line runs, since this is itself a non-interactive bash invocation —
-# but source it again directly, defensively, in case this script is ever
-# run by hand outside that containerEnv (e.g. `bash post-create.sh` on a
-# host shell during local testing). `set -a` exports every var this script
-# and its appended blocks read (GH_TOKEN, GIT_USER_EMAIL, GIT_USER_NAME,
-# DEVCONTAINER_HOST) for the rest of this script, including every CLI
-# skill's block appended after it.
-ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
-fi
+# BASH_ENV loads only non-secret settings. GH_TOKEN is supplied by the
+# developer's host environment and is never read from the Shared Checkout.
 
 # The BASH_ENV mechanism above only fires for non-interactive shells (any
 # AI CLI's own tool calls, which run `bash -c ...`) — it's never consulted
@@ -63,6 +50,14 @@ fi
 git config --global credential.helper '!gh auth setup-git'
 git config --global user.email "${GIT_USER_EMAIL:-ken.paulsen@gmail.com}"
 git config --global user.name "${GIT_USER_NAME:-Ken Sørevåge}"
+
+# Establish the Shared Checkout boundary for workspace-derived commands.
+if ! command -v setfacl >/dev/null 2>&1; then
+  echo "ERROR: ACL support is required to establish the code-runner boundary" >&2
+  exit 1
+fi
+sudo setfacl -R -m u:code-runner:rwX /workspace
+find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
 
 
 # Mechanical install skeleton shared by every CLI Skill: fix the per-tool
@@ -134,20 +129,52 @@ else
 
 DEPLOY_KEY_TITLE="skills-devcontainer@${DEVCONTAINER_HOST}"
 SIGNING_KEY_TITLE="skills-devcontainer-signing@${DEVCONTAINER_HOST}"
+CREDENTIAL_DIR="/run/devcontainer-credentials"
 
-# Deploy key — used for git transport (push/pull). Generated locally
-# regardless of GH_TOKEN; GitHub-side registration is a separate concern
-# handled below/in post-attach.sh, not a precondition of generating it.
-if [ ! -f ~/.ssh/id_ed25519 ]; then
-  ssh-keygen -t ed25519 -C "$DEPLOY_KEY_TITLE" -f ~/.ssh/id_ed25519 -N ""
+if [ ! -d "$CREDENTIAL_DIR" ]; then
+  reason="DEVCONTAINER_CREDENTIALS_DIR is not mounted; configure it in the host environment before rebuilding."
+  echo "ERROR: SSH layer unavailable: $reason" >&2
+  echo "$reason" > "$SSH_SKIP_MARKER"
+  exit 1
 fi
+
+for credential in deploy-key signing-key; do
+  path="$CREDENTIAL_DIR/$credential"
+  if [ ! -f "$path" ]; then
+    reason="missing protected credential: $path"
+    echo "ERROR: SSH layer unavailable: $reason" >&2
+    echo "$reason" > "$SSH_SKIP_MARKER"
+    exit 1
+  fi
+  mode="$(stat -c '%a' "$path")"
+  case "$mode" in
+    600|400) ;;
+    *)
+      reason="$path must be mode 0600 or 0400 (actual $mode)"
+      echo "ERROR: SSH layer unavailable: $reason" >&2
+      echo "$reason" > "$SSH_SKIP_MARKER"
+      exit 1
+      ;;
+  esac
+  if [ ! -f "$path.pub" ]; then
+    reason="missing public credential: $path.pub"
+    echo "ERROR: SSH layer unavailable: $reason" >&2
+    echo "$reason" > "$SSH_SKIP_MARKER"
+    exit 1
+  fi
+done
+
+# Deploy key — used for git transport (push/pull). The developer owns the
+# private key outside the Shared Checkout; this copy remains inaccessible to
+# the code identity because its home directory is not shared with it.
+install -m 600 "$CREDENTIAL_DIR/deploy-key" ~/.ssh/id_ed25519
+install -m 644 "$CREDENTIAL_DIR/deploy-key.pub" ~/.ssh/id_ed25519.pub
 chmod 600 ~/.ssh/id_ed25519
 chmod 644 ~/.ssh/id_ed25519.pub
 
-# Signing key — used only for commit signing, not for git transport
-if [ ! -f ~/.ssh/id_ed25519_signing ]; then
-  ssh-keygen -t ed25519 -C "$SIGNING_KEY_TITLE" -f ~/.ssh/id_ed25519_signing -N ""
-fi
+# Signing key — used only for commit signing, not for git transport.
+install -m 600 "$CREDENTIAL_DIR/signing-key" ~/.ssh/id_ed25519_signing
+install -m 644 "$CREDENTIAL_DIR/signing-key.pub" ~/.ssh/id_ed25519_signing.pub
 chmod 600 ~/.ssh/id_ed25519_signing
 chmod 644 ~/.ssh/id_ed25519_signing.pub
 
@@ -176,47 +203,8 @@ git config --global gpg.format ssh
 git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
 git config --global commit.gpgsign true
 
-# Deploy-key registration on GitHub is manual by default — post-attach.sh
-# prints the public key to paste in, and GH_TOKEN needs no Administration
-# scope for that path at all. This is the one OPTIONAL, opportunistic
-# convenience: if GH_TOKEN happens to already carry Administration access,
-# register (and, on rotation, replace) the deploy key automatically so
-# post-attach.sh's deploy-key prompt never has to appear. Any failure here —
-# missing token, invalid token, insufficient (e.g. read-only) Administration
-# — is silently left to the manual path; it's never an error and never
-# blocks anything above this point.
-if ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys" 2>/dev/null); then
-  DEPLOY_PUBKEY=$(cat ~/.ssh/id_ed25519.pub)
-  DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
-
-  # Check by key content — a title match with different content means the key was
-  # rotated (e.g. the ssh volume was wiped). In that case remove the stale
-  # entry and re-register with the new key.
-  existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
-    --arg body "$DEPLOY_KEY_BODY" \
-    '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id')
-
-  if [ -n "$existing_id" ]; then
-    echo "Deploy key already registered: $DEPLOY_KEY_TITLE"
-    touch ~/.ssh/.deploy-key-registered
-  else
-    # GitHub doesn't enforce title uniqueness, so bound this to exactly one
-    # match — a multi-line result here would break the DELETE call below.
-    stale_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
-      --arg title "$DEPLOY_KEY_TITLE" \
-      '.[] | select(.title == $title) | .id' | head -1)
-    if [ -n "$stale_id" ]; then
-      if gh api "repos/${REPO}/keys/${stale_id}" -X DELETE 2>/dev/null; then
-        echo "Removed stale deploy key (volume was rotated): $DEPLOY_KEY_TITLE"
-      fi
-    fi
-    if gh api "repos/${REPO}/keys" -X POST \
-        -f title="$DEPLOY_KEY_TITLE" -f key="$DEPLOY_PUBKEY" -F read_only=false 2>/dev/null; then
-      echo "Deploy key auto-registered (GH_TOKEN has Administration access): $DEPLOY_KEY_TITLE"
-      touch ~/.ssh/.deploy-key-registered
-    fi
-  fi
-fi
+# GitHub deploy-key registration remains a manual developer step. It requires
+# no Administration scope on GH_TOKEN; post-attach.sh prints the public key.
 
 fi
 
@@ -264,3 +252,15 @@ fi
 # (see the base skill's install-cli-block.sh).
 chown_config_volume "$HOME/.claude"
 install_cli "Claude Code" "$HOME/.local/bin/claude" "https://claude.ai/install.sh" bash
+# --- Codex ---
+# Fix ownership on the .codex config volume mount, then install Codex CLI
+# via the official installer, exactly as OpenAI's own docs invoke it
+# (developers.openai.com/codex/cli).
+#
+# CODEX_NON_INTERACTIVE=1 is the installer's own documented switch for
+# skipping its prompts, passed through install_cli's `env` wrapper rather
+# than a `</dev/null` redirect on the piped `sh`: closing sh's own stdin
+# breaks the curl|sh pipe itself (curl gets EPIPE and the install silently
+# no-ops without ever erroring), it doesn't just suppress the prompt.
+chown_config_volume "$HOME/.codex"
+install_cli "Codex" "$HOME/.local/bin/codex" "https://chatgpt.com/codex/install.sh" sh CODEX_NON_INTERACTIVE=1

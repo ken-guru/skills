@@ -1,15 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# BASH_ENV (see post-create-base.sh) already sources this before this
-# script's first line runs, but source it again directly, defensively, in
-# case this script is ever run by hand outside that containerEnv.
-ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
-fi
+# BASH_ENV loads only non-secret settings. GitHub API access comes from the
+# developer's host-provided GH_TOKEN.
 
 # Runs each time VS Code attaches to the container.
 #
