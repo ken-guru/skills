@@ -52,12 +52,18 @@ git config --global user.email "${GIT_USER_EMAIL:-{{GIT_EMAIL_DEFAULT}}}"
 git config --global user.name "${GIT_USER_NAME:-{{GIT_NAME_DEFAULT}}}"
 
 # Give the separate code identity the minimum Shared Checkout access needed
-# for builds, tests, formatters, and hooks. Credentials are deliberately
-# configured by a later security block outside this ACL grant and must never
-# be placed in the checkout.
+# for builds, tests, and formatters. The Scaffold/control plane and Git
+# metadata are read-only so generated code cannot rewrite trusted lifecycle
+# code, the runtime profile, hooks, or repository state.
 if ! command -v setfacl >/dev/null 2>&1; then
   echo "ERROR: ACL support is required to establish the code-runner boundary" >&2
   exit 1
 fi
 sudo setfacl -R -m u:code-runner:rwX /workspace
 find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
+for protected_path in /workspace/.devcontainer /workspace/.git; do
+  if [ -e "$protected_path" ]; then
+    sudo setfacl -R -m u:code-runner:r-X "$protected_path"
+    find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
+  fi
+done

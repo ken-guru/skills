@@ -12,6 +12,7 @@ for file in bash-env.sh env.baseline.example devcontainer.json devcontainer.with
 done
 
 grep -q 'GH_TOKEN.*localEnv' "$TEMPLATES_DIR/devcontainer.json" || fail "GH_TOKEN is not host-provided"
+grep -q 'GH_TOKEN.*localEnv' "$TEMPLATES_DIR/devcontainer.with-ssh.json" || fail "SSH config does not provide GH_TOKEN"
 grep -q 'DEVCONTAINER_CREDENTIALS_DIR' "$TEMPLATES_DIR/devcontainer.with-ssh.json" || fail "SSH credential mount is not host-provided"
 grep -q 'CREDENTIAL_DIR="/run/devcontainer-credentials"' "$TEMPLATES_DIR/post-create-ssh-block.sh" || fail "protected credential mount is not validated"
 grep -q 'mode 0600 or 0400' "$TEMPLATES_DIR/post-create-ssh-block.sh" || fail "credential permissions are not validated"

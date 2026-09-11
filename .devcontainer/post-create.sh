@@ -51,13 +51,21 @@ git config --global credential.helper '!gh auth setup-git'
 git config --global user.email "${GIT_USER_EMAIL:-ken.paulsen@gmail.com}"
 git config --global user.name "${GIT_USER_NAME:-Ken Sørevåge}"
 
-# Establish the Shared Checkout boundary for workspace-derived commands.
+# Establish the Shared Checkout boundary for workspace-derived commands. The
+# code identity may edit source files, but never the Scaffold/control plane or
+# Git metadata.
 if ! command -v setfacl >/dev/null 2>&1; then
   echo "ERROR: ACL support is required to establish the code-runner boundary" >&2
   exit 1
 fi
 sudo setfacl -R -m u:code-runner:rwX /workspace
 find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
+for protected_path in /workspace/.devcontainer /workspace/.git; do
+  if [ -e "$protected_path" ]; then
+    sudo setfacl -R -m u:code-runner:r-X "$protected_path"
+    find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
+  fi
+done
 
 
 # Mechanical install skeleton shared by every CLI Skill: fix the per-tool
@@ -118,8 +126,6 @@ chmod 700 /home/vscode/.ssh
 
 SSH_SKIP_MARKER="$HOME/.ssh/.ssh-setup-skipped"
 rm -f "$SSH_SKIP_MARKER"
-REPO="ken-guru/skills"
-
 if [ -z "${DEVCONTAINER_HOST:-}" ]; then
   reason="DEVCONTAINER_HOST is not set in .devcontainer/.env (run \`hostname\` on your host to find it)."
   echo "⚠ SSH layer skipped this build: $reason" >&2
@@ -127,8 +133,6 @@ if [ -z "${DEVCONTAINER_HOST:-}" ]; then
   echo "$reason" > "$SSH_SKIP_MARKER"
 else
 
-DEPLOY_KEY_TITLE="skills-devcontainer@${DEVCONTAINER_HOST}"
-SIGNING_KEY_TITLE="skills-devcontainer-signing@${DEVCONTAINER_HOST}"
 CREDENTIAL_DIR="/run/devcontainer-credentials"
 
 if [ ! -d "$CREDENTIAL_DIR" ]; then

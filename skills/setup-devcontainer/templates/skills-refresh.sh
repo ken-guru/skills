@@ -52,13 +52,45 @@ manifest_tmp="$STAGE/manifest"
   done
 } > "$manifest_tmp"
 
-if [ -f "$CURRENT_MANIFEST" ]; then cp "$CURRENT_MANIFEST" "$PREVIOUS_MANIFEST"; fi
-previous_target="$TARGET.previous"
-rm -rf "$previous_target"
-if [ -d "$TARGET" ]; then mv "$TARGET" "$previous_target"; fi
+previous_target="$STAGE/previous-target"
+previous_manifest="$STAGE/previous-manifest"
+had_target=0
+had_manifest=0
+new_target_installed=0
+swap_started=0
+
+rollback() {
+  status=$?
+  if [ "$status" -ne 0 ] && [ "$swap_started" -eq 1 ]; then
+    if [ "$new_target_installed" -eq 1 ]; then rm -rf "$TARGET"; fi
+    if [ "$had_target" -eq 1 ]; then mv "$previous_target" "$TARGET" || true; fi
+    if [ "$had_manifest" -eq 1 ]; then
+      cp "$previous_manifest" "$CURRENT_MANIFEST" || true
+    else
+      rm -f "$CURRENT_MANIFEST"
+    fi
+  fi
+  trap - EXIT
+  cleanup
+  exit "$status"
+}
+trap rollback EXIT
+
+if [ -f "$CURRENT_MANIFEST" ]; then
+  had_manifest=1
+  cp "$CURRENT_MANIFEST" "$previous_manifest"
+fi
+swap_started=1
+if [ -d "$TARGET" ]; then
+  had_target=1
+  mv "$TARGET" "$previous_target"
+fi
 mv "$STAGE_TARGET" "$TARGET"
+new_target_installed=1
 mv "$manifest_tmp" "$CURRENT_MANIFEST"
+if [ "$had_manifest" -eq 1 ]; then cp "$previous_manifest" "$PREVIOUS_MANIFEST"; fi
 rm -rf "$previous_target"
+trap cleanup EXIT
 
 echo "Curated Skill Set refreshed for $AGENT"
 if [ -f "$PREVIOUS_MANIFEST" ]; then

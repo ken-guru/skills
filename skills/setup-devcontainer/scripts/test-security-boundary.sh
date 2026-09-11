@@ -27,6 +27,8 @@ fail() { echo "FAIL: $1" >&2; exit 1; }
 
 grep -q 'devcontainer-code-runner' "$ROOT/.devcontainer/code-runner.sh" || fail "current runner missing"
 grep -q 'setfacl -R -m u:code-runner:rwX /workspace' "$ROOT/.devcontainer/post-create.sh" || fail "current checkout ACL missing"
+grep -q 'for protected_path in /workspace/.devcontainer /workspace/.git' "$ROOT/.devcontainer/post-create.sh" || fail "current control-plane paths are not protected"
+grep -q 'setfacl -R -m u:code-runner:r-X' "$ROOT/.devcontainer/post-create.sh" || fail "current control-plane paths are not read-only"
 grep -q 'skills-refresh.sh' "$ROOT/.devcontainer/post-start.sh" || fail "current refresh primitive not wired"
 grep -q 'DEVCONTAINER_CREDENTIALS_DIR' "$ROOT/.devcontainer/devcontainer.json" || fail "current protected credential mount missing"
 grep -q 'localEnv:GH_TOKEN' "$ROOT/.devcontainer/devcontainer.json" || fail "current host token injection missing"

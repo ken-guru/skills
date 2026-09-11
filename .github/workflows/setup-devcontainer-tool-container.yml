@@ -77,3 +77,6 @@ jobs:
 
       - name: Run end-to-end integration check across all four CLI skills
         run: skills/setup-devcontainer/scripts/test-integration.sh
+
+      - name: Run Shared Container security-boundary checks
+        run: skills/setup-devcontainer/scripts/test-security-boundary.sh
