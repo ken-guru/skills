@@ -12,6 +12,15 @@ entries to the Capability Seam (`runArgs`), a designated extension point any
 CLI skill may idempotently append to, via a JSON-aware primitive distinct
 from the line-oriented one everything else here uses.
 
+## Security contract
+
+This CLI Skill follows the base [CLI Skill security contract](../setup-devcontainer/docs/cli-security-contract.md).
+Workspace-derived commands run through the base-owned
+`devcontainer-code-runner`. It uses the Capability Seam only for the reviewed
+Codex seccomp profile and requests no workflow-run mutation or repository
+administration operation. Its privileged Git operations remain on the shared
+agent-operation identity.
+
 ## 1. Detect the base devcontainer
 
 ```bash

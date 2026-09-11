@@ -11,6 +11,13 @@ touches `devcontainer.json` or the `Dockerfile` — it only appends its own
 marker-keyed content to `post-create.sh`, `post-start.sh` (if skill sync is
 opted into), and `README.md`.
 
+## Security contract
+
+This CLI Skill follows the base [CLI Skill security contract](../setup-devcontainer/docs/cli-security-contract.md).
+Workspace-derived commands run through the base-owned
+`devcontainer-code-runner`; this CLI Skill uses Docker defaults and requests no
+additional Capability Seam or privileged workflow-run operation.
+
 ## 1. Detect the base devcontainer
 
 ```bash
