@@ -158,6 +158,9 @@ later](docs/adding-ssh-later.md)).
 - `.devcontainer/post-start.sh` ← [templates/post-start-base.sh](templates/post-start-base.sh),
   copied verbatim, chmod +x. Empty skeleton — each CLI skill appends its own skill-sync block here
   if the user opts into it for that tool.
+- `.devcontainer/skills-refresh.sh` ← [templates/skills-refresh.sh](templates/skills-refresh.sh),
+  copied verbatim, chmod +x. This base-owned primitive stages and atomically
+  replaces each CLI's Curated Skill Set without touching Workspace Skills.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
   substituted, chmod +x.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted.

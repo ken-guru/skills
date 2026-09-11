@@ -3,5 +3,4 @@
 # every start, so the skill set stays current with upstream instead of
 # persisting a stale copy across rebuilds. This lives inside the shared
 # config volume, so no separate volume is needed.
-rm -rf /home/vscode/.copilot/skills/* 2>/dev/null || true
-{{SKILLS_SOURCES_COMMANDS}}
+/workspace/.devcontainer/skills-refresh.sh --agent copilot --target "$HOME/.copilot/skills" {{SKILLS_SOURCES_COMMANDS}}

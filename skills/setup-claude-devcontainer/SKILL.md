@@ -67,9 +67,9 @@ scripts/patch-if-absent.sh append .devcontainer/post-create.sh "# --- Claude Cod
 ## 4. Patch `post-start.sh` (only if skill sync was accepted)
 
 Render [templates/post-start-block.sh](templates/post-start-block.sh) with
-`{{SKILLS_SOURCES_COMMANDS}}` substituted to one `npx -y skills add <source>
---skill '*' -a claude-code -y --copy -g` line per whole-suite source (or
-`--skill '<name>'` per individual pick), then append it:
+`{{SKILLS_SOURCES_COMMANDS}}` substituted to `--source <source> --skill '*'`
+arguments per whole-suite source (or the selected `--skill '<name>'`), then
+append it:
 
 ```bash
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Claude Code skill-sync ---" <rendered-block>
