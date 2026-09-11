@@ -1,6 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
+# devcontainer.json has no containerEnv/runArgs entry pointing at
+# .devcontainer/.env — nothing else loads it into the process environment —
+# so every var this script and its appended blocks read (GH_TOKEN,
+# GIT_USER_EMAIL, GIT_USER_NAME, DEVCONTAINER_HOST) has to be sourced here
+# first. `set -a` exports them for the rest of this script, including every
+# CLI skill's block appended after it.
+ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 # /workspace is the host's own working directory, bind-mounted directly (VS
 # Code's default devcontainer behavior) — not a clone into a separate
 # volume. Trust it regardless of who owns it: this is a defensive backstop

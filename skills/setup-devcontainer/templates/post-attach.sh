@@ -1,5 +1,15 @@
 #!/bin/bash
 set -euo pipefail
+
+# See post-create-base.sh for why this is needed — devcontainer.json never
+# loads .devcontainer/.env into the container environment on its own.
+ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 # Runs each time VS Code attaches to the container.
 #
 # If the SSH signing key hasn't been registered yet, shows a setup prompt.
