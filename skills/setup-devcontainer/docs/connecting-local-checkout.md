@@ -12,10 +12,11 @@ Tell the user the plain-git sequence, in order:
 
 1. Create the GitHub repository, outside this skill (github.com or `gh repo create`).
 2. If `.devcontainer/.env` doesn't already have a valid `GH_TOKEN` (it wasn't required for Local
-   Checkout), add one now. `GH_TOKEN` is loaded via `env_file` at container start, same as
-   `DEVCONTAINER_HOST` in the SSH flow above — adding it to `.env` for the first time needs
-   **Dev Containers: Rebuild Container** before it actually takes effect, it isn't picked up by
-   an already-running container.
+   Checkout), add one now. `GH_TOKEN` is loaded via `bash-env.sh` (set as `BASH_ENV` in
+   `devcontainer.json`) plus a `~/.bashrc` line for interactive shells — see `post-create-base.sh`
+   — same as `DEVCONTAINER_HOST` in the SSH flow above — adding it to `.env` for the first time
+   needs **Dev Containers: Rebuild Container** before it actually takes effect, it isn't picked up
+   by an already-running container.
 3. Inside the container, if this workspace declined `git init` at generation time (a genuinely
    bare workspace, no `.git` at all): `git init` first. Then, whether or not that step was
    needed: `git remote add origin <url>`, then `git push -u origin <branch>`.

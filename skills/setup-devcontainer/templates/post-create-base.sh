@@ -1,17 +1,34 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer.json has no containerEnv/runArgs entry pointing at
-# .devcontainer/.env — nothing else loads it into the process environment —
-# so every var this script and its appended blocks read (GH_TOKEN,
-# GIT_USER_EMAIL, GIT_USER_NAME, DEVCONTAINER_HOST) has to be sourced here
-# first. `set -a` exports them for the rest of this script, including every
-# CLI skill's block appended after it.
+# devcontainer.json's BASH_ENV containerEnv entry already sources
+# bash-env.sh (same .env, same `set -a` export) before this script's own
+# first line runs, since this is itself a non-interactive bash invocation —
+# but source it again directly, defensively, in case this script is ever
+# run by hand outside that containerEnv (e.g. `bash post-create.sh` on a
+# host shell during local testing). `set -a` exports every var this script
+# and its appended blocks read (GH_TOKEN, GIT_USER_EMAIL, GIT_USER_NAME,
+# DEVCONTAINER_HOST) for the rest of this script, including every CLI
+# skill's block appended after it.
 ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
 if [ -f "$ENV_FILE" ]; then
   set -a
   source "$ENV_FILE"
   set +a
+fi
+
+# The BASH_ENV mechanism above only fires for non-interactive shells (any
+# AI CLI's own tool calls, which run `bash -c ...`) — it's never consulted
+# for an interactive shell, which is how a human's VS Code terminal starts.
+# Give those the same .env load via ~/.bashrc instead, guarded so a rebuild
+# doesn't keep appending duplicates; ~/.bashrc itself lives in the
+# persistent config volume, so this only needs to run once per volume, not
+# once per rebuild — but idempotent is cheap insurance either way.
+if ! grep -q "devcontainer-env-load" ~/.bashrc 2>/dev/null; then
+cat >> ~/.bashrc << 'EOF'
+# devcontainer-env-load
+source /workspace/.devcontainer/bash-env.sh
+EOF
 fi
 
 # /workspace is the host's own working directory, bind-mounted directly (VS

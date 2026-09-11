@@ -7,6 +7,9 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "remoteUser": "vscode",
   "init": true,
+  "containerEnv": {
+    "BASH_ENV": "/workspace/.devcontainer/bash-env.sh"
+  },
   "mounts": [
     "source={{REPO_NAME}}-config,target=/home/vscode,type=volume",
     "source={{REPO_NAME}}-ssh,target=/home/vscode/.ssh,type=volume"
