@@ -80,6 +80,13 @@ run_case_local_checkout
 # verify-devcontainer.sh's --file model. Deploy-key liveness must be judged
 # via SSH transport, not a GitHub API call — the API call needs
 # Administration scope this script must never require.
+#
+# Run once, not once per ssh×git-defaults combination above: unlike
+# post-create.sh, post-attach.sh's content only ever varies by REPO_SLUG —
+# it has no --ssh or git-defaults-dependent branches to exercise, so
+# repeating this per combination would be pure duplication, not coverage
+# (same precedent as run_case_local_checkout below, another one-off
+# structural spot-check outside the main matrix).
 check_post_attach() {
   RUN_COUNT=$((RUN_COUNT + 1))
   local label="post-attach.sh content"
