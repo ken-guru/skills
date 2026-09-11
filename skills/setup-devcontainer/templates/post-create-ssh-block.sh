@@ -2,61 +2,44 @@
 # SSH identity — one shared deploy key and one shared signing key,
 # persisted in the {{REPO_NAME}}-ssh volume for the whole container. There's
 # only one container now, so there's no other container for this key
-# material to be scoped away from — see post-attach.sh's signing-key prompt.
-#   id_ed25519         — deploy key: scoped auth for this repo (registered automatically)
-#   id_ed25519_signing — signing key: commit verification (registered manually once)
+# material to be scoped away from — see post-attach.sh's registration
+# prompt.
+#   id_ed25519         — deploy key: scoped auth for this repo (registration is manual
+#                         by default — see post-attach.sh — auto-registered only as an
+#                         opportunistic convenience when GH_TOKEN happens to carry
+#                         Administration:write; see below)
+#   id_ed25519_signing — signing key: commit verification (always registered manually)
 #
 # Two separate keys because GitHub rejects a public key as a signing key once
 # that same key is already registered as a deploy key.
+#
+# Key generation and SSH client config run unconditionally below — neither
+# needs GH_TOKEN at all, only DEVCONTAINER_HOST (for key titles). GH_TOKEN is
+# only ever consulted afterward, optionally, to decide whether to attempt the
+# deploy-key auto-registration convenience — nothing here may depend on
+# GH_TOKEN having any particular scope, so this block never fails the build
+# and never skips key generation on its account.
 sudo mkdir -p /home/vscode/.ssh
 sudo chown -R vscode:vscode /home/vscode/.ssh
 chmod 700 /home/vscode/.ssh
 
-# Nothing about this optional layer may be able to fail the whole container
-# build — a postCreateCommand abort here would also skip every block
-# concatenated after this one (CLI installs, the warnings banner below). So
-# every precondition below degrades to "skip the rest of this block and
-# record why" instead of exiting; this block never uses `exit` past this
-# point. SSH_SKIP_MARKER is what the warnings banner (appended after this
-# block) and post-attach.sh both check to know SSH was never configured.
 SSH_SKIP_MARKER="$HOME/.ssh/.ssh-setup-skipped"
 rm -f "$SSH_SKIP_MARKER"
-SSH_SETUP_OK=true
 REPO="{{REPO_SLUG}}"
 
-# Probed first, before generating or touching any keys, so a bad token is
-# classified and reported before anything else runs. This call's only job is
-# classifying GH_TOKEN's error, via the same `gh: <message> (HTTP <code>)`
-# stderr format `gh api` always uses on failure.
-if ! probe_err=$(gh api "repos/${REPO}/keys" 2>&1 1>/dev/null); then
-  case "$probe_err" in
-    *"(HTTP 401)"*)
-      reason="GH_TOKEN is missing or invalid (401 from GitHub) — set a valid token in .devcontainer/.env." ;;
-    *"(HTTP 403)"*)
-      reason="GH_TOKEN lacks the repo's Administration (read/write) permission (403 from GitHub), needed to manage deploy keys." ;;
-    *)
-      reason="GitHub API call failed unexpectedly: ${probe_err:-no response}" ;;
-  esac
-  echo "⚠ SSH layer skipped this build: $reason" >&2
-  echo "  Fix .devcontainer/.env, then Dev Containers: Rebuild Container." >&2
-  echo "$reason" > "$SSH_SKIP_MARKER"
-  SSH_SETUP_OK=false
-fi
-
-if [ "$SSH_SETUP_OK" = true ] && [ -z "${DEVCONTAINER_HOST:-}" ]; then
+if [ -z "${DEVCONTAINER_HOST:-}" ]; then
   reason="DEVCONTAINER_HOST is not set in .devcontainer/.env (run \`hostname\` on your host to find it)."
   echo "⚠ SSH layer skipped this build: $reason" >&2
   echo "  Set it, then Dev Containers: Rebuild Container." >&2
   echo "$reason" > "$SSH_SKIP_MARKER"
-  SSH_SETUP_OK=false
-fi
-
-if [ "$SSH_SETUP_OK" = true ]; then
+else
 
 DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
 SIGNING_KEY_TITLE="{{REPO_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
 
-# Deploy key — used for git transport (push/pull)
+# Deploy key — used for git transport (push/pull). Generated locally
+# regardless of GH_TOKEN; GitHub-side registration is a separate concern
+# handled below/in post-attach.sh, not a precondition of generating it.
 if [ ! -f ~/.ssh/id_ed25519 ]; then
   ssh-keygen -t ed25519 -C "$DEPLOY_KEY_TITLE" -f ~/.ssh/id_ed25519 -N ""
 fi
@@ -86,39 +69,55 @@ if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
   ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
 fi
 
-DEPLOY_PUBKEY=$(cat ~/.ssh/id_ed25519.pub)
-DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
-
-ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys")
-
-# Check by key content — a title match with different content means the key was
-# rotated (e.g. the ssh volume was wiped). In that case remove the stale
-# entry and re-register with the new key.
-existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
-  --arg body "$DEPLOY_KEY_BODY" \
-  '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id')
-
-if [ -n "$existing_id" ]; then
-  echo "Deploy key already registered: $DEPLOY_KEY_TITLE"
-else
-  # GitHub doesn't enforce title uniqueness, so bound this to exactly one
-  # match — a multi-line result here would break the DELETE call below.
-  stale_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
-    --arg title "$DEPLOY_KEY_TITLE" \
-    '.[] | select(.title == $title) | .id' | head -1)
-  if [ -n "$stale_id" ]; then
-    gh api "repos/${REPO}/keys/${stale_id}" -X DELETE
-    echo "Removed stale deploy key (volume was rotated): $DEPLOY_KEY_TITLE"
-  fi
-  gh api "repos/${REPO}/keys" -X POST \
-    -f title="$DEPLOY_KEY_TITLE" -f key="$DEPLOY_PUBKEY" -F read_only=false
-  echo "Deploy key registered: $DEPLOY_KEY_TITLE"
-fi
-
-# Signing key is separate from the deploy key so it can be registered on GitHub
-# without hitting the "key is already in use" constraint.
+# Signing key config is local git config only, no GH_TOKEN involved —
+# GitHub-side registration is always manual (see post-attach.sh), since
+# there's no API-driven way to do it without granting GH_TOKEN
+# account-level write:ssh_signing_key, which would let it manage every
+# signing key on the account, not just this project's.
 git config --global gpg.format ssh
 git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
 git config --global commit.gpgsign true
+
+# Deploy-key registration on GitHub is manual by default — post-attach.sh
+# prints the public key to paste in, and GH_TOKEN needs no Administration
+# scope for that path at all. This is the one OPTIONAL, opportunistic
+# convenience: if GH_TOKEN happens to already carry Administration access,
+# register (and, on rotation, replace) the deploy key automatically so
+# post-attach.sh's deploy-key prompt never has to appear. Any failure here —
+# missing token, invalid token, insufficient (e.g. read-only) Administration
+# — is silently left to the manual path; it's never an error and never
+# blocks anything above this point.
+if ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys" 2>/dev/null); then
+  DEPLOY_PUBKEY=$(cat ~/.ssh/id_ed25519.pub)
+  DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
+
+  # Check by key content — a title match with different content means the key was
+  # rotated (e.g. the ssh volume was wiped). In that case remove the stale
+  # entry and re-register with the new key.
+  existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
+    --arg body "$DEPLOY_KEY_BODY" \
+    '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id')
+
+  if [ -n "$existing_id" ]; then
+    echo "Deploy key already registered: $DEPLOY_KEY_TITLE"
+    touch ~/.ssh/.deploy-key-registered
+  else
+    # GitHub doesn't enforce title uniqueness, so bound this to exactly one
+    # match — a multi-line result here would break the DELETE call below.
+    stale_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
+      --arg title "$DEPLOY_KEY_TITLE" \
+      '.[] | select(.title == $title) | .id' | head -1)
+    if [ -n "$stale_id" ]; then
+      if gh api "repos/${REPO}/keys/${stale_id}" -X DELETE 2>/dev/null; then
+        echo "Removed stale deploy key (volume was rotated): $DEPLOY_KEY_TITLE"
+      fi
+    fi
+    if gh api "repos/${REPO}/keys" -X POST \
+        -f title="$DEPLOY_KEY_TITLE" -f key="$DEPLOY_PUBKEY" -F read_only=false 2>/dev/null; then
+      echo "Deploy key auto-registered (GH_TOKEN has Administration access): $DEPLOY_KEY_TITLE"
+      touch ~/.ssh/.deploy-key-registered
+    fi
+  fi
+fi
 
 fi

@@ -62,6 +62,18 @@ render_ssh_block() {
       "$TEMPLATES_DIR/post-create-ssh-block.sh"
 }
 
+# post-attach.sh is a single, always-substituted file (no --ssh toggle of its
+# own — it's only ever written into the Scaffold at all when SSH is enabled)
+# rather than one of the conditional post-create.sh blocks above, but it
+# shares the same {{REPO_SLUG}} substitution rule, so it reuses this library
+# for the same reason verify-devcontainer.sh checks the SSH block against
+# the real template instead of a hand-copied guess.
+render_post_attach_block() {
+  local repo_slug="$1"
+  sed -e "s|{{REPO_SLUG}}|$(sed_escape "$repo_slug")|g" \
+      "$TEMPLATES_DIR/post-attach.sh"
+}
+
 # The remaining two blocks carry no placeholders — always copied verbatim.
 install_cli_block() { cat "$TEMPLATES_DIR/install-cli-block.sh"; }
 ssh_warnings_block() { cat "$TEMPLATES_DIR/post-create-warnings-block.sh"; }

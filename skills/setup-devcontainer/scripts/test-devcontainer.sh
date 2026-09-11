@@ -9,6 +9,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RENDER="$SCRIPT_DIR/render-devcontainer.sh"
 VERIFY="$SCRIPT_DIR/verify-devcontainer.sh"
+# shellcheck source=lib/render-lib.sh
+source "$SCRIPT_DIR/lib/render-lib.sh"
 
 BOOLS="true false"
 
@@ -71,6 +73,46 @@ run_case_local_checkout() {
   fi
 }
 run_case_local_checkout
+
+# post-attach.sh isn't part of render-devcontainer.sh's own output (it's a
+# single always-substituted file, not one of the conditional post-create.sh
+# blocks), so it gets its own spot-check here rather than going through
+# verify-devcontainer.sh's --file model. Deploy-key liveness must be judged
+# via SSH transport, not a GitHub API call — the API call needs
+# Administration scope this script must never require.
+check_post_attach() {
+  RUN_COUNT=$((RUN_COUNT + 1))
+  local label="post-attach.sh content"
+  local content
+  content="$(render_post_attach_block "acme/widgets")"
+
+  if [[ "$content" == *'{{'* ]]; then
+    echo "FAIL: $label — leftover {{...}} placeholder" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+  if [[ "$content" != *'ssh -T'* ]]; then
+    echo "FAIL: $label — expected an SSH-transport liveness probe (ssh -T ...)" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+  if [[ "$content" != *'successfully authenticated'* ]]; then
+    echo "FAIL: $label — expected the probe to classify success via GitHub's greeting text" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+  if [[ "$content" == *'gh api'* ]]; then
+    echo "FAIL: $label — must not call the GitHub API (needs zero GH_TOKEN scope)" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+  if [[ "$content" != *'.deploy-key-registered'* ]]; then
+    echo "FAIL: $label — expected a .deploy-key-registered marker, parallel to .signing-key-registered" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+}
+check_post_attach
 
 echo "Ran $RUN_COUNT combinations, $FAIL_COUNT failed."
 if [ "$FAIL_COUNT" -gt 0 ]; then
