@@ -16,7 +16,8 @@ already exists by construction, so this flow only adds the SSH mount and the SSH
    (no placeholders), to the end of the existing `.devcontainer/post-create.sh`.
 4. Append [../templates/env.ssh-block.example](../templates/env.ssh-block.example) to
    `.devcontainer/.env.example`, idempotently, and update its `GH_TOKEN` comment as in the main
-   flow's step 5:
+   flow's step 5 (deploy-key registration is manual by default and needs no extra permission;
+   `Administration` is only an optional convenience for auto-registration):
 
    ```bash
    scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
@@ -32,7 +33,8 @@ already exists by construction, so this flow only adds the SSH mount and the SSH
    ```
    Skipping this doesn't fail the build — `post-create-ssh-block.sh` degrades to skipping the SSH
    setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
-   never activates, so set it before the first rebuild rather than relying on the warning to catch it.
+   never activates (this is the *only* thing that gates it; `GH_TOKEN` is never required), so set
+   it before the first rebuild rather than relying on the warning to catch it.
 6. Insert [../templates/README.ssh-block.md](../templates/README.ssh-block.md) into
    `.devcontainer/README.md`, positioned before `## Installed CLI Tools` (which stays the file's
    last section regardless of when SSH is added), and delete that file's "SSH deploy key and
@@ -44,8 +46,9 @@ already exists by construction, so this flow only adds the SSH mount and the SSH
    ```
 7. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 5 to `.devcontainer/.env`
    now if it wasn't already there, before rebuilding — not after hitting the error; rebuild the
-   container (**Dev Containers: Rebuild Container**); and once attached, follow the signing-key
-   prompt from `post-attach.sh`.
+   container (**Dev Containers: Rebuild Container**); and once attached, follow the combined
+   deploy-key/signing-key registration prompt from `post-attach.sh` (the deploy key's half may
+   already be handled if `GH_TOKEN` carries this repo's `Administration` permission).
 
 Done when `.devcontainer/devcontainer.json` still parses as valid JSON, has the new SSH `mounts`
 entry referencing the shared `{{REPO_NAME}}-ssh` volume (`postAttachCommand` already existed), no

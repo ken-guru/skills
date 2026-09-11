@@ -104,6 +104,28 @@ if [ "$SSH" = true ]; then
   if ! contains "$CONTENT" "$expected_warnings"; then
     fail "ssh-warnings block missing (--ssh was set)"
   fi
+
+  # Key generation and SSH client config must run unconditionally — only the
+  # optional deploy-key auto-registration convenience may be gated on
+  # GH_TOKEN. SSH_SETUP_OK was the old whole-block gate; its reappearance
+  # would mean key generation silently depends on GH_TOKEN again.
+  #
+  # Unlike expected_ssh above (recomputed from the current template, so it
+  # only ever catches render/verify drifting apart), these three checks are
+  # deliberately hand-typed literals: they guard against the template itself
+  # regressing back to a pattern this change specifically removed, which a
+  # same-template comparison can never detect — if SSH_SETUP_OK crept back
+  # into post-create-ssh-block.sh, expected_ssh would contain it too, and
+  # the whole-block check above would still pass.
+  if contains "$CONTENT" 'SSH_SETUP_OK'; then
+    fail "SSH_SETUP_OK (whole-block GH_TOKEN gate) found — key generation must not depend on GH_TOKEN"
+  fi
+  if ! contains "$CONTENT" 'if [ -z "${DEVCONTAINER_HOST:-}" ]'; then
+    fail "DEVCONTAINER_HOST gate missing — it's the only precondition key generation may still skip on"
+  fi
+  if ! contains "$CONTENT" '.deploy-key-registered'; then
+    fail "deploy-key-registered marker missing — auto-registration must record success for post-attach.sh to read"
+  fi
 else
   if contains "$CONTENT" "$expected_ssh"; then
     fail "ssh block present but --ssh was not set"

@@ -167,8 +167,10 @@ later](docs/adding-ssh-later.md)).
 If step 3's answer was yes:
 
 - `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example)
-  appended, idempotently, and its `GH_TOKEN` comment gets: `Required permissions: Administration
-  (read/write) — needed to manage deploy keys — plus whatever else you use gh for.`
+  appended, idempotently, and its `GH_TOKEN` comment gets: `Deploy-key registration is manual by
+  default (see the SSH setup prompt after first attach) and needs no extra permission. Optional:
+  grant this repo's Administration (read/write) permission too if you'd rather the deploy key
+  auto-register itself — plus whatever else you use gh for.`
 
   ```bash
   scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
@@ -199,8 +201,10 @@ Tell the user, adapted to whether SSH is present:
    `DEVCONTAINER_HOST` (run `hostname`) if SSH is present}}.
 3. Reopen the repo in the container (**Dev Containers: Reopen in Container**).
 4. Run whichever `setup-<tool>-devcontainer` skill(s) you want, to add AI CLIs.
-5. {{If SSH is present: on attach, `post-attach.sh` prints a public key — paste it into
-   github.com/settings/ssh as a Signing Key, then `touch ~/.ssh/.signing-key-registered`.}}
+5. {{If SSH is present: on attach, `post-attach.sh` prints setup instructions for whichever of the
+   deploy key and signing key aren't registered yet (the deploy key may already be handled if
+   GH_TOKEN had Administration access) — follow them, dismissing each with the `touch` command it
+   gives you.}}
 
 ## Adding SSH to a tool later
 
