@@ -1,8 +1,8 @@
 
-# SSH identity — two keys per Tool Container, persisted in this tool's own
-# {{REPO_NAME}}-{{TOOL_NAME}}-ssh volume, private to this Tool Container (no
-# longer shared across tools — see the signing-key prompt from
-# post-attach.sh, which says the same thing).
+# SSH identity — one shared deploy key and one shared signing key,
+# persisted in the {{REPO_NAME}}-ssh volume for the whole container. There's
+# only one container now, so there's no other container for this key
+# material to be scoped away from — see post-attach.sh's signing-key prompt.
 #   id_ed25519         — deploy key: scoped auth for this repo (registered automatically)
 #   id_ed25519_signing — signing key: commit verification (registered manually once)
 #
@@ -14,8 +14,8 @@ chmod 700 /home/vscode/.ssh
 
 # Nothing about this optional layer may be able to fail the whole container
 # build — a postCreateCommand abort here would also skip every block
-# concatenated after this one (other tool setup, the warnings banner below).
-# So every precondition below degrades to "skip the rest of this block and
+# concatenated after this one (CLI installs, the warnings banner below). So
+# every precondition below degrades to "skip the rest of this block and
 # record why" instead of exiting; this block never uses `exit` past this
 # point. SSH_SKIP_MARKER is what the warnings banner (appended after this
 # block) and post-attach.sh both check to know SSH was never configured.
@@ -53,14 +53,8 @@ fi
 
 if [ "$SSH_SETUP_OK" = true ]; then
 
-# No lock needed here: this tool's {{REPO_NAME}}-{{TOOL_NAME}}-ssh volume is
-# private to this Tool Container's own Private Checkout, so there is no
-# sibling container racing to write the same volume the way there was when
-# every SSH-enabled tool shared one {{REPO_NAME}}-ssh-config volume.
-
-DEPLOY_KEY_TITLE="{{REPO_NAME}}-{{TOOL_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
-SIGNING_KEY_TITLE="{{REPO_NAME}}-{{TOOL_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
-OLD_SHARED_DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
+DEPLOY_KEY_TITLE="{{REPO_NAME}}-devcontainer@${DEVCONTAINER_HOST}"
+SIGNING_KEY_TITLE="{{REPO_NAME}}-devcontainer-signing@${DEVCONTAINER_HOST}"
 
 # Deploy key — used for git transport (push/pull)
 if [ ! -f ~/.ssh/id_ed25519 ]; then
@@ -98,8 +92,8 @@ DEPLOY_KEY_BODY=$(echo "$DEPLOY_PUBKEY" | awk '{print $1, $2}')
 ALL_DEPLOY_KEYS=$(gh api "repos/${REPO}/keys")
 
 # Check by key content — a title match with different content means the key was
-# rotated (e.g. this tool's ssh volume was wiped). In that case remove the
-# stale entry and re-register with the new key.
+# rotated (e.g. the ssh volume was wiped). In that case remove the stale
+# entry and re-register with the new key.
 existing_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
   --arg body "$DEPLOY_KEY_BODY" \
   '.[] | select((.key | split(" ")[:2] | join(" ")) == $body) | .id')
@@ -119,24 +113,6 @@ else
   gh api "repos/${REPO}/keys" -X POST \
     -f title="$DEPLOY_KEY_TITLE" -f key="$DEPLOY_PUBKEY" -F read_only=false
   echo "Deploy key registered: $DEPLOY_KEY_TITLE"
-fi
-
-# Migration: this repo may still have the old repo-wide shared deploy key
-# registered from before Private Checkout, when every SSH-enabled tool
-# reused one key pair. It's now redundant — this tool has its own — so
-# remove it rather than leave an unused, unrevoked credential standing. Safe
-# to run unconditionally: a no-op once no key with the old title remains.
-# The old signing key has no equivalent here — GitHub exposes no deletion
-# API for signing keys — so it's left for the person migrating this repo to
-# remove by hand; the agent running this skill tells them to when it detects
-# a pre-Private-Checkout setup (see SKILL.md's migration guidance).
-# Same title-uniqueness caveat as stale_id above — bound to one match.
-old_shared_id=$(echo "$ALL_DEPLOY_KEYS" | jq -r \
-  --arg title "$OLD_SHARED_DEPLOY_KEY_TITLE" \
-  '.[] | select(.title == $title) | .id' | head -1)
-if [ -n "$old_shared_id" ]; then
-  gh api "repos/${REPO}/keys/${old_shared_id}" -X DELETE
-  echo "Removed old shared deploy key (superseded by per-tool keys): $OLD_SHARED_DEPLOY_KEY_TITLE"
 fi
 
 # Signing key is separate from the deploy key so it can be registered on GitHub

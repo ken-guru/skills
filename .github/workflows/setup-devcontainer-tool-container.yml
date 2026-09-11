@@ -1,4 +1,4 @@
-name: Setup devcontainer tool container
+name: Setup devcontainer
 
 on:
   pull_request:
@@ -38,20 +38,26 @@ jobs:
           # suite rather than silently skip a required check.
           if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
             echo "setup_devcontainer=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BASE_SHA" "${{ github.sha }}" -- skills/setup-devcontainer .github/workflows/setup-devcontainer-tool-container.yml; then
+          elif git diff --quiet "$BASE_SHA" "${{ github.sha }}" -- \
+              skills/setup-devcontainer \
+              skills/setup-claude-devcontainer \
+              skills/setup-codex-devcontainer \
+              skills/setup-antigravity-devcontainer \
+              skills/setup-copilot-devcontainer \
+              .github/workflows/setup-devcontainer-tool-container.yml; then
             echo "setup_devcontainer=false" >> "$GITHUB_OUTPUT"
           else
             echo "setup_devcontainer=true" >> "$GITHUB_OUTPUT"
           fi
 
   tool-container:
-    name: Tool Container render/verify
+    name: Devcontainer render/verify/integration
     needs: changes
     # Always run on a manual dispatch, regardless of what changed. Otherwise, skip
-    # the expensive step below when nothing under skills/setup-devcontainer/** changed —
-    # but the job itself must still run and report, since main's ruleset requires
-    # this check by name; a workflow-level `paths:` filter would leave it
-    # permanently pending on unrelated PRs instead of skipping cleanly.
+    # the expensive step below when nothing under any of the five devcontainer
+    # skills changed — but the job itself must still run and report, since main's
+    # ruleset requires this check by name; a workflow-level `paths:` filter would
+    # leave it permanently pending on unrelated PRs instead of skipping cleanly.
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.setup_devcontainer == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -60,8 +66,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Run render/verify across every tool x ssh x yolo combination
-        run: skills/setup-devcontainer/scripts/test-tool-container.sh
+      - name: Run render/verify across every ssh x git-defaults combination
+        run: skills/setup-devcontainer/scripts/test-devcontainer.sh
 
       - name: Run patch-if-absent.sh subcommand tests
         run: skills/setup-devcontainer/scripts/test-patch-if-absent.sh
+
+      - name: Run patch-json-array-if-absent.sh (Capability Seam) idempotency tests
+        run: skills/setup-devcontainer/scripts/test-patch-json-array-if-absent.sh
+
+      - name: Run end-to-end integration check across all four CLI skills
+        run: skills/setup-devcontainer/scripts/test-integration.sh

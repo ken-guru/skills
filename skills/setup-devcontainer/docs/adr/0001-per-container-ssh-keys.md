@@ -1,6 +1,6 @@
 # ADR-0001: Per-Tool-Container SSH Deploy and Signing Keys
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0002](0002-collapse-tool-container-isolation.md)
 **Date:** 2026-09-08
 
 ## Context

@@ -1,9 +1,9 @@
 
-# Mechanical install skeleton shared by every Tool Container flavor: fix the
-# per-tool config volume's ownership (Docker creates a fresh named-volume
+# Mechanical install skeleton shared by every CLI Skill: fix the per-tool
+# config subdirectory's ownership (Docker creates a fresh named-volume
 # mountpoint root:root regardless of the parent directory's ownership, even
 # under /home/vscode), then run a curl-piped installer exactly once. Each
-# tool's own post-create-block.sh calls these two functions and keeps only
+# CLI Skill's own install-block.sh calls these two functions and keeps only
 # the rationale that's genuinely tool-specific (see there for it).
 #
 # install_cli checks by binary path, not `command -v` — this non-login

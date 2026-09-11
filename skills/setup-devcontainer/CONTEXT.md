@@ -1,64 +1,62 @@
 # Setup Devcontainer Context
 
-Vocabulary for `skills/setup-devcontainer`'s devcontainer generation model: how AI
-CLI tools are isolated from each other inside a repo's development environment.
+Vocabulary for `skills/setup-devcontainer`'s devcontainer generation model and
+its companion per-CLI skills (`setup-claude-devcontainer`,
+`setup-codex-devcontainer`, `setup-antigravity-devcontainer`,
+`setup-copilot-devcontainer`): one shared devcontainer, and how
+independently-invocable skills layer CLI installs onto it without touching
+what they don't own.
 
 ## Language
 
-**Tool Container**:
-An isolated devcontainer definition dedicated to exactly one AI CLI (Claude Code,
-Codex, Antigravity, or Copilot).
-_Avoid_: container, devcontainer (too generic — say Tool Container whenever
-per-tool isolation is the point)
-
 **Shared Container**:
-The single devcontainer.json + post-create.sh that installed multiple AI CLIs
-together, superseded by one Tool Container per tool.
-_Avoid_: baseline container, combined container
+The single `devcontainer.json` + Dockerfile the base `setup-devcontainer`
+skill generates and owns. Every selected AI CLI installs into this one
+container, not one each.
+_Avoid_: container, devcontainer (too generic — say Shared Container whenever
+it matters that every tool shares it)
 
-**Collision**:
-Cross-tool interference from co-residing in one Shared Container — e.g. a
-permission grant or install step from one tool affecting another.
-_Avoid_: conflict, interference
+**CLI Skill**:
+One of the four standalone skills (`setup-claude-devcontainer`,
+`setup-codex-devcontainer`, `setup-antigravity-devcontainer`,
+`setup-copilot-devcontainer`) that patches an existing Shared Container to add
+exactly one AI CLI's install.
+_Avoid_: tool skill, add-on skill
 
-**Concurrent Workspace**:
-Multiple Tool Containers running at once, each opened in its own VS Code
-window via Docker Compose, each with its own Private Checkout.
-_Avoid_: multi-container mode, parallel containers
+**Own-Block Contract**:
+A CLI Skill's writes are scoped to exactly its own marker-keyed block or
+line, wherever it lives (a `post-create.sh` install block, a README bullet,
+etc.) — never anything owned by the base skill or another CLI Skill. The
+Shared Container's own definition (`devcontainer.json`, the Dockerfile, SSH
+key/volume wiring) is exclusively base-skill-owned; the one documented
+exception is the Capability Seam.
+_Avoid_: ownership rule (too generic)
 
-**Private Checkout**:
-A Tool Container's own git clone of the repo — own `.git`, own persistent
-volume, cloned from `origin` — invisible to every other Tool Container.
-_Avoid_: isolated checkout, container clone (too generic)
+**Capability Seam**:
+The one designated, explicitly-named extension point in `devcontainer.json`
+(`runArgs`) that a CLI Skill may idempotently append to when it needs
+elevated container runtime settings — the sole, narrow exception to the
+Own-Block Contract's "container definition is base-owned" rule. Today only
+`setup-codex-devcontainer` uses it.
+_Avoid_: capability grant, permission exception
+
+**Shared Checkout**:
+The repo content at `/workspace` — VS Code's default devcontainer bind-mount
+of the host's own working directory, not a clone. Every CLI Skill installs
+into the same Shared Container, so there's exactly one Shared Checkout to
+match.
+_Avoid_: private checkout, cloned workspace
 
 **Local Checkout**:
-A Private Checkout with no GitHub `origin` at all — a local `git init` or a
+A Shared Checkout with no GitHub `origin` at all — a local `git init` or a
 genuinely bare workspace, for a project with no resolvable repo yet.
 Connectable to a real GitHub repo later with no skill-level regeneration.
 _Avoid_: offline mode, standalone checkout
 
-**Shared Checkout**:
-The single bind-mounted repo checkout every Tool Container used to share,
-superseded by one Private Checkout per tool.
-_Avoid_: bind mount, shared workspace
-
 **Scaffold**:
-A Tool Container's `.devcontainer/` directory itself — the generated
-Dockerfiles, `devcontainer.json`, and lifecycle scripts — as distinct from
-its Private Checkout (the `/workspace` clone of the repo's actual content).
-Not to be confused with Local Checkout, which is about the workspace repo
-having no `origin`, not about whether the Scaffold is tracked.
+The generated `.devcontainer/` directory itself — the Dockerfile,
+`devcontainer.json`, and lifecycle scripts — as distinct from the Shared
+Checkout (the `/workspace` bind-mount of the repo's actual content). Not to
+be confused with Local Checkout, which is about the workspace repo having no
+`origin`, not about the Scaffold itself.
 _Avoid_: devcontainer config, setup files (too generic)
-
-**Committed Scaffold**:
-Today's only supported mode: the Scaffold is tracked in git like ordinary
-repo content, so Private Checkout's clone is what delivers it into the
-container — `postCreateCommand` and its siblings are only reachable inside
-the container because they were cloned along with everything else.
-_Avoid_: default mode, standard setup
-
-**Cross-Container Leakage**:
-The risk Private Checkout closes: one Tool Container's uncommitted edits,
-unpushed branches, or worktrees becoming visible to another because they
-shared one on-disk checkout.
-_Avoid_: contamination, cross-contamination
