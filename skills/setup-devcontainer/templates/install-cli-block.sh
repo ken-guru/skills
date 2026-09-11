@@ -17,6 +17,7 @@
 # command's own stdin — see codex/post-create-block.sh for why that
 # distinction matters.
 chown_config_volume() {
+  sudo mkdir -p "$1"
   sudo chown -R vscode:vscode "$1"
 }
 
