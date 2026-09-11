@@ -122,6 +122,9 @@ later](docs/adding-ssh-later.md)).
 
 - `.devcontainer/Dockerfile` ← [templates/Dockerfile](templates/Dockerfile), copied verbatim (no
   placeholders).
+- `.devcontainer/seccomp-codex.json` ← [templates/seccomp-codex.json](templates/seccomp-codex.json),
+  copied verbatim. This reviewed profile is used only when the Codex CLI Skill
+  opts into the Capability Seam.
 - `.devcontainer/bash-env.sh` ← [templates/bash-env.sh](templates/bash-env.sh), copied verbatim (no
   placeholders), chmod +x. Loads `.devcontainer/.env`; referenced as `BASH_ENV` below so every
   non-interactive shell in the container (an AI CLI's own tool calls, which run `bash -c ...` and

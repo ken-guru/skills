@@ -17,9 +17,7 @@
     "source=${localEnv:DEVCONTAINER_CREDENTIALS_DIR},target=/run/devcontainer-credentials,type=bind,consistency=cached,readonly"
   ],
   "runArgs": [
-    "--cap-add=SYS_ADMIN",
-    "--security-opt=seccomp=unconfined",
-    "--security-opt=systempaths=unconfined"
+    "--security-opt=seccomp=${localWorkspaceFolder}/.devcontainer/seccomp-codex.json"
   ],
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/post-create.sh",

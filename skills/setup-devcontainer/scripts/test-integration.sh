@@ -86,7 +86,7 @@ run_scenario() {
 
   local runargs
   runargs=$(jq -c '.runArgs | sort' "$TMP_DIR/devcontainer.json")
-  local expected='["--cap-add=SYS_ADMIN","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  local expected='["--security-opt=seccomp=${localWorkspaceFolder}/.devcontainer/seccomp-codex.json"]'
   if [ "$runargs" != "$expected" ]; then
     fail "[$order_desc] expected runArgs to contain exactly Codex's capability entries, got $runargs"
   fi
