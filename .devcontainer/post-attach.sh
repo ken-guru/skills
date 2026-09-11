@@ -1,11 +1,17 @@
 #!/bin/bash
 set -euo pipefail
+
+# BASH_ENV (see post-create-base.sh) already sources this before this
+# script's first line runs, but source it again directly, defensively, in
+# case this script is ever run by hand outside that containerEnv.
+ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 # Runs each time VS Code attaches to the container.
-# Unconditional: every Tool Container gets this script and its
-# postAttachCommand wiring now, not just SSH-enabled ones (Private
-# Checkout's staleness hint below applies regardless of SSH). The
-# SSH-specific logic that follows still only applies when this tool's SSH
-# layer is actually enabled, via the guard right after the hint.
 #
 # If the SSH signing key hasn't been registered yet, shows a setup prompt.
 # Also verifies the deploy key is live on GitHub so any accidental deletion
@@ -16,20 +22,14 @@ set -euo pipefail
 # Lifecycle:
 #   Prompt shows until the developer dismisses it with:
 #     touch ~/.ssh/.signing-key-registered
-#   That file persists in this tool's own SSH volume, so rebuilds stay quiet.
+#   That file persists in the shared ssh volume, so rebuilds stay quiet.
 #   Wiping the volume resets it and the prompt reappears.
-
-# Private Checkout staleness hint — static and network-free by design (no
-# `git fetch`, so this never makes an attach wait on the network). Shown on
-# every attach, not baked into ~/.bashrc, since it's a standing reminder
-# rather than an error condition to keep resurfacing on every terminal tab.
-echo "ℹ Private Checkout: this clone doesn't auto-sync with other Tool Containers or origin — run 'git fetch' to check for updates."
 
 # SSH setup never ran this build (missing/under-scoped GH_TOKEN, or
 # DEVCONTAINER_HOST unset) — nothing here to verify. ~/.bashrc's warnings
 # snippet already surfaces the reason, from ~/.ssh/.ssh-setup-skipped, on
-# every terminal. Also exits quietly (not an error) for a tool whose SSH
-# layer was never enabled at all — no key material exists to check.
+# every terminal. Also exits quietly (not an error) when the SSH layer was
+# never enabled at all — no key material exists to check.
 if [ -f "$HOME/.ssh/.ssh-setup-skipped" ] || [ ! -f "$HOME/.ssh/id_ed25519.pub" ]; then
   exit 0
 fi
@@ -49,7 +49,7 @@ if [ -z "$deploy_id" ]; then
   echo "missing" > "$DEPLOY_STATUS_FILE"
   echo ""
   echo "⚠ Deploy key NOT found on GitHub — git push/pull will fail."
-  echo "  Rebuild this Tool Container (Dev Containers: Rebuild Container) to re-register it."
+  echo "  Rebuild the container (Dev Containers: Rebuild Container) to re-register it."
   echo ""
 else
   echo "ok" > "$DEPLOY_STATUS_FILE"
@@ -61,9 +61,8 @@ fi
 SIGNING_KEY_TITLE=$(awk '{print $3}' ~/.ssh/id_ed25519_signing.pub 2>/dev/null || true)
 
 echo ""
-echo "This key pair is private to this Tool Container — register it here, and"
-echo "dismiss this prompt in this window only. It has no effect on any other"
-echo "SSH-enabled Tool Container's own key pair or registration."
+echo "This key pair is shared by every AI CLI in this container — register it"
+echo "here once."
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║  Devcontainer SSH setup status                                      ║"
 echo "╠══════════════════════════════════════════════════════════════════════╣"
@@ -71,12 +70,12 @@ echo "╠═══════════════════════�
 if [ -n "$deploy_id" ]; then
   echo "║  ✓ Deploy key registered (git push/pull: ready)                     ║"
 else
-  echo "║  ✗ Deploy key NOT found on GitHub — rebuild this Tool Container            ║"
+  echo "║  ✗ Deploy key NOT found on GitHub — rebuild the container            ║"
 fi
 
 echo "║                                                                      ║"
 echo "║  ⚠ ACTION REQUIRED — register your SSH signing key with GitHub      ║"
-echo "║    This is a one-time step per Tool Container; it survives rebuilds. ║"
+echo "║    This is a one-time step; it survives rebuilds.                    ║"
 echo "║                                                                      ║"
 echo "║  1. Open https://github.com/settings/ssh                            ║"
 echo "║  2. If a key named below already exists there, delete it first       ║"
