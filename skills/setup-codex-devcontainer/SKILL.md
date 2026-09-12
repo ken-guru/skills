@@ -60,12 +60,24 @@ scripts/patch-if-absent.sh append .devcontainer/post-create.sh "# --- Codex yolo
 ## 4. Patch the Capability Seam — unconditional, every run
 
 Codex's Bubblewrap sandbox is its normal execution mode, not a YOLO-only
-feature — append its capability requirements to `devcontainer.json`'s
-`runArgs` **regardless of the YOLO-alias answer**:
+feature — install the reviewed profile and append its capability
+requirements to `devcontainer.json`'s `runArgs` **regardless of the
+YOLO-alias answer**:
 
 ```bash
+cp setup-devcontainer/templates/seccomp-codex.json .devcontainer/seccomp-codex.json
 scripts/patch-json-array-if-absent.sh .devcontainer/devcontainer.json .runArgs templates/capability-seam-entries.json
 ```
+
+(The source is the base skill's reviewed, versioned profile — reference it
+from `setup-devcontainer/templates/`, don't copy it into this skill's own
+`templates/`, the same convention `scripts/patch-if-absent.sh` uses.) The
+profile is copied verbatim into the Shared Container, always overwriting —
+this skill has no profile of its own to preserve, and a stale local copy
+must never silently diverge from the base skill's source. This is also why
+the file is Codex-installed rather than base-installed: it only belongs in
+`.devcontainer/` when Codex is actually present, matching the Own-Block
+Contract every other CLI Skill follows.
 
 ## 5. Patch `post-start.sh` (only if skill sync was accepted)
 
@@ -87,8 +99,9 @@ scripts/patch-if-absent.sh append .devcontainer/README.md "- Codex" templates/re
 ## 7. Verify
 
 Re-run every `patch-if-absent.sh`/`patch-json-array-if-absent.sh` command
-from steps 3–6 a second time — each should produce zero diff. No dedicated
-verify script exists for this skill; this re-run *is* the verification.
+from steps 3–6, and step 4's `cp`, a second time — each should produce zero
+diff. No dedicated verify script exists for this skill; this re-run *is*
+the verification.
 
 ## 8. Report next steps
 

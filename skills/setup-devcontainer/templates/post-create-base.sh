@@ -55,15 +55,59 @@ git config --global user.name "${GIT_USER_NAME:-{{GIT_NAME_DEFAULT}}}"
 # for builds, tests, and formatters. The Scaffold/control plane and Git
 # metadata are read-only so generated code cannot rewrite trusted lifecycle
 # code, the runtime profile, hooks, or repository state.
-if ! command -v setfacl >/dev/null 2>&1; then
-  echo "ERROR: ACL support is required to establish the code-runner boundary" >&2
-  exit 1
+#
+# The read-only ACL below only protects a path's *contents* — POSIX
+# rename/unlink permission is governed by the parent directory's write bit,
+# not the entry's own ACL, so code-runner's rwX grant on /workspace itself
+# would otherwise let it `mv` .devcontainer or .git aside and recreate a
+# code-runner-owned replacement. The sticky bit closes that: with it set,
+# only an entry's owner (or root) can rename/unlink it, regardless of
+# directory-write permission — the same mechanism /tmp uses. That only
+# holds if code-runner never owns .devcontainer/.git in the first place, so
+# the ownership assertion below fails closed rather than silently trusting
+# the invariant.
+WORKSPACE_ACL_SKIP_MARKER="$HOME/.devcontainer-workspace-acl-skipped"
+rm -f "$WORKSPACE_ACL_SKIP_MARKER"
+
+# Fails closed by default; DEVCONTAINER_ACCEPT_RESIDUAL_RISK can name this
+# check (or "all") to record the gap and continue instead. Shared by the SSH
+# credential check below, which is appended after this skeleton — defined
+# once here so both checks stay in sync. Every call site must guard this
+# with `||`: under `set -e` a bare call would abort the script on exactly
+# the opt-out path meant to let it continue.
+residual_risk_fail_or_skip() {
+  local check="$1" reason="$2" marker="$3"
+  case ",${DEVCONTAINER_ACCEPT_RESIDUAL_RISK:-}," in
+    *,"$check",*|*,all,*)
+      echo "⚠ $check check skipped: $reason" >&2
+      printf '%s (skipped %s): %s\n' "$check" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$reason" > "$marker"
+      return 1
+      ;;
+    *)
+      echo "ERROR: $reason" >&2
+      exit 1
+      ;;
+  esac
+}
+
+if command -v setfacl >/dev/null 2>&1; then
+  sudo setfacl -R -m u:code-runner:rwX /workspace
+  find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      sudo setfacl -R -m u:code-runner:r-X "$protected_path"
+      find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
+    fi
+  done
+  sudo chmod +t /workspace
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      protected_owner="$(stat -c '%U' "$protected_path" 2>/dev/null || stat -f '%Su' "$protected_path")"
+      if [ "$protected_owner" = "code-runner" ]; then
+        residual_risk_fail_or_skip workspace-acl "$protected_path is owned by code-runner; the workspace sticky-bit boundary cannot protect it" "$WORKSPACE_ACL_SKIP_MARKER" || break
+      fi
+    fi
+  done
+else
+  residual_risk_fail_or_skip workspace-acl "ACL support is required to establish the code-runner boundary" "$WORKSPACE_ACL_SKIP_MARKER" || true
 fi
-sudo setfacl -R -m u:code-runner:rwX /workspace
-find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
-for protected_path in /workspace/.devcontainer /workspace/.git; do
-  if [ -e "$protected_path" ]; then
-    sudo setfacl -R -m u:code-runner:r-X "$protected_path"
-    find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
-  fi
-done

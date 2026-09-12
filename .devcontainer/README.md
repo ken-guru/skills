@@ -137,10 +137,13 @@ runner for repository-controlled scripts if the generated-code boundary is
 required.
 
 The Shared Container fails closed when credential isolation or the required
-runtime profile cannot be established. A weaker explicit opt-out is recorded
-as residual risk. This boundary does not protect against a deliberately
-malicious agent-operation process using its own authorized credentials, and it
-does not guarantee safety against compromised upstream Curated Skill Set
+runtime profile cannot be established. To deliberately accept a weaker
+posture, set `DEVCONTAINER_ACCEPT_RESIDUAL_RISK` in `.devcontainer/.env` to
+a comma-separated list of check names (`ssh-credentials`, `workspace-acl`)
+or `all` — the skipped check keeps warning on every terminal until fixed.
+This boundary does not protect against a deliberately malicious
+agent-operation process using its own authorized credentials, and it does
+not guarantee safety against compromised upstream Curated Skill Set
 sources.
 
 Automatic skill refresh replaces only the container-owned Curated Skill Set.

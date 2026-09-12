@@ -54,18 +54,62 @@ git config --global user.name "${GIT_USER_NAME:-Ken Sørevåge}"
 # Establish the Shared Checkout boundary for workspace-derived commands. The
 # code identity may edit source files, but never the Scaffold/control plane or
 # Git metadata.
-if ! command -v setfacl >/dev/null 2>&1; then
-  echo "ERROR: ACL support is required to establish the code-runner boundary" >&2
-  exit 1
+#
+# The read-only ACL below only protects a path's *contents* — POSIX
+# rename/unlink permission is governed by the parent directory's write bit,
+# not the entry's own ACL, so code-runner's rwX grant on /workspace itself
+# would otherwise let it `mv` .devcontainer or .git aside and recreate a
+# code-runner-owned replacement. The sticky bit closes that: with it set,
+# only an entry's owner (or root) can rename/unlink it, regardless of
+# directory-write permission — the same mechanism /tmp uses. That only
+# holds if code-runner never owns .devcontainer/.git in the first place, so
+# the ownership assertion below fails closed rather than silently trusting
+# the invariant.
+WORKSPACE_ACL_SKIP_MARKER="$HOME/.devcontainer-workspace-acl-skipped"
+rm -f "$WORKSPACE_ACL_SKIP_MARKER"
+
+# Fails closed by default; DEVCONTAINER_ACCEPT_RESIDUAL_RISK can name this
+# check (or "all") to record the gap and continue instead. Shared by the SSH
+# credential check below — defined once here so both checks stay in sync.
+# Every call site must guard this with `||`: under `set -e` a bare call
+# would abort the script on exactly the opt-out path meant to let it
+# continue.
+residual_risk_fail_or_skip() {
+  local check="$1" reason="$2" marker="$3"
+  case ",${DEVCONTAINER_ACCEPT_RESIDUAL_RISK:-}," in
+    *,"$check",*|*,all,*)
+      echo "⚠ $check check skipped: $reason" >&2
+      printf '%s (skipped %s): %s\n' "$check" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$reason" > "$marker"
+      return 1
+      ;;
+    *)
+      echo "ERROR: $reason" >&2
+      exit 1
+      ;;
+  esac
+}
+
+if command -v setfacl >/dev/null 2>&1; then
+  sudo setfacl -R -m u:code-runner:rwX /workspace
+  find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      sudo setfacl -R -m u:code-runner:r-X "$protected_path"
+      find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
+    fi
+  done
+  sudo chmod +t /workspace
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      protected_owner="$(stat -c '%U' "$protected_path" 2>/dev/null || stat -f '%Su' "$protected_path")"
+      if [ "$protected_owner" = "code-runner" ]; then
+        residual_risk_fail_or_skip workspace-acl "$protected_path is owned by code-runner; the workspace sticky-bit boundary cannot protect it" "$WORKSPACE_ACL_SKIP_MARKER" || break
+      fi
+    fi
+  done
+else
+  residual_risk_fail_or_skip workspace-acl "ACL support is required to establish the code-runner boundary" "$WORKSPACE_ACL_SKIP_MARKER" || true
 fi
-sudo setfacl -R -m u:code-runner:rwX /workspace
-find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
-for protected_path in /workspace/.devcontainer /workspace/.git; do
-  if [ -e "$protected_path" ]; then
-    sudo setfacl -R -m u:code-runner:r-X "$protected_path"
-    find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
-  fi
-done
 
 
 # Mechanical install skeleton shared by every CLI Skill: fix the per-tool
@@ -114,114 +158,105 @@ install_cli() {
 # Two separate keys because GitHub rejects a public key as a signing key once
 # that same key is already registered as a deploy key.
 #
-# Key generation and SSH client config run unconditionally below — neither
-# needs GH_TOKEN at all, only DEVCONTAINER_HOST (for key titles). GH_TOKEN is
-# only ever consulted afterward, optionally, to decide whether to attempt the
-# deploy-key auto-registration convenience — nothing here may depend on
-# GH_TOKEN having any particular scope, so this block never fails the build
-# and never skips key generation on its account.
+# Credential validation below fails closed unconditionally: a missing or
+# unsafe DEVCONTAINER_CREDENTIALS_DIR aborts the build rather than silently
+# degrading, matching the spec's fail-closed requirement (issue #271, story
+# 15). GH_TOKEN is never consulted here — nothing in this block may depend on
+# GH_TOKEN having any particular scope.
 sudo mkdir -p /home/vscode/.ssh
 sudo chown -R vscode:vscode /home/vscode/.ssh
 chmod 700 /home/vscode/.ssh
 
 SSH_SKIP_MARKER="$HOME/.ssh/.ssh-setup-skipped"
 rm -f "$SSH_SKIP_MARKER"
-if [ -z "${DEVCONTAINER_HOST:-}" ]; then
-  reason="DEVCONTAINER_HOST is not set in .devcontainer/.env (run \`hostname\` on your host to find it)."
-  echo "⚠ SSH layer skipped this build: $reason" >&2
-  echo "  Set it, then Dev Containers: Rebuild Container." >&2
-  echo "$reason" > "$SSH_SKIP_MARKER"
-else
 
 CREDENTIAL_DIR="/run/devcontainer-credentials"
 
+# residual_risk_fail_or_skip (fails closed by default; DEVCONTAINER_ACCEPT_
+# RESIDUAL_RISK can name "ssh-credentials" or "all" to record the gap and
+# continue instead) is defined above, in the code-runner boundary setup. On
+# opt-out it returns 1, so every call below is guarded to skip the rest of
+# SSH setup rather than proceeding against invalid/missing credentials.
+ssh_credentials_ok=true
 if [ ! -d "$CREDENTIAL_DIR" ]; then
-  reason="DEVCONTAINER_CREDENTIALS_DIR is not mounted; configure it in the host environment before rebuilding."
-  echo "ERROR: SSH layer unavailable: $reason" >&2
-  echo "$reason" > "$SSH_SKIP_MARKER"
-  exit 1
+  residual_risk_fail_or_skip ssh-credentials "SSH layer unavailable: DEVCONTAINER_CREDENTIALS_DIR is not mounted; configure it in the host environment before rebuilding." "$SSH_SKIP_MARKER" || ssh_credentials_ok=false
 fi
 
-for credential in deploy-key signing-key; do
-  path="$CREDENTIAL_DIR/$credential"
-  if [ ! -f "$path" ]; then
-    reason="missing protected credential: $path"
-    echo "ERROR: SSH layer unavailable: $reason" >&2
-    echo "$reason" > "$SSH_SKIP_MARKER"
-    exit 1
-  fi
-  mode="$(stat -c '%a' "$path")"
-  case "$mode" in
-    600|400) ;;
-    *)
-      reason="$path must be mode 0600 or 0400 (actual $mode)"
-      echo "ERROR: SSH layer unavailable: $reason" >&2
-      echo "$reason" > "$SSH_SKIP_MARKER"
-      exit 1
-      ;;
-  esac
-  if [ ! -f "$path.pub" ]; then
-    reason="missing public credential: $path.pub"
-    echo "ERROR: SSH layer unavailable: $reason" >&2
-    echo "$reason" > "$SSH_SKIP_MARKER"
-    exit 1
-  fi
-done
+if [ "$ssh_credentials_ok" = true ]; then
+  for credential in deploy-key signing-key; do
+    path="$CREDENTIAL_DIR/$credential"
+    if [ ! -f "$path" ]; then
+      residual_risk_fail_or_skip ssh-credentials "SSH layer unavailable: missing protected credential: $path" "$SSH_SKIP_MARKER" || { ssh_credentials_ok=false; break; }
+    fi
+    mode="$(stat -c '%a' "$path")"
+    case "$mode" in
+      600|400) ;;
+      *)
+        residual_risk_fail_or_skip ssh-credentials "SSH layer unavailable: $path must be mode 0600 or 0400 (actual $mode)" "$SSH_SKIP_MARKER" || { ssh_credentials_ok=false; break; }
+        ;;
+    esac
+    if [ ! -f "$path.pub" ]; then
+      residual_risk_fail_or_skip ssh-credentials "SSH layer unavailable: missing public credential: $path.pub" "$SSH_SKIP_MARKER" || { ssh_credentials_ok=false; break; }
+    fi
+  done
+fi
 
-# Deploy key — used for git transport (push/pull). The developer owns the
-# private key outside the Shared Checkout; this copy remains inaccessible to
-# the code identity because its home directory is not shared with it.
-install -m 600 "$CREDENTIAL_DIR/deploy-key" ~/.ssh/id_ed25519
-install -m 644 "$CREDENTIAL_DIR/deploy-key.pub" ~/.ssh/id_ed25519.pub
-chmod 600 ~/.ssh/id_ed25519
-chmod 644 ~/.ssh/id_ed25519.pub
+if [ "$ssh_credentials_ok" = true ]; then
+  # Deploy key — used for git transport (push/pull). The developer owns the
+  # private key outside the Shared Checkout; this copy remains inaccessible to
+  # the code identity because its home directory is not shared with it.
+  install -m 600 "$CREDENTIAL_DIR/deploy-key" ~/.ssh/id_ed25519
+  install -m 644 "$CREDENTIAL_DIR/deploy-key.pub" ~/.ssh/id_ed25519.pub
+  chmod 600 ~/.ssh/id_ed25519
+  chmod 644 ~/.ssh/id_ed25519.pub
 
-# Signing key — used only for commit signing, not for git transport.
-install -m 600 "$CREDENTIAL_DIR/signing-key" ~/.ssh/id_ed25519_signing
-install -m 644 "$CREDENTIAL_DIR/signing-key.pub" ~/.ssh/id_ed25519_signing.pub
-chmod 600 ~/.ssh/id_ed25519_signing
-chmod 644 ~/.ssh/id_ed25519_signing.pub
+  # Signing key — used only for commit signing, not for git transport.
+  install -m 600 "$CREDENTIAL_DIR/signing-key" ~/.ssh/id_ed25519_signing
+  install -m 644 "$CREDENTIAL_DIR/signing-key.pub" ~/.ssh/id_ed25519_signing.pub
+  chmod 600 ~/.ssh/id_ed25519_signing
+  chmod 644 ~/.ssh/id_ed25519_signing.pub
 
-# SSH client config — deploy key for GitHub transport only, no agent.
-if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
-  cat >> ~/.ssh/config << 'EOF'
+  # SSH client config — deploy key for GitHub transport only, no agent.
+  if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
+    cat >> ~/.ssh/config << 'EOF'
 Host github.com
   IdentityFile ~/.ssh/id_ed25519
   IdentitiesOnly yes
   User git
 EOF
-  chmod 600 ~/.ssh/config
-fi
+    chmod 600 ~/.ssh/config
+  fi
 
-# Trust GitHub's host key without an interactive prompt.
-if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
-  ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
-fi
+  # Trust GitHub's host key without an interactive prompt.
+  if ! grep -q "github.com" ~/.ssh/known_hosts 2>/dev/null; then
+    ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+  fi
 
-# Signing key config is local git config only, no GH_TOKEN involved —
-# GitHub-side registration is always manual (see post-attach.sh), since
-# there's no API-driven way to do it without granting GH_TOKEN
-# account-level write:ssh_signing_key, which would let it manage every
-# signing key on the account, not just this project's.
-git config --global gpg.format ssh
-git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
-git config --global commit.gpgsign true
+  # Signing key config is local git config only, no GH_TOKEN involved —
+  # GitHub-side registration is always manual (see post-attach.sh), since
+  # there's no API-driven way to do it without granting GH_TOKEN
+  # account-level write:ssh_signing_key, which would let it manage every
+  # signing key on the account, not just this project's.
+  git config --global gpg.format ssh
+  git config --global user.signingkey ~/.ssh/id_ed25519_signing.pub
+  git config --global commit.gpgsign true
 
-# GitHub deploy-key registration remains a manual developer step. It requires
-# no Administration scope on GH_TOKEN; post-attach.sh prints the public key.
-
+  # GitHub deploy-key registration remains a manual developer step. It
+  # requires no Administration scope on GH_TOKEN; post-attach.sh prints the
+  # public key.
 fi
 
 
 # Standing setup warnings, surfaced at the top of every new terminal — not
 # just once at attach. postCreateCommand/postAttachCommand each fire once per
 # rebuild/attach, not per terminal tab, so anything that should stay visible
-# until fixed has to live in ~/.bashrc instead. This covers all three
-# standing warnings this SSH layer can leave behind: SSH setup skipped
-# (post-create-ssh-block.sh), the signing key not yet registered, and the
-# deploy key missing from GitHub. Every check here is a cheap local file
-# read — the one warning that needs a network call (deploy key liveness) is
-# verified once per attach by post-attach.sh, which caches its result to
+# until fixed has to live in ~/.bashrc instead. This covers all four
+# standing warnings this Scaffold can leave behind: SSH setup skipped
+# (post-create-ssh-block.sh), the workspace-acl boundary skipped
+# (post-create-base.sh), the signing key not yet registered, and the deploy
+# key missing from GitHub. Every check here is a cheap local file read — the
+# one warning that needs a network call (deploy key liveness) is verified
+# once per attach by post-attach.sh, which caches its result to
 # ~/.ssh/.deploy-key-status for this snippet to read, so no terminal ever
 # pays for its own API call just to open a shell. Guarded like the other
 # ~/.bashrc-appending blocks in this skill: postCreateCommand only fires
@@ -232,8 +267,12 @@ cat >> ~/.bashrc << 'EOF'
 # devcontainer-ssh-warnings
 if [[ $- == *i* ]]; then
   if [ -f "$HOME/.ssh/.ssh-setup-skipped" ]; then
-    echo "⚠ SSH layer skipped this build: $(cat "$HOME/.ssh/.ssh-setup-skipped")"
+    echo "⚠ $(cat "$HOME/.ssh/.ssh-setup-skipped")"
     echo "  Fix .devcontainer/.env, then Dev Containers: Rebuild Container."
+  fi
+  if [ -f "$HOME/.devcontainer-workspace-acl-skipped" ]; then
+    echo "⚠ $(cat "$HOME/.devcontainer-workspace-acl-skipped")"
+    echo "  Fix the underlying issue, then Dev Containers: Rebuild Container."
   fi
   if [ -f "$HOME/.ssh/id_ed25519_signing.pub" ] && [ ! -f "$HOME/.ssh/.signing-key-registered" ]; then
     echo "⚠ SSH signing key not yet registered with GitHub — run: cat ~/.ssh/id_ed25519_signing.pub"

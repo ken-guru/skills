@@ -18,6 +18,8 @@ grep -q 'HOME=/home/code-runner' "$TEMPLATES_DIR/code-runner.sh" || fail "runner
 grep -q 'setfacl -R -m u:code-runner:rwX /workspace' "$TEMPLATES_DIR/post-create-base.sh" || fail "post-create grants checkout ACL"
 grep -q 'for protected_path in /workspace/.devcontainer /workspace/.git' "$TEMPLATES_DIR/post-create-base.sh" || fail "control-plane paths are not protected"
 grep -q 'setfacl -R -m u:code-runner:r-X' "$TEMPLATES_DIR/post-create-base.sh" || fail "control-plane paths are not read-only"
+grep -q 'chmod +t /workspace' "$TEMPLATES_DIR/post-create-base.sh" || fail "workspace is not protected by a sticky bit"
+grep -q 'owned by code-runner' "$TEMPLATES_DIR/post-create-base.sh" || fail "control-plane ownership is not asserted before trusting the sticky bit"
 grep -q 'COPY code-runner.sh /usr/local/bin/devcontainer-code-runner' "$TEMPLATES_DIR/Dockerfile" || fail "image installs runner"
 grep -q 'apt-get install -y --no-install-recommends acl' "$TEMPLATES_DIR/Dockerfile" || fail "image installs ACL support"
 

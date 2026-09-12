@@ -19,11 +19,18 @@ set -euo pipefail
 #   Both markers persist in the shared ssh volume, so rebuilds stay quiet.
 #   Wiping the volume resets them and the prompts reappear.
 
-# SSH setup never ran this build (DEVCONTAINER_HOST unset) — nothing here to
-# verify. ~/.bashrc's warnings snippet already surfaces the reason, from
-# ~/.ssh/.ssh-setup-skipped, on every terminal. Also exits quietly (not an
-# error) when the SSH layer was never enabled at all — no key material
-# exists to check.
+# Flag a missing GH_TOKEN once per attach — a local presence check only, no
+# API call: this script must need zero GH_TOKEN scope (see the deploy-key
+# probe below, judged via SSH transport for the same reason). Runs
+# unconditionally, independent of whether the SSH layer below was enabled.
+if [ -z "${GH_TOKEN:-}" ]; then
+  echo "⚠ GH_TOKEN is not set — gh CLI API calls (issues, PRs, workflow status) will fail." >&2
+fi
+
+# SSH setup either was skipped this build (a credential check failed closed —
+# see ~/.ssh/.ssh-setup-skipped) or was never enabled at all — either way,
+# there's no key material to verify here. ~/.bashrc's warnings snippet
+# already surfaces the skip reason on every terminal.
 if [ -f "$HOME/.ssh/.ssh-setup-skipped" ] || [ ! -f "$HOME/.ssh/id_ed25519.pub" ]; then
   exit 0
 fi

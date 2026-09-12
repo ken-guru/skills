@@ -14,7 +14,7 @@ ENV_FILE="/workspace/.devcontainer/.env"
 if [ -f "$ENV_FILE" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
-      GIT_USER_EMAIL=*|GIT_USER_NAME=*|DEVCONTAINER_HOST=*)
+      GIT_USER_EMAIL=*|GIT_USER_NAME=*|DEVCONTAINER_HOST=*|DEVCONTAINER_ACCEPT_RESIDUAL_RISK=*)
         key="${line%%=*}"
         value="${line#*=}"
         value="${value#\"}"
