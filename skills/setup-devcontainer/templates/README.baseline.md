@@ -15,8 +15,8 @@ as many times as you like.
   shared named volume (`{{REPO_NAME}}-config`, mounted at `/home/vscode`) —
   each CLI keeps its own subdirectory within it (`~/.claude`, `~/.codex`,
   `~/.antigravity`, `~/.copilot`).
-- `gh` CLI auth comes from a `GH_TOKEN` env var supplied via one shared,
-  gitignored `.devcontainer/.env` file — see below.
+- `gh` CLI auth comes from a host-provided `GH_TOKEN`; secrets are never read
+  from the Shared Checkout.
 - The workspace at `/workspace` is a live bind-mount of this repo's own
   working directory, not a clone — uncommitted or gitignored changes,
   including to `.devcontainer/` itself, are visible immediately.
@@ -25,14 +25,22 @@ as many times as you like.
 
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
-2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and paste in a
-   GitHub token (a fine-grained PAT scoped to this repo). If you skip this,
-   `initializeCommand` creates an empty `.env` for you so the build doesn't
-   fail, but `gh` won't be authenticated until you fill in a real token and
-   rebuild.
-3. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
+2. Create a repository-scoped **fine-grained** `GH_TOKEN` at
+   <https://github.com/settings/personal-access-tokens/new> (not the
+   classic-token page): issues/pull requests read-write, repository
+   contents read, workflow files write, workflow status/history read,
+   Dependabot/advisories/code scanning/secret scanning/security events
+   read. No Administration, secrets/variables management, or
+   workflow-run mutation.
+3. Export `GH_TOKEN` into the host shell. A per-repo
+   [direnv](https://direnv.net) `.envrc` at the repo root works well for
+   this, since the value differs per repo; otherwise export it from your
+   shell profile. `initializeCommand` creates the non-secret
+   `.devcontainer/.env` file used for identity and host settings — never
+   put secrets there.
+4. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
    (Cmd+Shift+P).
-4. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
+5. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
    add tools, then open a terminal and log in to each.
 
 ## Gotchas fixed here (and why)
@@ -49,6 +57,29 @@ of the parent directory's ownership. Without a fix, a CLI's login or config
 write fails to persist: the process (running as `vscode`) can't write into a
 directory it doesn't own. Fix: each CLI's install block chowns its own config
 subdirectory after the container starts.
+
+## Security boundary
+
+Workspace-derived commands run through `devcontainer-code-runner` as the
+unprivileged code identity. The agent-operation identity separately performs
+GitHub API calls, signed commits, pushes, and pull requests. Never bypass the
+runner for repository-controlled scripts if the generated-code boundary is
+required.
+
+The Shared Container fails closed when credential isolation or the required
+runtime profile cannot be established. To deliberately accept a weaker
+posture, set `DEVCONTAINER_ACCEPT_RESIDUAL_RISK` in `.devcontainer/.env` to
+a comma-separated list of check names (`ssh-credentials`, `workspace-acl`)
+or `all` — the skipped check keeps warning on every terminal until fixed.
+This boundary does not protect against a deliberately malicious
+agent-operation process using its own authorized credentials, and it does
+not guarantee safety against compromised upstream Curated Skill Set
+sources.
+
+Automatic skill refresh replaces only the container-owned Curated Skill Set.
+It stages and validates all configured sources before an atomic swap, keeps
+the current and immediately previous manifests, restores the previous set on
+total failure, and leaves Workspace Skills untouched.
 
 ## Troubleshooting
 

@@ -8,11 +8,13 @@
   "remoteUser": "vscode",
   "init": true,
   "containerEnv": {
-    "BASH_ENV": "/workspace/.devcontainer/bash-env.sh"
+    "BASH_ENV": "/workspace/.devcontainer/bash-env.sh",
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   },
   "mounts": [
     "source={{REPO_NAME}}-config,target=/home/vscode,type=volume",
-    "source={{REPO_NAME}}-ssh,target=/home/vscode/.ssh,type=volume"
+    "source={{REPO_NAME}}-ssh,target=/home/vscode/.ssh,type=volume",
+    "source=${localEnv:DEVCONTAINER_CREDENTIALS_DIR},target=/run/devcontainer-credentials,type=bind,consistency=cached,readonly"
   ],
   "runArgs": [],
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",

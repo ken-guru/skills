@@ -1,21 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer.json's BASH_ENV containerEnv entry already sources
-# bash-env.sh (same .env, same `set -a` export) before this script's own
-# first line runs, since this is itself a non-interactive bash invocation —
-# but source it again directly, defensively, in case this script is ever
-# run by hand outside that containerEnv (e.g. `bash post-create.sh` on a
-# host shell during local testing). `set -a` exports every var this script
-# and its appended blocks read (GH_TOKEN, GIT_USER_EMAIL, GIT_USER_NAME,
-# DEVCONTAINER_HOST) for the rest of this script, including every CLI
-# skill's block appended after it.
-ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  source "$ENV_FILE"
-  set +a
-fi
+# BASH_ENV loads only non-secret settings. GH_TOKEN is supplied by the
+# developer's host environment and is never read from the Shared Checkout.
 
 # The BASH_ENV mechanism above only fires for non-interactive shells (any
 # AI CLI's own tool calls, which run `bash -c ...`) — it's never consulted
@@ -63,3 +50,64 @@ fi
 git config --global credential.helper '!gh auth setup-git'
 git config --global user.email "${GIT_USER_EMAIL:-{{GIT_EMAIL_DEFAULT}}}"
 git config --global user.name "${GIT_USER_NAME:-{{GIT_NAME_DEFAULT}}}"
+
+# Give the separate code identity the minimum Shared Checkout access needed
+# for builds, tests, and formatters. The Scaffold/control plane and Git
+# metadata are read-only so generated code cannot rewrite trusted lifecycle
+# code, the runtime profile, hooks, or repository state.
+#
+# The read-only ACL below only protects a path's *contents* — POSIX
+# rename/unlink permission is governed by the parent directory's write bit,
+# not the entry's own ACL, so code-runner's rwX grant on /workspace itself
+# would otherwise let it `mv` .devcontainer or .git aside and recreate a
+# code-runner-owned replacement. The sticky bit closes that: with it set,
+# only an entry's owner (or root) can rename/unlink it, regardless of
+# directory-write permission — the same mechanism /tmp uses. That only
+# holds if code-runner never owns .devcontainer/.git in the first place, so
+# the ownership assertion below fails closed rather than silently trusting
+# the invariant.
+WORKSPACE_ACL_SKIP_MARKER="$HOME/.devcontainer-workspace-acl-skipped"
+rm -f "$WORKSPACE_ACL_SKIP_MARKER"
+
+# Fails closed by default; DEVCONTAINER_ACCEPT_RESIDUAL_RISK can name this
+# check (or "all") to record the gap and continue instead. Shared by the SSH
+# credential check below, which is appended after this skeleton — defined
+# once here so both checks stay in sync. Every call site must guard this
+# with `||`: under `set -e` a bare call would abort the script on exactly
+# the opt-out path meant to let it continue.
+residual_risk_fail_or_skip() {
+  local check="$1" reason="$2" marker="$3"
+  case ",${DEVCONTAINER_ACCEPT_RESIDUAL_RISK:-}," in
+    *,"$check",*|*,all,*)
+      echo "⚠ $check check skipped: $reason" >&2
+      printf '%s (skipped %s): %s\n' "$check" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$reason" > "$marker"
+      return 1
+      ;;
+    *)
+      echo "ERROR: $reason" >&2
+      exit 1
+      ;;
+  esac
+}
+
+if command -v setfacl >/dev/null 2>&1; then
+  sudo setfacl -R -m u:code-runner:rwX /workspace
+  find /workspace -type d -exec sudo setfacl -m d:u:code-runner:rwX {} +
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      sudo setfacl -R -m u:code-runner:r-X "$protected_path"
+      find "$protected_path" -type d -exec sudo setfacl -m d:u:code-runner:r-X {} +
+    fi
+  done
+  sudo chmod +t /workspace
+  for protected_path in /workspace/.devcontainer /workspace/.git; do
+    if [ -e "$protected_path" ]; then
+      protected_owner="$(stat -c '%U' "$protected_path" 2>/dev/null || stat -f '%Su' "$protected_path")"
+      if [ "$protected_owner" = "code-runner" ]; then
+        residual_risk_fail_or_skip workspace-acl "$protected_path is owned by code-runner; the workspace sticky-bit boundary cannot protect it" "$WORKSPACE_ACL_SKIP_MARKER" || break
+      fi
+    fi
+  done
+else
+  residual_risk_fail_or_skip workspace-acl "ACL support is required to establish the code-runner boundary" "$WORKSPACE_ACL_SKIP_MARKER" || true
+fi

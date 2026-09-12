@@ -8,7 +8,8 @@
   "remoteUser": "vscode",
   "init": true,
   "containerEnv": {
-    "BASH_ENV": "/workspace/.devcontainer/bash-env.sh"
+    "BASH_ENV": "/workspace/.devcontainer/bash-env.sh",
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   },
   "mounts": [
     "source={{REPO_NAME}}-config,target=/home/vscode,type=volume"

@@ -7,10 +7,10 @@ set -euo pipefail
 # complete no-op. Writes only into a scratch mktemp directory.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RENDER="$SCRIPT_DIR/render-devcontainer.sh"
-PATCH="$SCRIPT_DIR/patch-if-absent.sh"
-PATCH_JSON="$SCRIPT_DIR/patch-json-array-if-absent.sh"
+SKILLS_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+RENDER="$SCRIPT_DIR/../render-devcontainer.sh"
+PATCH="$SCRIPT_DIR/../patch-if-absent.sh"
+PATCH_JSON="$SCRIPT_DIR/../patch-json-array-if-absent.sh"
 
 FAIL_COUNT=0
 
@@ -86,7 +86,7 @@ run_scenario() {
 
   local runargs
   runargs=$(jq -c '.runArgs | sort' "$TMP_DIR/devcontainer.json")
-  local expected='["--cap-add=SYS_ADMIN","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  local expected='["--security-opt=seccomp=${localWorkspaceFolder}/.devcontainer/seccomp-codex.json"]'
   if [ "$runargs" != "$expected" ]; then
     fail "[$order_desc] expected runArgs to contain exactly Codex's capability entries, got $runargs"
   fi

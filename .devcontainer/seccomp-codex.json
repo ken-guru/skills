@@ -1,0 +1,50 @@
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_X86",
+    "SCMP_ARCH_X32",
+    "SCMP_ARCH_AARCH64",
+    "SCMP_ARCH_ARM"
+  ],
+  "syscalls": [
+    {
+      "names": [
+        "accept", "accept4", "access", "arch_prctl", "bind", "brk",
+        "chdir", "chmod", "chown", "chroot", "clock_getres",
+        "clock_gettime", "clock_nanosleep", "clone", "clone3", "close",
+        "connect", "copy_file_range", "dup", "dup2", "dup3", "epoll_create1",
+        "epoll_ctl", "epoll_pwait", "epoll_wait", "eventfd2", "execve",
+        "execveat", "exit", "exit_group", "faccessat", "faccessat2",
+        "fadvise64", "fchdir", "fchmod", "fchmodat", "fchown", "fchownat",
+        "fcntl", "fdatasync", "fgetxattr", "flock", "fstat", "fstatfs",
+        "fsync", "ftruncate", "futex", "getcwd", "getdents64", "getegid",
+        "geteuid", "getgid", "getgroups", "getpeername", "getpid", "getppid",
+        "getrandom", "getsockname", "getsockopt", "gettid", "getuid",
+        "getxattr", "io_cancel", "io_destroy", "io_getevents", "io_setup",
+        "io_submit", "io_uring_enter", "io_uring_register", "io_uring_setup",
+        "ioctl", "kill", "listen", "lseek", "lstat", "lgetxattr", "lsetxattr",
+        "fsetxattr", "setxattr", "removexattr", "lremovexattr", "madvise", "memfd_create",
+        "mkdir", "mkdirat", "mknod", "mknodat", "mmap", "mount", "mprotect",
+        "mq_notify", "mq_open", "mq_unlink", "munmap", "nanosleep", "newfstatat",
+        "open", "openat", "openat2", "pipe", "pipe2", "poll", "ppoll", "prctl",
+        "pread64", "preadv", "preadv2", "pselect6", "pwrite64", "pwritev",
+        "pwritev2", "read", "readlink", "readlinkat", "readv", "recvfrom",
+        "recvmmsg", "recvmsg", "rename", "renameat", "renameat2", "restart_syscall",
+        "rmdir", "rt_sigaction", "rt_sigprocmask", "rt_sigreturn", "sched_getaffinity",
+        "sched_getparam", "sched_getscheduler", "sched_setscheduler", "sched_yield",
+        "seccomp", "sendfile", "sendmmsg", "sendmsg", "sendto", "set_tid_address",
+        "set_robust_list", "setgid", "setgroups", "sethostname", "setns", "setresgid",
+        "setresuid", "setrlimit", "setsid", "setsockopt", "setuid", "shutdown",
+        "sigaltstack", "signalfd4", "socket", "socketpair", "splice", "stat",
+        "statfs", "symlink", "symlinkat", "syncfs", "tee", "tgkill", "time",
+        "timer_create", "timer_delete", "timerfd_create", "timerfd_settime", "timer_gettime",
+        "tkill", "truncate", "umask", "uname", "unlink", "unlinkat", "unshare",
+        "utimensat", "vfork", "wait4", "waitid", "waitpid", "write", "writev",
+        "pivot_root", "umount2"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    }
+  ]
+}

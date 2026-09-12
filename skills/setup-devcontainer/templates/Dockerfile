@@ -37,4 +37,16 @@ RUN if ! id vscode >/dev/null 2>&1; then \
       useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode; \
     fi
 
+# The code identity is deliberately separate from the agent-operation
+# identity. It receives Shared Checkout ACLs at post-create time but no
+# membership in vscode's home/configuration groups.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends acl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1100 code-runner \
+    && useradd --uid 1100 --gid 1100 --create-home --shell /bin/bash code-runner
+
+COPY code-runner.sh /usr/local/bin/devcontainer-code-runner
+RUN chmod 755 /usr/local/bin/devcontainer-code-runner
+
 USER vscode

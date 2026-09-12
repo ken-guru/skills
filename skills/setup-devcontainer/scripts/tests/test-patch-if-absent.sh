@@ -6,7 +6,7 @@ set -euo pipefail
 # mutation and idempotency (a second run is a no-op).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCH="$SCRIPT_DIR/patch-if-absent.sh"
+PATCH="$SCRIPT_DIR/../patch-if-absent.sh"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT

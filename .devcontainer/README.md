@@ -15,8 +15,8 @@ as many times as you like.
   shared named volume (`skills-config`, mounted at `/home/vscode`) —
   each CLI keeps its own subdirectory within it (`~/.claude`, `~/.codex`,
   `~/.antigravity`, `~/.copilot`).
-- `gh` CLI auth comes from a `GH_TOKEN` env var supplied via one shared,
-  gitignored `.devcontainer/.env` file — see below.
+- `gh` CLI auth comes from a host-provided `GH_TOKEN`; secrets are never read
+  from the Shared Checkout — see below.
 - The workspace at `/workspace` is a live bind-mount of this repo's own
   working directory, not a clone — uncommitted or gitignored changes,
   including to `.devcontainer/` itself, are visible immediately.
@@ -25,14 +25,22 @@ as many times as you like.
 
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
-2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and paste in a
-   GitHub token (a fine-grained PAT scoped to this repo). If you skip this,
-   `initializeCommand` creates an empty `.env` for you so the build doesn't
-   fail, but `gh` won't be authenticated until you fill in a real token and
-   rebuild.
-3. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
+2. Create a repository-scoped **fine-grained** `GH_TOKEN` at
+   <https://github.com/settings/personal-access-tokens/new> (not the
+   classic-token page): issues/pull requests read-write, repository
+   contents read, workflow files write, workflow status/history read,
+   Dependabot/advisories/code scanning/secret scanning/security events
+   read. No Administration, secrets/variables management, or
+   workflow-run mutation.
+3. Export `GH_TOKEN` into the host shell. A per-repo
+   [direnv](https://direnv.net) `.envrc` at the repo root works well for
+   this, since the value differs per repo; otherwise export it from your
+   shell profile. `initializeCommand` creates the non-secret
+   `.devcontainer/.env` file used for identity and host settings — never
+   put secrets there.
+4. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
    (Cmd+Shift+P).
-4. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
+5. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
    add tools, then open a terminal and log in to each.
 
 ## Gotchas fixed here (and why)
@@ -69,18 +77,24 @@ docker rm -f <container id>
 
 ## SSH deploy key and signing key
 
-- Git push/pull and commit signing use two separate SSH keys, persisted
-  across rebuilds in the shared `skills-ssh` named volume, mounted at
-  `~/.ssh`. There's one container now, so one shared key pair is all there
-  is to manage.
+- Git push/pull and commit signing use two separate developer-owned SSH keys.
+  Put `deploy-key`, `deploy-key.pub`, `signing-key`, and `signing-key.pub` in
+  a host directory (a per-repo path under `~/.devcontainer-credentials/`
+  works well) and export `DEVCONTAINER_CREDENTIALS_DIR` before reopening
+  the Shared Container. The directory is mounted read-only outside the Shared
+  Checkout and validated during setup; the code identity cannot read it.
+  `skills/setup-devcontainer/templates/provision-ssh-keys.sh` generates and
+  places both keys for you: a fresh deploy key every run (GitHub only
+  allows one registration per repo), and a signing key it detects and
+  offers to reuse across repos (it's tied to your account, not any one
+  repo) rather than always generating a new one. It never contacts
+  GitHub — registration happens the way described below.
 
 Two separate ED25519 keys exist because GitHub rejects a public key as a
 signing key once that same key is already registered as a deploy key.
-`post-create.sh` generates `~/.ssh/id_ed25519` as the deploy key (git
-transport: push/pull this repo) and `~/.ssh/id_ed25519_signing` as the
-signing key (commit verification). Both are generated unconditionally —
-neither needs `GH_TOKEN` at all, only `DEVCONTAINER_HOST` (used to label
-them so you can identify and revoke them per machine from GitHub).
+The setup copies the developer-provided keys into the protected agent home as
+`~/.ssh/id_ed25519` and `~/.ssh/id_ed25519_signing` for git transport and
+commit verification.
 
 **Both keys are registered with GitHub manually by default** — `gh
 api repos/.../keys` needs the repo's **Administration** permission, and
@@ -97,24 +111,13 @@ touch ~/.ssh/.deploy-key-registered
 touch ~/.ssh/.signing-key-registered
 ```
 
-**Optional convenience:** if `GH_TOKEN` happens to carry this repo's
-**Administration (read/write)** permission, `post-create.sh` auto-registers
-(and, on rotation, replaces) the deploy key via the API, so its half of the
-prompt above never appears — `.deploy-key-registered` is touched for you.
-This is opportunistic only: no permission on `GH_TOKEN` is required, nothing
-fails or warns if it's absent, and the manual path above always works
-regardless. The signing key has no equivalent auto-registration — there's no
-API-driven way to do it without granting `GH_TOKEN` account-level
-`write:ssh_signing_key`, which would let it manage every signing key on the
-account, not just this project's — so it's always manual.
+No GitHub Administration permission is required for setup. Deploy-key
+registration is intentionally manual, and `GH_TOKEN` is never used to manage
+repository keys.
 
-Both keys live in the `skills-ssh` volume, so they and both the
-`.deploy-key-registered` and `.signing-key-registered` markers survive
-container rebuilds. Only wiping that volume regenerates the keys and resets
-the markers — if the deploy key was auto-registered before, its stale
-GitHub entry is auto-replaced on the next rebuild (matched by key
-**content**, not title); if it was registered manually, remove the stale
-entry yourself.
+The developer-owned source keys remain outside the Shared Checkout. The
+copied agent-home keys and registration markers persist in the container
+config volume; changing source keys requires rebuilding the Shared Container.
 
 `postAttachCommand` re-verifies the deploy key on every attach, so an
 accidental deletion on GitHub is caught immediately instead of failing
@@ -137,18 +140,40 @@ process in the container, while the deploy key is a file that requires a
 much more deliberate, targeted read to exfiltrate, and a leak of one never
 hands over the other.
 
-**An unset `DEVCONTAINER_HOST` never fails the container build**, but it
-does skip SSH setup entirely (both keys, not just auto-registration) —
-`post-create-ssh-block.sh` records why to `~/.ssh/.ssh-setup-skipped`
-instead of aborting `postCreateCommand`, which would otherwise also skip
-every block concatenated after the SSH layer (the warnings banner below;
-CLI installs run earlier and are unaffected). The reason appears once in
-the build log, and then at the top of every new terminal (via a
-`~/.bashrc` snippet) until it's fixed — along with the other standing SSH
-warnings (either key not yet registered; deploy key not currently working),
-all read from local files so no terminal pays for a network call just to
-open a shell. Fix `.devcontainer/.env`, then **Dev Containers: Rebuild
-Container** — no need to re-run this skill.
+If `DEVCONTAINER_CREDENTIALS_DIR` is unset or unsafe, SSH setup fails closed.
+Configure the host directory and rebuild the Shared Container.
+
+## Security boundary
+
+Workspace-derived commands run through `devcontainer-code-runner` as the
+unprivileged code identity. The agent-operation identity separately performs
+GitHub API calls, signed commits, pushes, and pull requests. Never bypass the
+runner for repository-controlled scripts if the generated-code boundary is
+required.
+
+The Shared Container fails closed when credential isolation or the required
+runtime profile cannot be established. To deliberately accept a weaker
+posture, set `DEVCONTAINER_ACCEPT_RESIDUAL_RISK` in `.devcontainer/.env` to
+a comma-separated list of check names (`ssh-credentials`, `workspace-acl`)
+or `all` — the skipped check keeps warning on every terminal until fixed.
+This boundary does not protect against a deliberately malicious
+agent-operation process using its own authorized credentials, and it does
+not guarantee safety against compromised upstream Curated Skill Set
+sources.
+
+Automatic skill refresh replaces only the container-owned Curated Skill Set.
+It stages and validates all configured sources before an atomic swap, keeps
+the current and immediately previous manifests, restores the previous set on
+total failure, and leaves Workspace Skills untouched.
+
+## GitHub authority
+
+Use a repository-scoped fine-grained token. Issues and pull requests are
+read/write; repository contents are read-only; workflow files are writable;
+workflow status/history and Dependabot, advisories, code scanning, secret
+scanning, and security events are read-only. Administration, secrets or
+variables management, and workflow-run mutation are not required.
 
 ## Installed CLI Tools
 - Claude Code
+- Codex

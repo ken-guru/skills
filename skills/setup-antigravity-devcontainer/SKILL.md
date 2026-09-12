@@ -11,6 +11,13 @@ touches `devcontainer.json` or the `Dockerfile` — it only appends its own
 marker-keyed content to `post-create.sh`, `post-start.sh` (if skill sync is
 opted into), and `README.md`.
 
+## Security contract
+
+This CLI Skill follows the base [CLI Skill security contract](../setup-devcontainer/docs/cli-security-contract.md).
+Workspace-derived commands run through the base-owned
+`devcontainer-code-runner`; this CLI Skill uses Docker defaults and requests no
+additional Capability Seam or privileged workflow-run operation.
+
 ## 1. Detect the base devcontainer
 
 ```bash
@@ -53,9 +60,9 @@ scripts/patch-if-absent.sh append .devcontainer/post-create.sh "# --- Antigravit
 ## 4. Patch `post-start.sh` (only if skill sync was accepted)
 
 Render [templates/post-start-block.sh](templates/post-start-block.sh) with
-`{{SKILLS_SOURCES_COMMANDS}}` substituted to one `npx -y skills add <source>
---skill '*' -a antigravity -y --copy -g` line per whole-suite source (or
-`--skill '<name>'` per individual pick), then append it:
+`{{SKILLS_SOURCES_COMMANDS}}` substituted to `--source <source> --skill '*'`
+arguments per whole-suite source (or the selected `--skill '<name>'`), then
+append it:
 
 ```bash
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Antigravity skill-sync ---" <rendered-block>

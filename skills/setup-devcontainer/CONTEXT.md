@@ -53,6 +53,13 @@ genuinely bare workspace, for a project with no resolvable repo yet.
 Connectable to a real GitHub repo later with no skill-level regeneration.
 _Avoid_: offline mode, standalone checkout
 
+**Credential Directory**:
+The host directory named by `DEVCONTAINER_CREDENTIALS_DIR`, holding the
+developer-owned deploy and signing keys mounted read-only into the Shared
+Container. Lives outside the Shared Checkout, on the host machine only; the
+Code Identity has no ACL on it.
+_Avoid_: credentials folder, keys directory
+
 **Scaffold**:
 The generated `.devcontainer/` directory itself — the Dockerfile,
 `devcontainer.json`, and lifecycle scripts — as distinct from the Shared
@@ -60,3 +67,39 @@ Checkout (the `/workspace` bind-mount of the repo's actual content). Not to
 be confused with Local Checkout, which is about the workspace repo having no
 `origin`, not about the Scaffold itself.
 _Avoid_: devcontainer config, setup files (too generic)
+
+**Curated Skill Set**:
+The container-owned, configured collection of skills installed into a CLI's
+user-level skills directory and eligible for atomic refresh.
+_Avoid_: workspace skills, local skills
+
+**Workspace Skill**:
+A repository-owned skill stored in the Shared Checkout. It is part of the
+repository and is never modified or deleted by the container's curated-skill
+refresh.
+_Avoid_: synced skill, installed skill
+
+**Code Identity**:
+The unprivileged OS user (`code-runner`) that executes workspace-derived
+commands — tests, builds, package scripts, linters, formatters, and
+repository hooks — inside the Shared Container, invoked through
+`devcontainer-code-runner`. It shares Shared Checkout read/write access with
+the Agent-Operation Identity but holds no GitHub, deploy, or signing
+credentials.
+_Avoid_: code-runner user, unprivileged identity (too generic)
+
+**Agent-Operation Identity**:
+The privileged OS user (`vscode`) that holds GitHub, deploy, and signing
+credentials and performs GitHub API calls, signed commits, pushes, and pull
+requests. Kept separate from the Code Identity so repository-controlled
+commands can never reach these credentials directly.
+_Avoid_: privileged identity (too generic), agent identity
+
+**Security Boundary**:
+The protection the two-identity model provides: workspace-derived commands
+run as the Code Identity, never as the Agent-Operation Identity, so
+repository content or its outputs cannot reach GitHub, deploy, or signing
+credentials. Does not protect against a deliberately malicious
+Agent-Operation process using its own authorized credentials, nor against a
+compromised upstream Curated Skill Set source.
+_Avoid_: generated-code boundary
