@@ -12,6 +12,7 @@ run() {
 run "$SCRIPT_DIR/test-code-runner.sh"
 run "$SCRIPT_DIR/test-credential-boundary.sh"
 run "$SCRIPT_DIR/test-residual-risk-opt-out.sh"
+run "$SCRIPT_DIR/test-ssh-key-wizard.sh"
 run "$SCRIPT_DIR/test-github-authority.sh"
 run "$SCRIPT_DIR/test-codex-profile.sh"
 run "$SCRIPT_DIR/test-skills-refresh.sh"

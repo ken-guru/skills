@@ -25,14 +25,22 @@ as many times as you like.
 
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
-2. Export a repository-scoped fine-grained `GH_TOKEN` in the host environment.
-   If you use the optional SSH layer, also export
-   `DEVCONTAINER_CREDENTIALS_DIR` to the protected host directory containing
-   the deploy and signing keys. `initializeCommand` creates the non-secret
-   `.env` file used for identity and host settings.
-3. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
+2. Create a repository-scoped **fine-grained** `GH_TOKEN` at
+   <https://github.com/settings/personal-access-tokens/new> (not the
+   classic-token page): issues/pull requests read-write, repository
+   contents read, workflow files write, workflow status/history read,
+   Dependabot/advisories/code scanning/secret scanning/security events
+   read. No Administration, secrets/variables management, or
+   workflow-run mutation.
+3. Export `GH_TOKEN` into the host shell. A per-repo
+   [direnv](https://direnv.net) `.envrc` at the repo root works well for
+   this, since the value differs per repo; otherwise export it from your
+   shell profile. `initializeCommand` creates the non-secret
+   `.devcontainer/.env` file used for identity and host settings — never
+   put secrets there.
+4. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
    (Cmd+Shift+P).
-4. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
+5. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
    add tools, then open a terminal and log in to each.
 
 ## Gotchas fixed here (and why)
@@ -71,9 +79,16 @@ docker rm -f <container id>
 
 - Git push/pull and commit signing use two separate developer-owned SSH keys.
   Put `deploy-key`, `deploy-key.pub`, `signing-key`, and `signing-key.pub` in
-  a host directory and export `DEVCONTAINER_CREDENTIALS_DIR` before reopening
+  a host directory (a per-repo path under `~/.devcontainer-credentials/`
+  works well) and export `DEVCONTAINER_CREDENTIALS_DIR` before reopening
   the Shared Container. The directory is mounted read-only outside the Shared
   Checkout and validated during setup; the code identity cannot read it.
+  `skills/setup-devcontainer/templates/provision-ssh-keys.sh` generates and
+  places both keys for you: a fresh deploy key every run (GitHub only
+  allows one registration per repo), and a signing key it detects and
+  offers to reuse across repos (it's tied to your account, not any one
+  repo) rather than always generating a new one. It never contacts
+  GitHub — registration happens the way described below.
 
 Two separate ED25519 keys exist because GitHub rejects a public key as a
 signing key once that same key is already registered as a deploy key.

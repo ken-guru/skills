@@ -25,12 +25,22 @@ as many times as you like.
 
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
-2. Export a repository-scoped fine-grained `GH_TOKEN` in the host environment.
-   Copy `.devcontainer/.env.example` to `.devcontainer/.env` only for
-   non-secret identity/host-label settings.
-3. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
+2. Create a repository-scoped **fine-grained** `GH_TOKEN` at
+   <https://github.com/settings/personal-access-tokens/new> (not the
+   classic-token page): issues/pull requests read-write, repository
+   contents read, workflow files write, workflow status/history read,
+   Dependabot/advisories/code scanning/secret scanning/security events
+   read. No Administration, secrets/variables management, or
+   workflow-run mutation.
+3. Export `GH_TOKEN` into the host shell. A per-repo
+   [direnv](https://direnv.net) `.envrc` at the repo root works well for
+   this, since the value differs per repo; otherwise export it from your
+   shell profile. `initializeCommand` creates the non-secret
+   `.devcontainer/.env` file used for identity and host settings — never
+   put secrets there.
+4. Open this repo in VS Code, then **Dev Containers: Reopen in Container**
    (Cmd+Shift+P).
-4. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
+5. Run whichever CLI skill(s) you want (`setup-claude-devcontainer`, etc.) to
    add tools, then open a terminal and log in to each.
 
 ## Gotchas fixed here (and why)

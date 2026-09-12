@@ -53,6 +53,13 @@ genuinely bare workspace, for a project with no resolvable repo yet.
 Connectable to a real GitHub repo later with no skill-level regeneration.
 _Avoid_: offline mode, standalone checkout
 
+**Credential Directory**:
+The host directory named by `DEVCONTAINER_CREDENTIALS_DIR`, holding the
+developer-owned deploy and signing keys mounted read-only into the Shared
+Container. Lives outside the Shared Checkout, on the host machine only; the
+Code Identity has no ACL on it.
+_Avoid_: credentials folder, keys directory
+
 **Scaffold**:
 The generated `.devcontainer/` directory itself — the Dockerfile,
 `devcontainer.json`, and lifecycle scripts — as distinct from the Shared

@@ -20,4 +20,21 @@ grep -q 'source "$ENV_FILE"' "$TEMPLATES_DIR/bash-env.sh" && fail "bash-env must
 grep -q '^GH_TOKEN=' "$TEMPLATES_DIR/env.baseline.example" && fail "workspace env example must not contain GH_TOKEN"
 grep -q 'gh api' "$TEMPLATES_DIR/post-create-ssh-block.sh" && fail "SSH setup must not administer deploy keys via API"
 
+grep -q 'github.com/settings/personal-access-tokens/new' "$TEMPLATES_DIR/env.baseline.example" \
+  || fail "env example must link the fine-grained token page, not the classic one"
+grep -qE 'github\.com/settings/tokens[^/]' "$TEMPLATES_DIR/env.baseline.example" \
+  && fail "env example must not link the classic tokens page"
+
+SKILL_MD="$SKILL_DIR/SKILL.md"
+grep -q 'docker info' "$SKILL_MD" || fail "SKILL.md's walkthrough does not verify Docker is available"
+grep -q 'github.com/settings/personal-access-tokens/new' "$SKILL_MD" \
+  || fail "SKILL.md's walkthrough does not link the fine-grained token page"
+grep -q 'direnv' "$SKILL_MD" || fail "SKILL.md's walkthrough does not offer direnv for per-repo env delivery"
+
+[ -f "$TEMPLATES_DIR/envrc.example" ] || fail "missing envrc.example template"
+grep -q 'export GH_TOKEN=' "$TEMPLATES_DIR/envrc.example" || fail "envrc template does not export GH_TOKEN"
+grep -q 'export DEVCONTAINER_CREDENTIALS_DIR=' "$TEMPLATES_DIR/envrc.example" \
+  || fail "envrc template does not export DEVCONTAINER_CREDENTIALS_DIR"
+grep -q 'templates/envrc.example' "$SKILL_MD" || fail "SKILL.md does not reference envrc.example — orphaned template"
+
 echo "Credential-boundary contract checks passed."

@@ -2,9 +2,16 @@
 
 Git push/pull and commit signing use separate developer-owned SSH keys. Put
 `deploy-key`, `deploy-key.pub`, `signing-key`, and `signing-key.pub` in a host
-directory and export `DEVCONTAINER_CREDENTIALS_DIR` before reopening the
+directory (a per-repo path under `~/.devcontainer-credentials/` works well)
+and export `DEVCONTAINER_CREDENTIALS_DIR` before reopening the
 Shared Container. The directory is mounted read-only outside the Shared
 Checkout and validated during setup; the code identity cannot read it.
+`skills/setup-devcontainer/templates/provision-ssh-keys.sh` generates and
+places both keys for you: a fresh deploy key every run (GitHub only allows
+one registration per repo), and a signing key it detects and offers to
+reuse across repos (it's tied to your account, not any one repo) rather
+than always generating a new one. It never contacts GitHub — registration
+happens the way described below.
 
 Register the deploy public key for this repository as an Authentication Key
 and the signing public key in the account as a Signing Key. The setup prints
