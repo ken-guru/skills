@@ -7,10 +7,10 @@ set -euo pipefail
 # to run in CI with no repo-checkout side effects.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RENDER="$SCRIPT_DIR/render-devcontainer.sh"
-VERIFY="$SCRIPT_DIR/verify-devcontainer.sh"
-# shellcheck source=lib/render-lib.sh
-source "$SCRIPT_DIR/lib/render-lib.sh"
+RENDER="$SCRIPT_DIR/../render-devcontainer.sh"
+VERIFY="$SCRIPT_DIR/../verify-devcontainer.sh"
+# shellcheck source=../lib/render-lib.sh
+source "$SCRIPT_DIR/../lib/render-lib.sh"
 
 BOOLS="true false"
 

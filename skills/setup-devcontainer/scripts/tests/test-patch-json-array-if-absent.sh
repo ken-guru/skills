@@ -6,7 +6,7 @@ set -euo pipefail
 # Writes only into a scratch mktemp directory.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCH="$SCRIPT_DIR/patch-json-array-if-absent.sh"
+PATCH="$SCRIPT_DIR/../patch-json-array-if-absent.sh"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT

@@ -12,8 +12,8 @@ does not recreate them.
 Workspace-derived commands—tests, builds, package scripts, linters,
 formatters, and repository hooks—must be launched through
 `devcontainer-code-runner`. Direct commands run by an agent-operation process
-are outside the generated-code boundary and must not be described as
-protected by it.
+are outside the Security Boundary and must not be described as protected by
+it.
 
 ## CLI-owned declarations
 

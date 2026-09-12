@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILL_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEMPLATES_DIR="$SKILL_DIR/templates"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }

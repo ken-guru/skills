@@ -67,16 +67,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run render/verify across every ssh x git-defaults combination
-        run: skills/setup-devcontainer/scripts/test-devcontainer.sh
+        run: skills/setup-devcontainer/scripts/tests/test-devcontainer.sh
 
       - name: Run patch-if-absent.sh subcommand tests
-        run: skills/setup-devcontainer/scripts/test-patch-if-absent.sh
+        run: skills/setup-devcontainer/scripts/tests/test-patch-if-absent.sh
 
       - name: Run patch-json-array-if-absent.sh (Capability Seam) idempotency tests
-        run: skills/setup-devcontainer/scripts/test-patch-json-array-if-absent.sh
+        run: skills/setup-devcontainer/scripts/tests/test-patch-json-array-if-absent.sh
 
       - name: Run end-to-end integration check across all four CLI skills
-        run: skills/setup-devcontainer/scripts/test-integration.sh
+        run: skills/setup-devcontainer/scripts/tests/test-integration.sh
 
       - name: Run Shared Container security-boundary checks
-        run: skills/setup-devcontainer/scripts/test-security-boundary.sh
+        run: skills/setup-devcontainer/scripts/tests/test-security-boundary.sh

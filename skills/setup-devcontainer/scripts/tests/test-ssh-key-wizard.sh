@@ -6,7 +6,7 @@ set -euo pipefail
 # real key material, so this only checks its static shape — not a live run.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILL_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WIZARD="$SKILL_DIR/templates/provision-ssh-keys.sh"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }

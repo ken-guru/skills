@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-PROFILE="$SCRIPT_DIR/../templates/seccomp-codex.json"
+SKILLS_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROFILE="$SCRIPT_DIR/../../templates/seccomp-codex.json"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 

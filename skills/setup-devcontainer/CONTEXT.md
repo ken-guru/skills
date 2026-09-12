@@ -102,5 +102,4 @@ repository content or its outputs cannot reach GitHub, deploy, or signing
 credentials. Does not protect against a deliberately malicious
 Agent-Operation process using its own authorized credentials, nor against a
 compromised upstream Curated Skill Set source.
-_Avoid_: generated-code boundary (used once in `cli-security-contract.md`;
-reconcile to this term next time that doc is touched)
+_Avoid_: generated-code boundary

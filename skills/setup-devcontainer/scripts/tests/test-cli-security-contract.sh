@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CONTRACT="$ROOT/setup-devcontainer/docs/cli-security-contract.md"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }

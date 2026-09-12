@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REFRESH="$SCRIPT_DIR/../templates/skills-refresh.sh"
+REFRESH="$SCRIPT_DIR/../../templates/skills-refresh.sh"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 

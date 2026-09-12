@@ -7,10 +7,10 @@ set -euo pipefail
 # complete no-op. Writes only into a scratch mktemp directory.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RENDER="$SCRIPT_DIR/render-devcontainer.sh"
-PATCH="$SCRIPT_DIR/patch-if-absent.sh"
-PATCH_JSON="$SCRIPT_DIR/patch-json-array-if-absent.sh"
+SKILLS_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+RENDER="$SCRIPT_DIR/../render-devcontainer.sh"
+PATCH="$SCRIPT_DIR/../patch-if-absent.sh"
+PATCH_JSON="$SCRIPT_DIR/../patch-json-array-if-absent.sh"
 
 FAIL_COUNT=0
 

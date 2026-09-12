@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
 run() {
   echo "==> $*"
@@ -19,6 +19,7 @@ run "$SCRIPT_DIR/test-skills-refresh.sh"
 run "$SCRIPT_DIR/test-cli-security-contract.sh"
 run "$SCRIPT_DIR/test-devcontainer.sh"
 run "$SCRIPT_DIR/test-integration.sh"
+run "$SCRIPT_DIR/test-skill-doc-flags.sh"
 run bash -n \
   "$ROOT/.devcontainer/bash-env.sh" \
   "$ROOT/.devcontainer/post-create.sh" \

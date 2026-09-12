@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATES_DIR="$(cd "$SCRIPT_DIR/../templates" && pwd)"
+TEMPLATES_DIR="$(cd "$SCRIPT_DIR/../../templates" && pwd)"
 README="$TEMPLATES_DIR/README.ssh-block.md"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
