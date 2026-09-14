@@ -128,6 +128,39 @@ check_post_attach() {
 }
 check_post_attach
 
+# Dockerfile and network-manifest.json don't vary by ssh/git-defaults/firewall
+# (one file each, always copied verbatim — ADR-0004's digest pin and
+# ADR-0005's multi-stage build/manifest skeleton), so — same precedent as
+# run_case_local_checkout and check_post_attach above — this is a one-off
+# spot-check outside the main matrix, not something to repeat per
+# combination.
+check_dockerfile_and_network_manifest() {
+  RUN_COUNT=$((RUN_COUNT + 1))
+  local label="Dockerfile + network-manifest.json"
+  local templates_dir out dockerfile_out manifest_out
+
+  templates_dir="$(cd "$SCRIPT_DIR/../templates" && pwd)"
+  out="$TMP_DIR/$RUN_COUNT-post-create.sh"
+  dockerfile_out="$TMP_DIR/$RUN_COUNT-Dockerfile"
+  manifest_out="$TMP_DIR/$RUN_COUNT-network-manifest.json"
+
+  cp "$templates_dir/Dockerfile" "$dockerfile_out"
+  cp "$templates_dir/network-manifest.json" "$manifest_out"
+
+  if ! "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out"; then
+    echo "FAIL (render): $label" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+
+  if ! "$VERIFY" --file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" \
+       --dockerfile-file "$dockerfile_out" --network-manifest-file "$manifest_out" >/dev/null; then
+    echo "FAIL (verify): $label" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  fi
+}
+check_dockerfile_and_network_manifest
+
 echo "Ran $RUN_COUNT combinations, $FAIL_COUNT failed."
 if [ "$FAIL_COUNT" -gt 0 ]; then
   exit 1

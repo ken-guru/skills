@@ -14,9 +14,9 @@ IFS=$'\n\t'
 # allowed-domains.local.txt, never a hardcoded list.
 #
 # Runs as root via a NOPASSWD sudoers rule scoped to exactly this script's
-# path (and refresh-allowlist.sh's), baked into the image at build time —
-# see templates/Dockerfile.with-firewall. Invoked by post-start.sh on every
-# container start, not just create.
+# path (and refresh-allowlist.sh's), baked into the image's `firewall` build
+# stage at build time — see templates/Dockerfile. Invoked by post-start.sh
+# on every container start, not just create.
 
 FIREWALL_DEVCONTAINER_DIR="/workspace/.devcontainer"
 # shellcheck source=firewall-lib.sh
@@ -75,25 +75,23 @@ fi
 # GitHub's IP ranges, fetched live at every run (never hardcoded) — this is
 # what makes github.com/api.github.com genuinely reachable rather than
 # depending on a single `dig` snapshot, and covers GitHub's documented SSH
-# range too (the .git field) with no separate TCP 22 rule needed.
+# range too (the .git field) with no separate TCP 22 rule needed. Fetch
+# itself is shared with refresh-allowlist.sh via firewall-lib.sh; only the
+# per-CIDR handling below is this script's own (fail loud on a bad entry,
+# unlike the refresher's skip-and-continue).
 echo "Fetching GitHub IP ranges..."
-gh_ranges=$(curl -s --connect-timeout 10 https://api.github.com/meta)
-if [ -z "$gh_ranges" ]; then
-  echo "ERROR: Failed to fetch GitHub IP ranges" >&2
-  exit 1
-fi
-if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
-  echo "ERROR: GitHub API response missing required fields" >&2
+if ! firewall_collect_github_ranges; then
+  echo "ERROR: could not fetch GitHub's IP ranges — aborting" >&2
   exit 1
 fi
 echo "Processing GitHub IP ranges..."
-while read -r cidr; do
+for cidr in "${FIREWALL_GITHUB_CIDRS[@]}"; do
   if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
     echo "ERROR: Invalid CIDR range from GitHub meta: $cidr" >&2
     exit 1
   fi
   ipset add allowed-domains "$cidr" -exist
-done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+done
 
 echo "Resolving Network Manifest + project-local domains..."
 for domain in "${FIREWALL_DOMAINS[@]}"; do

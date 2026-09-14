@@ -9,12 +9,12 @@ set -euo pipefail
 # reference project's own docs/adr/0028-devcontainer-firewall-allowlist.md
 # for the production incident this fixes).
 #
-# Uses the exact same firewall_collect_domains() step init-firewall.sh
-# uses (firewall-lib.sh), not an independently hand-maintained copy — this
-# is what prevents the "two scripts silently drift apart" bug that
-# reference project's own ADR documents hitting twice in production, before
-# its fix was to derive both from one source instead of duplicating a list
-# by hand in each script.
+# Uses the exact same firewall_collect_github_ranges()/firewall_collect_domains()
+# steps init-firewall.sh uses (firewall-lib.sh), not independently
+# hand-maintained copies — this is what prevents the "two scripts silently
+# drift apart" bug that reference project's own ADR documents hitting twice
+# in production, before its fix was to derive both from one source instead
+# of duplicating a list by hand in each script.
 #
 # If any required fetch fails mid-cycle, the swap is skipped entirely: the
 # live set keeps serving stale-but-working entries until the next
@@ -31,16 +31,15 @@ while true; do
 
   ipset create allowed-domains-new hash:net 2>/dev/null || ipset flush allowed-domains-new
 
-  gh_ranges=$(curl -s --connect-timeout 10 https://api.github.com/meta 2>/dev/null || true)
-  if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null 2>&1; then
+  if ! firewall_collect_github_ranges; then
     echo "WARN: refresh-allowlist: failed to fetch GitHub IP ranges — skipping swap" >&2
     ipset destroy allowed-domains-new 2>/dev/null || true
     continue
   fi
-  while read -r cidr; do
+  for cidr in "${FIREWALL_GITHUB_CIDRS[@]}"; do
     [[ "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || continue
     ipset add allowed-domains-new "$cidr" -exist 2>/dev/null || true
-  done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+  done
 
   if ! firewall_collect_domains; then
     echo "WARN: refresh-allowlist: failed to collect Network Manifest + local domains — skipping swap" >&2

@@ -85,3 +85,10 @@ ssh_warnings_block() { cat "$TEMPLATES_DIR/post-create-warnings-block.sh"; }
 # Skill's own-block.
 post_start_base_block() { cat "$TEMPLATES_DIR/post-start-base.sh"; }
 firewall_post_start_block() { cat "$TEMPLATES_DIR/post-start-firewall-block.sh"; }
+
+# Dockerfile and network-manifest.json: also no placeholders, also always
+# copied verbatim — one file each regardless of ssh/firewall flags (the
+# Dockerfile is multi-stage; devcontainer.json's build.target, not which
+# Dockerfile got copied, selects the firewall stage).
+dockerfile_block() { cat "$TEMPLATES_DIR/Dockerfile"; }
+network_manifest_block() { cat "$TEMPLATES_DIR/network-manifest.json"; }

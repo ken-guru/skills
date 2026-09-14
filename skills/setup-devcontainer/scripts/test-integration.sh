@@ -266,38 +266,61 @@ check_firewall_plus_codex_capability_entries "codex,firewall" \
   "$SKILLS_ROOT/setup-codex-devcontainer/templates/capability-seam-entries.json" \
   "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
 
-# Dockerfile.with-firewall must add the firewall's own build-time surface
-# (packages, scoped sudoers rule) on top of the plain Dockerfile's content,
-# unchanged otherwise; the plain Dockerfile must carry none of this, so
-# declining the firewall question truly leaves the image untouched.
-check_dockerfile_firewall_variant() {
+# One multi-stage Dockerfile (ADR-0005's fix for the base/firewall
+# duplication a two-file variant would otherwise reintroduce): the "base"
+# stage must carry none of the firewall's build-time surface, the
+# "firewall" stage (which extends "base") must carry all of it, and each
+# stage independently ends with USER vscode — which stage actually gets
+# built is devcontainer.json's build.target, not which file was copied.
+check_dockerfile_stages() {
   local dockerfile="$SKILLS_ROOT/setup-devcontainer/templates/Dockerfile"
-  local firewall_dockerfile="$SKILLS_ROOT/setup-devcontainer/templates/Dockerfile.with-firewall"
+  local base_stage firewall_stage
 
-  if grep -q 'iptables\|ipset\|vscode-firewall' "$dockerfile"; then
-    fail "[Dockerfile] plain Dockerfile must carry no firewall content"
+  if ! grep -q '^FROM .* AS base$' "$dockerfile"; then
+    fail "[Dockerfile] missing \"AS base\" stage marker"
+    return
+  fi
+  if ! grep -q '^FROM base AS firewall$' "$dockerfile"; then
+    fail "[Dockerfile] missing \"FROM base AS firewall\" stage marker"
+    return
+  fi
+
+  # Everything from the base FROM line up to (not including) the firewall
+  # FROM line is the base stage; everything from the firewall FROM line to
+  # end-of-file is the firewall stage.
+  base_stage="$(sed -n '/^FROM .* AS base$/,/^FROM base AS firewall$/p' "$dockerfile" | sed '$d')"
+  firewall_stage="$(sed -n '/^FROM base AS firewall$/,$p' "$dockerfile")"
+
+  if echo "$base_stage" | grep -q 'iptables\|ipset\|vscode-firewall'; then
+    fail "[Dockerfile base stage] must carry no firewall content"
   else
-    echo "OK: [Dockerfile] plain Dockerfile carries no firewall content"
+    echo "OK: [Dockerfile base stage] carries no firewall content"
+  fi
+  if ! echo "$base_stage" | grep -q '^USER vscode$'; then
+    fail "[Dockerfile base stage] must end with USER vscode"
   fi
 
-  if ! grep -q 'iptables ipset iproute2 dnsutils aggregate' "$firewall_dockerfile"; then
-    fail "[Dockerfile.with-firewall] missing firewall package install"
+  if ! echo "$firewall_stage" | grep -q 'iptables ipset iproute2 dnsutils aggregate'; then
+    fail "[Dockerfile firewall stage] missing firewall package install"
   fi
-  if ! grep -q '/etc/sudoers.d/vscode-firewall' "$firewall_dockerfile"; then
-    fail "[Dockerfile.with-firewall] missing scoped firewall sudoers rule"
+  if ! echo "$firewall_stage" | grep -q '/etc/sudoers.d/vscode-firewall'; then
+    fail "[Dockerfile firewall stage] missing scoped firewall sudoers rule"
   fi
-  if ! grep -q 'NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh' "$firewall_dockerfile"; then
-    fail "[Dockerfile.with-firewall] sudoers rule must be scoped to exactly init-firewall.sh and refresh-allowlist.sh, nothing broader"
+  if ! echo "$firewall_stage" | grep -q 'NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh'; then
+    fail "[Dockerfile firewall stage] sudoers rule must be scoped to exactly init-firewall.sh and refresh-allowlist.sh, nothing broader"
   fi
-  if ! tail -1 "$firewall_dockerfile" | grep -q '^USER vscode$'; then
-    fail "[Dockerfile.with-firewall] must still end with USER vscode"
+  if [ "$(echo "$firewall_stage" | tail -1)" != "USER vscode" ]; then
+    fail "[Dockerfile firewall stage] must end with USER vscode"
   fi
-  if [ "$(grep -c '^USER vscode$' "$firewall_dockerfile")" -ne 1 ]; then
-    fail "[Dockerfile.with-firewall] expected exactly one USER vscode line"
+  echo "OK: [Dockerfile firewall stage] carries the firewall build-time surface, ends USER vscode"
+
+  if [ ! -f "$SKILLS_ROOT/setup-devcontainer/templates/Dockerfile.with-firewall" ]; then
+    echo "OK: [Dockerfile.with-firewall] removed — superseded by the multi-stage Dockerfile above"
+  else
+    fail "[Dockerfile.with-firewall] should have been removed once the Dockerfile became multi-stage"
   fi
-  echo "OK: [Dockerfile.with-firewall] carries the firewall build-time surface, still ends USER vscode"
 }
-check_dockerfile_firewall_variant
+check_dockerfile_stages
 
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer

@@ -35,12 +35,13 @@ the Network Manifest, `allowed-domains.local.txt`, or GitHub's/npm's own
 ranges is unreachable by design; that's the point of opting into this
 layer.
 
-**Editing the firewall scripts themselves needs a container rebuild, not a
-restart.** `init-firewall.sh`/`refresh-allowlist.sh` run as root via a
-`sudo` rule scoped to exactly those two script paths, baked into the image
-at build time (`templates/Dockerfile.with-firewall`) — a scripted
-`postCreateCommand`/`postStartCommand` edit alone won't pick up a change to
-either script's own logic; only **Dev Containers: Rebuild Container** does.
+**`init-firewall.sh`/`refresh-allowlist.sh` run as root** via a `sudo` rule
+scoped to exactly those two script paths, baked into the image's `firewall`
+build stage at build time (`templates/Dockerfile`) — changing which stage
+gets built, or the sudoers rule itself, needs **Dev Containers: Rebuild
+Container**; the scripts' own logic lives in the bind-mounted workspace, so
+an edit there is picked up on the next restart like any other lifecycle
+script.
 
 **`--cap-add=NET_ADMIN --cap-add=NET_RAW`** are added to `runArgs` only when
 this layer is present — `iptables`/`ipset` need them, and they're withheld
