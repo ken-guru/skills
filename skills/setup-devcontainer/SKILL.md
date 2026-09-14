@@ -1,6 +1,6 @@
 ---
 name: setup-devcontainer
-description: Generate a shared devcontainer (Ubuntu base image, Node, GitHub CLI, one persistent config volume) in the current repo — one container every AI CLI installs into, added independently via its four companion setup-<tool>-devcontainer skills — optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits. Use when the user wants to add a devcontainer to a repo, add SSH key automation to an existing devcontainer, or connect a Local Checkout to a real GitHub repo. Not for adding an AI CLI itself — run the matching setup-<tool>-devcontainer skill for that, after this one.
+description: Generate a shared devcontainer (Ubuntu base image, Node, GitHub CLI, one persistent config volume) in the current repo — one container every AI CLI installs into, added independently via its four companion setup-<tool>-devcontainer skills — optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits, and/or an opt-in default-deny network egress firewall (iptables+ipset, allowlist derived from a Network Manifest). Use when the user wants to add a devcontainer to a repo, add SSH key automation to an existing devcontainer, restrict a devcontainer's outbound network, or connect a Local Checkout to a real GitHub repo. Not for adding an AI CLI itself — run the matching setup-<tool>-devcontainer skill for that, after this one.
 ---
 
 # Setup Devcontainer
@@ -100,17 +100,30 @@ shell never got into `/workspace`). The container built successfully, so this is
 reopen. Same remedy — remove it with `docker rm -f <id>` after confirming with the user — since the
 mount config is fixed at creation and won't update on restart.
 
-## 3. Ask SSH layer
+## 3. Ask SSH and firewall layers
 
-Skip this question entirely if `{{REPO_SLUG}}` (step 1) is empty — Local Checkout, with no GitHub
-repo yet to register deploy/signing keys against; tell the user why: "SSH layer isn't available
-yet — this repo has no GitHub connection; add it once one exists (see 'Connecting a Local Checkout
-to a real GitHub repo')."
+Skip the SSH question entirely if `{{REPO_SLUG}}` (step 1) is empty — Local Checkout, with no
+GitHub repo yet to register deploy/signing keys against; tell the user why: "SSH layer isn't
+available yet — this repo has no GitHub connection; add it once one exists (see 'Connecting a
+Local Checkout to a real GitHub repo')."
 
 Otherwise ask: does this repo need agent-driven `git push` and signed commits? (Adds
 deploy-key/signing-key automation — one shared key pair for the whole container.) Addable later
 without redoing anything already generated (see [Adding SSH to a tool
 later](docs/adding-ssh-later.md)).
+
+Then, independent of the SSH answer and regardless of whether `{{REPO_SLUG}}` is empty (a Local
+Checkout gains just as much from restricting outbound reach as a GitHub-connected repo), ask:
+does this repo want to restrict this container's outbound network to an allowlist? (A default-deny
+`iptables`+`ipset` firewall — every installed CLI Skill's own required hosts, plus npm/GitHub, are
+allowed automatically via the Network Manifest; everything else is blocked. Trade-off: an AI CLI or
+a tool it shells out to that needs to reach some other host — a package registry mirror, a
+project's own API — needs that host added to `.devcontainer/allowed-domains.local.txt` first, or
+the request fails closed instead of silently succeeding.) Recommended default: yes, for any
+container running an AI CLI with `--dangerously-skip-permissions`/YOLO-mode automation, since it
+bounds what a misbehaving or compromised process can reach; declining costs nothing today. Addable
+later without redoing anything already generated (see [Adding the firewall layer
+later](docs/adding-firewall-later.md)).
 
 ## 4. Resolve remaining placeholders
 
@@ -120,8 +133,12 @@ later](docs/adding-ssh-later.md)).
 
 ## 5. Generate the devcontainer
 
-- `.devcontainer/Dockerfile` ← [templates/Dockerfile](templates/Dockerfile), copied verbatim (no
-  placeholders).
+- `.devcontainer/Dockerfile` ← [templates/Dockerfile](templates/Dockerfile) (or
+  [templates/Dockerfile.with-firewall](templates/Dockerfile.with-firewall) if step 3's firewall
+  answer was yes), copied verbatim (no placeholders). The firewall variant adds the
+  `iptables`/`ipset`/`iproute2`/`dnsutils`/`aggregate` packages the firewall scripts need plus a
+  `sudo` rule scoped to exactly those two scripts' paths — declining the firewall question keeps
+  the plain Dockerfile, with none of this.
 - `.devcontainer/bash-env.sh` ← [templates/bash-env.sh](templates/bash-env.sh), copied verbatim (no
   placeholders), chmod +x. Loads `.devcontainer/.env`; referenced as `BASH_ENV` below so every
   non-interactive shell in the container (an AI CLI's own tool calls, which run `bash -c ...` and
@@ -133,23 +150,32 @@ later](docs/adding-ssh-later.md)).
   CLI needs regardless of which CLI Skills end up installed (`registry.npmjs.org`, `github.com`,
   `api.github.com`), filed under a `"baseline"` key rather than a fake CLI name, since it isn't
   owned by any one CLI. Each CLI Skill later adds its own keyed entry (a separate concern, not
-  generated here). Nothing reads this file yet — it exists so a future opt-in firewall layer has a
-  single source of truth to derive its allowlist from.
+  generated here). Generated unconditionally, firewall opt-in or not — a CLI Skill installed later
+  always gets its own entry recorded here, and the firewall (whether added now or later) picks it
+  up automatically with no extra step.
 - `.devcontainer/network-manifest-domains.sh` ←
   [templates/network-manifest-domains.sh](templates/network-manifest-domains.sh), copied verbatim
   (no placeholders), chmod +x. The Network Manifest's `jq`-based derivation helper: given a
   manifest file, prints one deduplicated host per line across every keyed entry's
-  `networkAllowlist`. Not invoked by anything generated here yet — it's the primitive a future
-  firewall layer's init/refresh scripts would source.
+  `networkAllowlist`. Also generated unconditionally; sourced by `firewall-lib.sh` (below) when the
+  firewall layer is present, otherwise present but unused.
 - `.devcontainer/devcontainer.json` ← [templates/devcontainer.json](templates/devcontainer.json)
-  (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if step 3's
+  (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if step 3's SSH
   answer was yes), substitute `{{REPO_NAME}}`. The `runArgs` field starts pre-populated with the
   unconditional Baseline Containment capability-drop entries (`--cap-drop=ALL --cap-add=CHOWN
   --cap-add=DAC_OVERRIDE --cap-add=FOWNER`) — not gated behind any setup question — and this is
   also the Capability Seam, the one extension point a CLI skill (today, only
   `setup-codex-devcontainer`) may idempotently append its own entries to on top. `containerEnv.BASH_ENV`
   points at `bash-env.sh` above — this is what makes `GH_TOKEN` visible to an AI CLI's own tool
-  calls, not just the lifecycle scripts.
+  calls, not just the lifecycle scripts. If step 3's firewall answer was yes, also patch in the
+  firewall's own capability grant (`--cap-add=NET_ADMIN --cap-add=NET_RAW` — `iptables`/`ipset`
+  need them), through the same Capability Seam primitive, at generation time rather than via a
+  later CLI-skill patch, since this is conditional on the base skill's own setup question, not on
+  any particular CLI:
+
+  ```bash
+  scripts/patch-json-array-if-absent.sh .devcontainer/devcontainer.json .runArgs templates/firewall-capability-entries.json
+  ```
 - `.devcontainer/post-create.sh` — generated by
   [scripts/render-devcontainer.sh](scripts/render-devcontainer.sh), which assembles the base
   skeleton (git identity, Local Checkout git-init, the shared `install_cli`/`chown_config_volume`
@@ -172,7 +198,8 @@ later](docs/adding-ssh-later.md)).
   degrades to skipping the rest of the SSH setup, recording why in `~/.ssh/.ssh-setup-skipped`.
 - `.devcontainer/post-start.sh` ← [templates/post-start-base.sh](templates/post-start-base.sh),
   copied verbatim, chmod +x. Empty skeleton — each CLI skill appends its own skill-sync block here
-  if the user opts into it for that tool.
+  if the user opts into it for that tool, and (below) the base skill appends the firewall
+  invocation if step 3's firewall answer was yes.
 - `.devcontainer/post-attach.sh` ← [templates/post-attach.sh](templates/post-attach.sh),
   substituted, chmod +x.
 - `.devcontainer/.env.example` ← [templates/env.baseline.example](templates/env.baseline.example), substituted.
@@ -182,7 +209,7 @@ later](docs/adding-ssh-later.md)).
   a position.
 - Add `.devcontainer/.env` to `.gitignore` if it isn't already ignored.
 
-If step 3's answer was yes:
+If step 3's SSH answer was yes:
 
 - `.devcontainer/.env.example` gets [templates/env.ssh-block.example](templates/env.ssh-block.example)
   appended, idempotently, and its `GH_TOKEN` comment gets: `Deploy-key registration is manual by
@@ -204,17 +231,52 @@ If step 3's answer was yes:
   scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
   ```
 
+If step 3's firewall answer was yes:
+
+- `.devcontainer/init-firewall.sh` ← [templates/init-firewall.sh](templates/init-firewall.sh),
+  copied verbatim (no placeholders), chmod +x. `.devcontainer/refresh-allowlist.sh` ←
+  [templates/refresh-allowlist.sh](templates/refresh-allowlist.sh), copied verbatim, chmod +x.
+  `.devcontainer/firewall-lib.sh` ← [templates/firewall-lib.sh](templates/firewall-lib.sh), copied
+  verbatim, chmod +x — sourced (not executed directly) by the two scripts above, the single place
+  both build their domain list from (the Network Manifest, via `network-manifest-domains.sh`,
+  plus `allowed-domains.local.txt` below), so they can't independently drift the way two
+  hand-duplicated lists would.
+- `.devcontainer/allowed-domains.local.txt` ←
+  [templates/allowed-domains.local.txt](templates/allowed-domains.local.txt), copied verbatim —
+  empty except for its explanatory header comment. This repo's own project-specific network hosts
+  go here; never touched again by any skill after this.
+- Add `.devcontainer/allowed-domains.local.txt` to `.gitignore` if it isn't already ignored
+  (parallel to `.devcontainer/.env` above).
+- `.devcontainer/post-start.sh` gets
+  [templates/post-start-firewall-block.sh](templates/post-start-firewall-block.sh) appended,
+  idempotently:
+
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Network egress firewall ---" templates/post-start-firewall-block.sh
+  ```
+- `.devcontainer/README.md` gets
+  [templates/README.firewall-block.md](templates/README.firewall-block.md) inserted **before**
+  `## Installed CLI Tools`, and the baseline template's closing "Network egress firewall
+  automation — Not set up here" section is deleted (superseded by the real section):
+
+  ```bash
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## Network egress firewall" "## Installed CLI Tools" templates/README.firewall-block.md
+  scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## Network egress firewall automation"
+  ```
+
 Done when every file above exists, `devcontainer.json` parses as valid JSON with `runArgs`
-containing exactly the baseline capability-drop entries
-(`jq -e '.runArgs | sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-drop=ALL"]' .devcontainer/devcontainer.json`),
-no `{{...}}` placeholder remains
+containing exactly the baseline capability-drop entries, plus `--cap-add=NET_ADMIN` and
+`--cap-add=NET_RAW` if step 3's firewall answer was yes
+(`jq -e '.runArgs | sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
+declined, or `... sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
+accepted), no `{{...}}` placeholder remains
 in any written file (`grep -rn '{{' .devcontainer/`), and `post-create.sh` passes
 [scripts/verify-devcontainer.sh](scripts/verify-devcontainer.sh) for the exact flags it was
 rendered with.
 
 ## 6. Report next steps
 
-Tell the user, adapted to whether SSH is present:
+Tell the user, adapted to whether SSH/the firewall are present:
 
 1. Install Docker Desktop and the **Dev Containers** VS Code extension.
 2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
@@ -225,11 +287,20 @@ Tell the user, adapted to whether SSH is present:
    deploy key and signing key aren't registered yet (the deploy key may already be handled if
    GH_TOKEN had Administration access) — follow them, dismissing each with the `touch` command it
    gives you.}}
+6. {{If the firewall is present: this container's outbound network now default-denies everything
+   except the Network Manifest's allowlist. Add any of this project's own hosts to
+   `.devcontainer/allowed-domains.local.txt` before they're needed — a host missing from there,
+   the Network Manifest, or GitHub's/npm's own ranges is unreachable by design.}}
 
 ## Adding SSH to a tool later
 
 For a repo that already has a devcontainer and now needs agent-driven `git push` / signed commits.
 See [docs/adding-ssh-later.md](docs/adding-ssh-later.md).
+
+## Adding the firewall layer later
+
+For a repo that already has a devcontainer and now wants the opt-in network egress firewall. See
+[docs/adding-firewall-later.md](docs/adding-firewall-later.md).
 
 ## Connecting a Local Checkout to a real GitHub repo
 

@@ -11,11 +11,17 @@ usage() {
   cat >&2 <<'EOF'
 Usage: verify-devcontainer.sh --file <path> --repo-name <name> --repo-slug <slug> \
          [--ssh] [--git-email-default <email>] [--git-name-default <name>] \
-         [--local-checkout-git-init <true|false>] [--git-default-branch <branch>]
+         [--local-checkout-git-init <true|false>] [--git-default-branch <branch>] \
+         [--post-start-file <path>] [--firewall]
 
 Exits 0 if <path> contains exactly the blocks and substitutions expected for
 the given flag combination, non-zero otherwise (printing every failed check
 to stderr).
+
+--post-start-file, if given, is checked against post-start.sh's own expected
+content (post-start-base.sh always, plus the firewall invocation block when
+--firewall is set) — independent of --file/post-create.sh, since the
+firewall layer never touches post-create.sh.
 EOF
 }
 
@@ -33,6 +39,8 @@ HAVE_GIT_EMAIL_DEFAULT=false
 HAVE_GIT_NAME_DEFAULT=false
 LOCAL_CHECKOUT_GIT_INIT="false"
 GIT_DEFAULT_BRANCH=""
+POST_START_FILE=""
+FIREWALL=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,6 +52,8 @@ while [ $# -gt 0 ]; do
     --git-name-default) GIT_NAME_DEFAULT="$2"; HAVE_GIT_NAME_DEFAULT=true; shift 2 ;;
     --local-checkout-git-init) LOCAL_CHECKOUT_GIT_INIT="$2"; shift 2 ;;
     --git-default-branch) GIT_DEFAULT_BRANCH="$2"; shift 2 ;;
+    --post-start-file) POST_START_FILE="$2"; shift 2 ;;
+    --firewall) FIREWALL=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -132,6 +142,36 @@ else
   fi
   if contains "$CONTENT" "$expected_warnings"; then
     fail "ssh-warnings block present but --ssh was not set"
+  fi
+fi
+
+if [ -n "$POST_START_FILE" ]; then
+  if [ ! -f "$POST_START_FILE" ]; then
+    fail "no such post-start file: $POST_START_FILE"
+  else
+    POST_START_CONTENT="$(cat "$POST_START_FILE")"
+
+    expected_post_start_base="$(post_start_base_block)"
+    if ! contains "$POST_START_CONTENT" "$expected_post_start_base"; then
+      fail "post-start.sh base skeleton missing or doesn't match post-start-base.sh"
+    fi
+
+    expected_firewall_post_start="$(firewall_post_start_block)"
+    if [ "$FIREWALL" = true ]; then
+      if ! contains "$POST_START_CONTENT" "$expected_firewall_post_start"; then
+        fail "firewall post-start block missing (--firewall was set)"
+      fi
+      if ! contains "$POST_START_CONTENT" 'sudo /workspace/.devcontainer/init-firewall.sh'; then
+        fail "firewall post-start block doesn't invoke init-firewall.sh as expected"
+      fi
+      if ! contains "$POST_START_CONTENT" 'refresh-allowlist.sh'; then
+        fail "firewall post-start block doesn't start the refresh-allowlist.sh background loop"
+      fi
+    else
+      if contains "$POST_START_CONTENT" "$expected_firewall_post_start"; then
+        fail "firewall post-start block present but --firewall was not set"
+      fi
+    fi
   fi
 fi
 
