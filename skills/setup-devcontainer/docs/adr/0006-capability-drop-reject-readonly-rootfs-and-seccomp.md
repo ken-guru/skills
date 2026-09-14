@@ -110,3 +110,21 @@ stops at the decision. A follow-up effort implements the `--cap-drop`/`--cap-add
   by this decision.
 - If a future effort wants no-new-privileges, it needs its own destination scoped around removing
   this container's dependency on `sudo` first — not an extension of this map.
+
+## Addendum (2026-09-14, from issue #289's Capability Seam reconciliation)
+
+The "Docker's own default profile already covers the genuinely dangerous syscalls" reasoning above
+holds only for a Shared Container without `setup-codex-devcontainer` installed. Codex's own
+Capability Seam entries (`templates/capability-seam-entries.json`) unconditionally include
+`--security-opt=seccomp=unconfined`, required for its own bubblewrap sandbox to function — and
+Docker's `--security-opt seccomp` is a container-wide setting, not scopeable to one process. So in
+any Shared Container with Codex installed, the default seccomp profile this ADR leaned on is already
+disabled entirely, by a pre-existing, independently-justified decision this ADR doesn't change or
+revisit. Recorded here so this ADR's reasoning doesn't read as contradicted by Codex's own
+requirements: the "no custom profile" decision stands regardless — a custom profile would still be
+disabled the same way for Codex installs, so it wouldn't have protected them either. The gap this
+surfaces (no seccomp protection at all when Codex is present) isn't new and isn't something #289's
+reconciliation was chartered to solve. `--cap-drop=ALL` plus the selective `--cap-add` allowlist
+composes cleanly with Codex's `--cap-add=SYS_ADMIN` regardless — Docker computes the final capability
+set as a union of every `--cap-add` entry in `runArgs`, order-independent, so both sides' needs are
+met with no conflict.
