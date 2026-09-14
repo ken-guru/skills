@@ -1,0 +1,21 @@
+{
+  "baseline": {
+    "networkAllowlist": [
+      {
+        "host": "registry.npmjs.org",
+        "purpose": "npm/npx package installs and version checks — needed regardless of which CLI Skills are installed",
+        "source": "https://docs.npmjs.com/cli/v10/using-npm/registry"
+      },
+      {
+        "host": "github.com",
+        "purpose": "git clone/fetch/push over HTTPS",
+        "source": "https://docs.github.com/en/get-started/quickstart/set-up-git"
+      },
+      {
+        "host": "api.github.com",
+        "purpose": "gh CLI API requests (PRs, issues, releases)",
+        "source": "https://docs.github.com/en/rest"
+      }
+    ]
+  }
+}
