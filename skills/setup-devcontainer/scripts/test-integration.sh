@@ -86,9 +86,13 @@ run_scenario() {
 
   local runargs
   runargs=$(jq -c '.runArgs | sort' "$TMP_DIR/devcontainer.json")
-  local expected='["--cap-add=SYS_ADMIN","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  # Must contain both the unconditional baseline cap-drop entries (present
+  # from a fresh copy of the base template, before any CLI skill touches the
+  # file) and Codex's own capability-seam entries, composed cleanly on top —
+  # no duplicates, order-independent (Docker unions --cap-add entries).
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
   if [ "$runargs" != "$expected" ]; then
-    fail "[$order_desc] expected runArgs to contain exactly Codex's capability entries, got $runargs"
+    fail "[$order_desc] expected runArgs to contain baseline cap-drop entries plus Codex's capability entries, got $runargs"
   fi
 
   if ! jq empty "$TMP_DIR/devcontainer.json" 2>/dev/null; then
@@ -115,6 +119,25 @@ run_scenario() {
   rm -rf "$TMP_DIR"
   echo "OK: $order_desc"
 }
+
+# Unconditional capability-drop baseline (issue #293 / ADR-0006): both base
+# templates must already carry the four baseline entries in runArgs on a
+# fresh copy, before any CLI skill's own patch touches the file — not gated
+# behind any setup question, and not something only appears after a CLI
+# skill's patch runs.
+check_fresh_generation_baseline() {
+  local template="$1" label="$2"
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-drop=ALL"]'
+  local runargs
+  runargs=$(jq -c '.runArgs | sort' "$SKILLS_ROOT/setup-devcontainer/templates/$template")
+  if [ "$runargs" != "$expected" ]; then
+    fail "[$label] expected fresh-generation runArgs to be exactly the baseline cap-drop entries, got $runargs"
+  else
+    echo "OK: [$label] fresh-generation runArgs carries exactly the baseline cap-drop entries"
+  fi
+}
+check_fresh_generation_baseline "devcontainer.json" "non-SSH template"
+check_fresh_generation_baseline "devcontainer.with-ssh.json" "SSH template"
 
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
