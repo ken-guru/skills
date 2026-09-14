@@ -86,3 +86,17 @@ Container level; the Capability Seam is where a CLI Skill trades some of it
 back for a capability it specifically needs.
 _Avoid_: sandboxing (too generic), isolation (already used loosely elsewhere
 for the pre-ADR-0002 per-tool-container model)
+
+**Network Manifest**:
+A second, distinct extension point from the Capability Seam: a base-owned
+JSON file where each CLI Skill owns exactly one keyed entry declaring its
+own outbound network needs, and the firewall's init/refresh scripts derive
+their allowlist from it — the single source of truth for "what does this
+CLI need to reach." Opposite direction from the Capability Seam: the
+Capability Seam *widens* (`runArgs`, a CLI Skill loosening beyond Baseline
+Containment); the Network Manifest *narrows/declares* (a CLI Skill stating
+what should be let through a restriction that exists regardless). Don't
+conflate the two just because both are per-CLI-Skill extension points on a
+base-owned file.
+_Avoid_: allowlist (too generic — say Network Manifest for the file, plain
+"allowlist" only for the resulting ipset/firewall rule set it produces)
