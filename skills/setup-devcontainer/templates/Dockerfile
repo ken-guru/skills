@@ -1,7 +1,16 @@
 # Shared devcontainer image. One container for every selected AI CLI —
 # each CLI skill installs its own tool at container-create time (postCreateCommand),
 # not here, so this Dockerfile never changes when a CLI is added or removed.
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
+#
+# Digest-pinned per ADR-0004 (skills/setup-devcontainer/docs/adr/0004-digest-pin-base-image-reject-docker-hardened-images.md)
+# so this build is reproducible and immune to silent upstream content drift.
+# Dependabot (.github/dependabot.yml, docker ecosystem) opens a PR whenever a
+# newer digest is published for the `ubuntu` tag; a weekly CI job
+# (.github/workflows/setup-devcontainer-image-scan.yml) CVE-scans the pinned
+# digest. If Dependabot is ever paused, refresh manually with:
+#   docker buildx imagetools inspect mcr.microsoft.com/devcontainers/base:ubuntu
+# and replace the sha256 below with the reported (multi-arch index) digest.
+FROM mcr.microsoft.com/devcontainers/base:ubuntu@sha256:edfb983aab9c579a385dc23c57d7d3703f5ec920124d99c16204a2cac465aab4
 
 # Node.js — none of the AI CLIs need this themselves (all install as native
 # binaries), but it's kept as a general-purpose amenity for repos whose own
