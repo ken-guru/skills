@@ -126,6 +126,21 @@ later](docs/adding-ssh-later.md)).
   placeholders), chmod +x. Loads `.devcontainer/.env`; referenced as `BASH_ENV` below so every
   non-interactive shell in the container (an AI CLI's own tool calls, which run `bash -c ...` and
   never source `~/.bashrc`) sees `GH_TOKEN` and friends, not just the three lifecycle scripts.
+- `.devcontainer/network-manifest.json` ← [templates/network-manifest.json](templates/network-manifest.json),
+  copied verbatim (no placeholders). This is the **Network Manifest** (see
+  [CONTEXT.md](CONTEXT.md)): an object keyed by CLI name, each value holding a `networkAllowlist`
+  array of `{host, purpose, source}` entries. Seeded here with only the universal baseline every
+  CLI needs regardless of which CLI Skills end up installed (`registry.npmjs.org`, `github.com`,
+  `api.github.com`), filed under a `"baseline"` key rather than a fake CLI name, since it isn't
+  owned by any one CLI. Each CLI Skill later adds its own keyed entry (a separate concern, not
+  generated here). Nothing reads this file yet — it exists so a future opt-in firewall layer has a
+  single source of truth to derive its allowlist from.
+- `.devcontainer/network-manifest-domains.sh` ←
+  [templates/network-manifest-domains.sh](templates/network-manifest-domains.sh), copied verbatim
+  (no placeholders), chmod +x. The Network Manifest's `jq`-based derivation helper: given a
+  manifest file, prints one deduplicated host per line across every keyed entry's
+  `networkAllowlist`. Not invoked by anything generated here yet — it's the primitive a future
+  firewall layer's init/refresh scripts would source.
 - `.devcontainer/devcontainer.json` ← [templates/devcontainer.json](templates/devcontainer.json)
   (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if step 3's
   answer was yes), substitute `{{REPO_NAME}}`. The `runArgs` field starts pre-populated with the
