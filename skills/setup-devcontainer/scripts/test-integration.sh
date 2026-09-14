@@ -199,6 +199,106 @@ check_fresh_generation_baseline() {
 check_fresh_generation_baseline "devcontainer.json" "non-SSH template"
 check_fresh_generation_baseline "devcontainer.with-ssh.json" "SSH template"
 
+# Firewall opt-in (issue #295 / ADR-0005): patching
+# templates/firewall-capability-entries.json onto either base devcontainer.json
+# variant must add exactly NET_ADMIN/NET_RAW on top of the unconditional
+# baseline entries — this is the same Capability Seam primitive
+# setup-codex-devcontainer already uses for its own entries, applied at base-
+# skill generation time (gated on the firewall setup question) rather than by
+# a CLI skill.
+check_firewall_capability_entries() {
+  local template="$1" label="$2"
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-drop=ALL"]'
+  local tmp
+  tmp="$(mktemp)"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/$template" "$tmp"
+  "$PATCH_JSON" "$tmp" .runArgs "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
+  local runargs
+  runargs=$(jq -c '.runArgs | sort' "$tmp")
+  rm -f "$tmp"
+  if [ "$runargs" != "$expected" ]; then
+    fail "[$label] expected runArgs to be baseline cap-drop entries plus NET_ADMIN/NET_RAW, got $runargs"
+  else
+    echo "OK: [$label] firewall opt-in composes baseline runArgs with NET_ADMIN/NET_RAW"
+  fi
+
+  # Re-applying the same patch must be a no-op (idempotent, safe to rerun —
+  # matches docs/adding-firewall-later.md's contract).
+  local tmp2
+  tmp2="$(mktemp)"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/$template" "$tmp2"
+  "$PATCH_JSON" "$tmp2" .runArgs "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
+  "$PATCH_JSON" "$tmp2" .runArgs "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
+  local runargs2
+  runargs2=$(jq -c '.runArgs | sort' "$tmp2")
+  rm -f "$tmp2"
+  if [ "$runargs2" != "$expected" ]; then
+    fail "[$label] second firewall capability patch changed runArgs — not idempotent, got $runargs2"
+  fi
+}
+check_firewall_capability_entries "devcontainer.json" "non-SSH template + firewall"
+check_firewall_capability_entries "devcontainer.with-ssh.json" "SSH template + firewall"
+
+# Firewall entries must also compose cleanly alongside Codex's own
+# capability-seam entries, regardless of patch order — Docker unions every
+# --cap-add entry in runArgs, order-independent (ADR-0006's addendum).
+check_firewall_plus_codex_capability_entries() {
+  local order_desc="$1" first_entries="$2" second_entries="$3"
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  local tmp
+  tmp="$(mktemp)"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$tmp"
+  "$PATCH_JSON" "$tmp" .runArgs "$first_entries"
+  "$PATCH_JSON" "$tmp" .runArgs "$second_entries"
+  local runargs
+  runargs=$(jq -c '.runArgs | sort' "$tmp")
+  rm -f "$tmp"
+  if [ "$runargs" != "$expected" ]; then
+    fail "[$order_desc] expected runArgs to union firewall + Codex capability entries, got $runargs"
+  else
+    echo "OK: [$order_desc] firewall + Codex capability entries compose cleanly"
+  fi
+}
+check_firewall_plus_codex_capability_entries "firewall,codex" \
+  "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json" \
+  "$SKILLS_ROOT/setup-codex-devcontainer/templates/capability-seam-entries.json"
+check_firewall_plus_codex_capability_entries "codex,firewall" \
+  "$SKILLS_ROOT/setup-codex-devcontainer/templates/capability-seam-entries.json" \
+  "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
+
+# Dockerfile.with-firewall must add the firewall's own build-time surface
+# (packages, scoped sudoers rule) on top of the plain Dockerfile's content,
+# unchanged otherwise; the plain Dockerfile must carry none of this, so
+# declining the firewall question truly leaves the image untouched.
+check_dockerfile_firewall_variant() {
+  local dockerfile="$SKILLS_ROOT/setup-devcontainer/templates/Dockerfile"
+  local firewall_dockerfile="$SKILLS_ROOT/setup-devcontainer/templates/Dockerfile.with-firewall"
+
+  if grep -q 'iptables\|ipset\|vscode-firewall' "$dockerfile"; then
+    fail "[Dockerfile] plain Dockerfile must carry no firewall content"
+  else
+    echo "OK: [Dockerfile] plain Dockerfile carries no firewall content"
+  fi
+
+  if ! grep -q 'iptables ipset iproute2 dnsutils aggregate' "$firewall_dockerfile"; then
+    fail "[Dockerfile.with-firewall] missing firewall package install"
+  fi
+  if ! grep -q '/etc/sudoers.d/vscode-firewall' "$firewall_dockerfile"; then
+    fail "[Dockerfile.with-firewall] missing scoped firewall sudoers rule"
+  fi
+  if ! grep -q 'NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh' "$firewall_dockerfile"; then
+    fail "[Dockerfile.with-firewall] sudoers rule must be scoped to exactly init-firewall.sh and refresh-allowlist.sh, nothing broader"
+  fi
+  if ! tail -1 "$firewall_dockerfile" | grep -q '^USER vscode$'; then
+    fail "[Dockerfile.with-firewall] must still end with USER vscode"
+  fi
+  if [ "$(grep -c '^USER vscode$' "$firewall_dockerfile")" -ne 1 ]; then
+    fail "[Dockerfile.with-firewall] expected exactly one USER vscode line"
+  fi
+  echo "OK: [Dockerfile.with-firewall] carries the firewall build-time surface, still ends USER vscode"
+}
+check_dockerfile_firewall_variant
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 

@@ -74,4 +74,12 @@ the
 [setup-devcontainer skill](https://github.com/ken-guru/skills/tree/main/skills/setup-devcontainer)
 (or ask the agent that built this to add it).
 
+## Network egress firewall automation
+
+Not set up here. Outbound network from this container is unrestricted. A
+default-deny allowlist reduces what a misbehaving or compromised AI CLI
+process can reach — see the
+[setup-devcontainer skill](https://github.com/ken-guru/skills/tree/main/skills/setup-devcontainer)
+(or ask the agent that built this to add it).
+
 ## Installed CLI Tools

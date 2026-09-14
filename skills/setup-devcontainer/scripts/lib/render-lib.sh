@@ -74,6 +74,14 @@ render_post_attach_block() {
       "$TEMPLATES_DIR/post-attach.sh"
 }
 
-# The remaining two blocks carry no placeholders — always copied verbatim.
+# The remaining blocks carry no placeholders — always copied verbatim.
 install_cli_block() { cat "$TEMPLATES_DIR/install-cli-block.sh"; }
 ssh_warnings_block() { cat "$TEMPLATES_DIR/post-create-warnings-block.sh"; }
+
+# post-start.sh's base skeleton (no placeholders) and the firewall block a
+# CLI skill's own skill-sync blocks are never involved in — the firewall
+# invocation is base-owned, appended at generation time (see SKILL.md step
+# 5) the same way the SSH block is appended to post-create.sh, not a CLI
+# Skill's own-block.
+post_start_base_block() { cat "$TEMPLATES_DIR/post-start-base.sh"; }
+firewall_post_start_block() { cat "$TEMPLATES_DIR/post-start-firewall-block.sh"; }
