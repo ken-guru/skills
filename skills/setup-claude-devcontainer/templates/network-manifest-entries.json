@@ -1,0 +1,52 @@
+[
+  {
+    "host": "api.anthropic.com",
+    "purpose": "Claude API requests, WebFetch domain safety check, feature-flag fetches, telemetry",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "claude.ai",
+    "purpose": "account auth",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "claude.com",
+    "purpose": "sign-in redirect; pre-approved WebFetch doc lookups",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "platform.claude.com",
+    "purpose": "Console auth, OAuth token exchange",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "mcp-proxy.anthropic.com",
+    "purpose": "MCP connectors from claude.ai",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "downloads.claude.ai",
+    "purpose": "plugin/installer downloads",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "storage.googleapis.com",
+    "purpose": "plugin metadata",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "bridge.claudeusercontent.com",
+    "purpose": "Chrome extension bridge",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "raw.githubusercontent.com",
+    "purpose": "changelog feed",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  },
+  {
+    "host": "code.claude.com",
+    "purpose": "doc lookups",
+    "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+  }
+]

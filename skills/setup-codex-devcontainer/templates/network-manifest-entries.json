@@ -1,0 +1,17 @@
+[
+  {
+    "host": "api.openai.com",
+    "purpose": "Codex API requests",
+    "source": "https://learn.chatgpt.com/docs/agent-approvals-security"
+  },
+  {
+    "host": "auth.openai.com",
+    "purpose": "sign-in / auth token exchange",
+    "source": "observed"
+  },
+  {
+    "host": "chatgpt.com",
+    "purpose": "ChatGPT account sign-in",
+    "source": "observed"
+  }
+]

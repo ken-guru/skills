@@ -27,6 +27,14 @@ TOOLS=(
   "setup-copilot-devcontainer:# --- Copilot ---"
 )
 
+# tool-dir CLI name used as its own Network Manifest key
+CLI_NAMES=(
+  "setup-claude-devcontainer:claude"
+  "setup-codex-devcontainer:codex"
+  "setup-antigravity-devcontainer:antigravity"
+  "setup-copilot-devcontainer:copilot"
+)
+
 marker_for_tool() {
   local tool_dir="$1"
   local entry
@@ -38,14 +46,25 @@ marker_for_tool() {
   done
 }
 
-# Applies every tool's own install-block/readme-bullet/capability-seam
-# patches, in the given order, to the fixture files in $1.
+cliname_for_tool() {
+  local tool_dir="$1"
+  local entry
+  for entry in "${CLI_NAMES[@]}"; do
+    if [ "${entry%%:*}" = "$tool_dir" ]; then
+      echo "${entry#*:}"
+      return
+    fi
+  done
+}
+
+# Applies every tool's own install-block/readme-bullet/capability-seam/
+# network-manifest patches, in the given order, to the fixture files in $1.
 apply_all_patches() {
   local fixture_dir="$1"
   shift
   local tool_order=("$@")
 
-  local tool_dir marker tool_templates
+  local tool_dir marker tool_templates cliname
   for tool_dir in "${tool_order[@]}"; do
     marker="$(marker_for_tool "$tool_dir")"
     tool_templates="$SKILLS_ROOT/$tool_dir/templates"
@@ -53,6 +72,10 @@ apply_all_patches() {
     "$PATCH" append "$fixture_dir/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
     if [ -f "$tool_templates/capability-seam-entries.json" ]; then
       "$PATCH_JSON" "$fixture_dir/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
+    fi
+    if [ -f "$tool_templates/network-manifest-entries.json" ]; then
+      cliname="$(cliname_for_tool "$tool_dir")"
+      "$PATCH_JSON" "$fixture_dir/network-manifest.json" ".${cliname}.networkAllowlist" "$tool_templates/network-manifest-entries.json"
     fi
   done
 }
@@ -67,6 +90,7 @@ run_scenario() {
 
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
@@ -99,10 +123,43 @@ run_scenario() {
     fail "[$order_desc] devcontainer.json is not valid JSON after all patches"
   fi
 
+  if ! jq empty "$TMP_DIR/network-manifest.json" 2>/dev/null; then
+    fail "[$order_desc] network-manifest.json is not valid JSON after all patches"
+  fi
+
+  # Network Manifest must have exactly the baseline key plus one key per
+  # installed CLI Skill in this scenario — no more, no less — and each
+  # CLI's networkAllowlist must exactly match that skill's own template.
+  local expected_manifest_keys actual_manifest_keys
+  local tool_dir cliname tool_templates expected_entries actual_entries
+  expected_manifest_keys=$(
+    {
+      echo "baseline"
+      for tool_dir in "${tool_order[@]}"; do
+        cliname_for_tool "$tool_dir"
+      done
+    } | sort | jq -R . | jq -s -c .
+  )
+  actual_manifest_keys=$(jq -c '. | keys | sort' "$TMP_DIR/network-manifest.json")
+  if [ "$actual_manifest_keys" != "$expected_manifest_keys" ]; then
+    fail "[$order_desc] expected network-manifest.json keys $expected_manifest_keys, got $actual_manifest_keys"
+  fi
+
+  for tool_dir in "${tool_order[@]}"; do
+    cliname="$(cliname_for_tool "$tool_dir")"
+    tool_templates="$SKILLS_ROOT/$tool_dir/templates"
+    expected_entries=$(jq -c '.' "$tool_templates/network-manifest-entries.json")
+    actual_entries=$(jq -c ".${cliname}.networkAllowlist" "$TMP_DIR/network-manifest.json")
+    if [ "$actual_entries" != "$expected_entries" ]; then
+      fail "[$order_desc] .$cliname.networkAllowlist in network-manifest.json does not match $tool_dir's template"
+    fi
+  done
+
   # Second full pass — every patch re-applied — must be a complete no-op.
   cp "$TMP_DIR/post-create.sh" "$TMP_DIR/post-create.sh.before-pass2"
   cp "$TMP_DIR/README.md" "$TMP_DIR/README.md.before-pass2"
   cp "$TMP_DIR/devcontainer.json" "$TMP_DIR/devcontainer.json.before-pass2"
+  cp "$TMP_DIR/network-manifest.json" "$TMP_DIR/network-manifest.json.before-pass2"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
@@ -114,6 +171,9 @@ run_scenario() {
   fi
   if ! diff -q "$TMP_DIR/devcontainer.json.before-pass2" "$TMP_DIR/devcontainer.json" >/dev/null; then
     fail "[$order_desc] second pass changed devcontainer.json — not idempotent"
+  fi
+  if ! diff -q "$TMP_DIR/network-manifest.json.before-pass2" "$TMP_DIR/network-manifest.json" >/dev/null; then
+    fail "[$order_desc] second pass changed network-manifest.json — not idempotent"
   fi
 
   rm -rf "$TMP_DIR"
@@ -144,6 +204,48 @@ run_scenario "claude,codex,antigravity,copilot" \
 
 run_scenario "copilot,antigravity,codex,claude" \
   setup-copilot-devcontainer setup-antigravity-devcontainer setup-codex-devcontainer setup-claude-devcontainer
+
+# Partial install (issue #296): a container with only some of the four CLI
+# Skills installed must end up with a Network Manifest containing only
+# those CLIs' entries (plus baseline) — never all four just because the
+# base skill's manifest primitive is generic.
+run_partial_manifest_scenario() {
+  local label="$1"
+  shift
+  local tool_order=("$@")
+
+  local TMP_DIR
+  TMP_DIR="$(mktemp -d)"
+
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
+  "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
+
+  apply_all_patches "$TMP_DIR" "${tool_order[@]}"
+
+  local expected_manifest_keys actual_manifest_keys
+  local tool_dir
+  expected_manifest_keys=$(
+    {
+      echo "baseline"
+      for tool_dir in "${tool_order[@]}"; do
+        cliname_for_tool "$tool_dir"
+      done
+    } | sort | jq -R . | jq -s -c .
+  )
+  actual_manifest_keys=$(jq -c '. | keys | sort' "$TMP_DIR/network-manifest.json")
+  if [ "$actual_manifest_keys" != "$expected_manifest_keys" ]; then
+    fail "[$label] expected partial-install network-manifest.json keys $expected_manifest_keys, got $actual_manifest_keys"
+  else
+    echo "OK: [$label] network-manifest.json carries only the installed CLIs' keys plus baseline"
+  fi
+
+  rm -rf "$TMP_DIR"
+}
+
+run_partial_manifest_scenario "claude+copilot only" \
+  setup-claude-devcontainer setup-copilot-devcontainer
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
   echo "$FAIL_COUNT check(s) failed" >&2

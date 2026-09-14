@@ -1,0 +1,32 @@
+[
+  {
+    "host": "github.githubassets.com",
+    "purpose": "static assets",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "avatars.githubusercontent.com",
+    "purpose": "user avatars",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "copilot-proxy.githubusercontent.com",
+    "purpose": "suggestions/completions API",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "origin-tracker.githubusercontent.com",
+    "purpose": "origin tracking",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "copilot-telemetry.githubusercontent.com",
+    "purpose": "telemetry",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "default.exp-tas.com",
+    "purpose": "experimentation",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  }
+]
