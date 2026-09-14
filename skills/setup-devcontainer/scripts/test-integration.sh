@@ -19,7 +19,9 @@ fail() {
   FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
-# tool-dir marker
+# tool-dir marker — read via lookup_tool_value's nameref, not by name
+# directly, so shellcheck can't see the use.
+# shellcheck disable=SC2034
 TOOLS=(
   "setup-claude-devcontainer:# --- Claude Code ---"
   "setup-codex-devcontainer:# --- Codex ---"
@@ -27,7 +29,9 @@ TOOLS=(
   "setup-copilot-devcontainer:# --- Copilot ---"
 )
 
-# tool-dir CLI name used as its own Network Manifest key
+# tool-dir CLI name used as its own Network Manifest key — same nameref
+# caveat as TOOLS above.
+# shellcheck disable=SC2034
 CLI_NAMES=(
   "setup-claude-devcontainer:claude"
   "setup-codex-devcontainer:codex"
@@ -35,10 +39,13 @@ CLI_NAMES=(
   "setup-copilot-devcontainer:copilot"
 )
 
-marker_for_tool() {
-  local tool_dir="$1"
+# Looks up $2 (a tool-dir) in $1 (TOOLS or CLI_NAMES), each a "tool_dir:value"
+# parallel array, and prints the matching value.
+lookup_tool_value() {
+  local -n table="$1"
+  local tool_dir="$2"
   local entry
-  for entry in "${TOOLS[@]}"; do
+  for entry in "${table[@]}"; do
     if [ "${entry%%:*}" = "$tool_dir" ]; then
       echo "${entry#*:}"
       return
@@ -46,15 +53,31 @@ marker_for_tool() {
   done
 }
 
-cliname_for_tool() {
-  local tool_dir="$1"
-  local entry
-  for entry in "${CLI_NAMES[@]}"; do
-    if [ "${entry%%:*}" = "$tool_dir" ]; then
-      echo "${entry#*:}"
-      return
-    fi
-  done
+marker_for_tool() { lookup_tool_value TOOLS "$1"; }
+cliname_for_tool() { lookup_tool_value CLI_NAMES "$1"; }
+
+# Network Manifest must have exactly the baseline key plus one key per
+# installed CLI Skill in $2.. — no more, no less. Fails (via the global
+# fail()) and returns non-zero on mismatch, so a caller can still print its
+# own success line on top.
+assert_manifest_keys() {
+  local label="$1" manifest_file="$2"
+  shift 2
+  local tool_order=("$@")
+  local tool_dir expected_manifest_keys actual_manifest_keys
+  expected_manifest_keys=$(
+    {
+      echo "baseline"
+      for tool_dir in "${tool_order[@]}"; do
+        cliname_for_tool "$tool_dir"
+      done
+    } | sort | jq -R . | jq -s -c .
+  )
+  actual_manifest_keys=$(jq -c '. | keys | sort' "$manifest_file")
+  if [ "$actual_manifest_keys" != "$expected_manifest_keys" ]; then
+    fail "[$label] expected network-manifest.json keys $expected_manifest_keys, got $actual_manifest_keys"
+    return 1
+  fi
 }
 
 # Applies every tool's own install-block/readme-bullet/capability-seam/
@@ -130,20 +153,8 @@ run_scenario() {
   # Network Manifest must have exactly the baseline key plus one key per
   # installed CLI Skill in this scenario — no more, no less — and each
   # CLI's networkAllowlist must exactly match that skill's own template.
-  local expected_manifest_keys actual_manifest_keys
   local tool_dir cliname tool_templates expected_entries actual_entries
-  expected_manifest_keys=$(
-    {
-      echo "baseline"
-      for tool_dir in "${tool_order[@]}"; do
-        cliname_for_tool "$tool_dir"
-      done
-    } | sort | jq -R . | jq -s -c .
-  )
-  actual_manifest_keys=$(jq -c '. | keys | sort' "$TMP_DIR/network-manifest.json")
-  if [ "$actual_manifest_keys" != "$expected_manifest_keys" ]; then
-    fail "[$order_desc] expected network-manifest.json keys $expected_manifest_keys, got $actual_manifest_keys"
-  fi
+  assert_manifest_keys "$order_desc" "$TMP_DIR/network-manifest.json" "${tool_order[@]}" || true
 
   for tool_dir in "${tool_order[@]}"; do
     cliname="$(cliname_for_tool "$tool_dir")"
@@ -347,20 +358,7 @@ run_partial_manifest_scenario() {
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
-  local expected_manifest_keys actual_manifest_keys
-  local tool_dir
-  expected_manifest_keys=$(
-    {
-      echo "baseline"
-      for tool_dir in "${tool_order[@]}"; do
-        cliname_for_tool "$tool_dir"
-      done
-    } | sort | jq -R . | jq -s -c .
-  )
-  actual_manifest_keys=$(jq -c '. | keys | sort' "$TMP_DIR/network-manifest.json")
-  if [ "$actual_manifest_keys" != "$expected_manifest_keys" ]; then
-    fail "[$label] expected partial-install network-manifest.json keys $expected_manifest_keys, got $actual_manifest_keys"
-  else
+  if assert_manifest_keys "$label" "$TMP_DIR/network-manifest.json" "${tool_order[@]}"; then
     echo "OK: [$label] network-manifest.json carries only the installed CLIs' keys plus baseline"
   fi
 

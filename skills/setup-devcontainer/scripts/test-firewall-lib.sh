@@ -56,47 +56,37 @@ BASELINE_MANIFEST='{
   }
 }'
 
-# --- baseline manifest alone, no local file at all ---
-case_dir="$TMP_DIR/case-baseline-no-local"
-setup_case "$case_dir" "$BASELINE_MANIFEST" ""
-(
-  FIREWALL_DEVCONTAINER_DIR="$case_dir"
-  # shellcheck source=../templates/firewall-lib.sh
-  source "$TEMPLATES_DIR/firewall-lib.sh"
-  firewall_collect_domains
-  printf '%s\n' "${FIREWALL_DOMAINS[@]}" > "$TMP_DIR/case-baseline-no-local.out"
-)
-actual="$(cat "$TMP_DIR/case-baseline-no-local.out")"
-expected="$(printf 'registry.npmjs.org\ngithub.com\napi.github.com')"
-assert_eq "baseline manifest, no local file: exactly the manifest hosts" "$expected" "$actual"
+# Builds case $1 (manifest $2, local-domains content $3), sources
+# firewall-lib.sh with FIREWALL_DEVCONTAINER_DIR pointed at it, runs
+# firewall_collect_domains, and asserts FIREWALL_DOMAINS against $4 ($5 as
+# the assert_eq label).
+run_collect_domains_case() {
+  local case_name="$1" manifest_json="$2" local_content="$3" expected="$4" label="$5"
+  local case_dir="$TMP_DIR/$case_name"
+  setup_case "$case_dir" "$manifest_json" "$local_content"
+  (
+    FIREWALL_DEVCONTAINER_DIR="$case_dir"
+    # shellcheck source=../templates/firewall-lib.sh
+    source "$TEMPLATES_DIR/firewall-lib.sh"
+    firewall_collect_domains
+    printf '%s\n' "${FIREWALL_DOMAINS[@]}" > "$TMP_DIR/$case_name.out"
+  )
+  assert_eq "$label" "$expected" "$(cat "$TMP_DIR/$case_name.out")"
+}
 
-# --- baseline manifest + local file with hosts, comments, and blank lines ---
-case_dir="$TMP_DIR/case-baseline-plus-local"
-setup_case "$case_dir" "$BASELINE_MANIFEST" "$(printf '# my project hosts\n\napi.example.com\n  api2.example.com  \n# api3.example.com (disabled)\n')"
-(
-  FIREWALL_DEVCONTAINER_DIR="$case_dir"
-  # shellcheck source=../templates/firewall-lib.sh
-  source "$TEMPLATES_DIR/firewall-lib.sh"
-  firewall_collect_domains
-  printf '%s\n' "${FIREWALL_DOMAINS[@]}" > "$TMP_DIR/case-baseline-plus-local.out"
-)
-actual="$(cat "$TMP_DIR/case-baseline-plus-local.out")"
-expected="$(printf 'registry.npmjs.org\ngithub.com\napi.github.com\napi.example.com\napi2.example.com')"
-assert_eq "baseline manifest + local file: manifest hosts then local hosts, comments/blanks/whitespace stripped" "$expected" "$actual"
+run_collect_domains_case "case-baseline-no-local" "$BASELINE_MANIFEST" "" \
+  "$(printf 'registry.npmjs.org\ngithub.com\napi.github.com')" \
+  "baseline manifest, no local file: exactly the manifest hosts"
+
+run_collect_domains_case "case-baseline-plus-local" "$BASELINE_MANIFEST" \
+  "$(printf '# my project hosts\n\napi.example.com\n  api2.example.com  \n# api3.example.com (disabled)\n')" \
+  "$(printf 'registry.npmjs.org\ngithub.com\napi.github.com\napi.example.com\napi2.example.com')" \
+  "baseline manifest + local file: manifest hosts then local hosts, comments/blanks/whitespace stripped"
 
 # --- local file present but entirely comments/blank: contributes nothing, no crash ---
-case_dir="$TMP_DIR/case-empty-local"
-setup_case "$case_dir" "$BASELINE_MANIFEST" "$(printf '# nothing here yet\n\n')"
-(
-  FIREWALL_DEVCONTAINER_DIR="$case_dir"
-  # shellcheck source=../templates/firewall-lib.sh
-  source "$TEMPLATES_DIR/firewall-lib.sh"
-  firewall_collect_domains
-  printf '%s\n' "${FIREWALL_DOMAINS[@]}" > "$TMP_DIR/case-empty-local.out"
-)
-actual="$(cat "$TMP_DIR/case-empty-local.out")"
-expected="$(printf 'registry.npmjs.org\ngithub.com\napi.github.com')"
-assert_eq "local file present but empty of real hosts: falls back to manifest hosts alone" "$expected" "$actual"
+run_collect_domains_case "case-empty-local" "$BASELINE_MANIFEST" "$(printf '# nothing here yet\n\n')" \
+  "$(printf 'registry.npmjs.org\ngithub.com\napi.github.com')" \
+  "local file present but empty of real hosts: falls back to manifest hosts alone"
 
 # --- multiple manifest entries (baseline + a CLI) + local file, full composition ---
 MULTI_MANIFEST='{
@@ -111,18 +101,9 @@ MULTI_MANIFEST='{
     ]
   }
 }'
-case_dir="$TMP_DIR/case-multi-plus-local"
-setup_case "$case_dir" "$MULTI_MANIFEST" "$(printf 'myproject-api.example.com\n')"
-(
-  FIREWALL_DEVCONTAINER_DIR="$case_dir"
-  # shellcheck source=../templates/firewall-lib.sh
-  source "$TEMPLATES_DIR/firewall-lib.sh"
-  firewall_collect_domains
-  printf '%s\n' "${FIREWALL_DOMAINS[@]}" > "$TMP_DIR/case-multi-plus-local.out"
-)
-actual="$(cat "$TMP_DIR/case-multi-plus-local.out")"
-expected="$(printf 'registry.npmjs.org\napi.anthropic.com\nmyproject-api.example.com')"
-assert_eq "multiple manifest entries + local file: manifest order preserved, local appended last" "$expected" "$actual"
+run_collect_domains_case "case-multi-plus-local" "$MULTI_MANIFEST" "$(printf 'myproject-api.example.com\n')" \
+  "$(printf 'registry.npmjs.org\napi.anthropic.com\nmyproject-api.example.com')" \
+  "multiple manifest entries + local file: manifest order preserved, local appended last"
 
 # --- missing manifest file: firewall_collect_domains returns non-zero, does not exit the caller ---
 case_dir="$TMP_DIR/case-missing-manifest"

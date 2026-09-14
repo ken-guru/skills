@@ -6,8 +6,9 @@
   (`.devcontainer/init-firewall.sh`), run on every container start via
   `postStartCommand`, with a background loop
   (`.devcontainer/refresh-allowlist.sh`) that re-resolves and atomically
-  swaps in the full allowlist every 5 minutes so CDN-backed hosts (whose IPs
-  rotate) don't go stale mid-session.
+  swaps in the full allowlist every 5 minutes (override with the
+  `FIREWALL_REFRESH_INTERVAL` env var, in seconds) so CDN-backed hosts
+  (whose IPs rotate) don't go stale mid-session.
 - The allowlist is built entirely from the **Network Manifest**
   (`.devcontainer/network-manifest.json`) — a base-owned JSON file where
   each installed CLI Skill declares its own required hosts, derived by

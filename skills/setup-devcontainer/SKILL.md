@@ -169,10 +169,12 @@ later](docs/adding-firewall-later.md)).
   points at `bash-env.sh` above — this is what makes `GH_TOKEN` visible to an AI CLI's own tool
   calls, not just the lifecycle scripts. If step 3's firewall answer was yes, also patch in the
   firewall's own capability grant (`--cap-add=NET_ADMIN --cap-add=NET_RAW` — `iptables`/`ipset`
-  need them), through the same Capability Seam primitive, at generation time rather than via a
-  later CLI-skill patch, since this is conditional on the base skill's own setup question, not on
-  any particular CLI, and switch `build.target` from `"base"` to `"firewall"` so the Dockerfile's
-  firewall stage (above) actually gets built:
+  need them), through the same `patch-json-array-if-absent.sh` primitive the Capability Seam itself
+  is built on — not the Capability Seam extension point itself, since this is the base skill
+  writing to `runArgs` it already owns, not a CLI skill appending on top — applied at generation
+  time rather than via a later CLI-skill patch, since this is conditional on the base skill's own
+  setup question, not on any particular CLI, and switch `build.target` from `"base"` to
+  `"firewall"` so the Dockerfile's firewall stage (above) actually gets built:
 
   ```bash
   scripts/patch-json-array-if-absent.sh .devcontainer/devcontainer.json .runArgs templates/firewall-capability-entries.json

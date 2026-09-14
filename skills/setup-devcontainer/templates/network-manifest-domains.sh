@@ -17,10 +17,10 @@ set -euo pipefail
 # hosts; that's expected, not an error, since not every CLI Skill installed
 # in a given container declares one.
 #
-# ticket #295's firewall init/refresh scripts are the intended future
-# consumer of this file's output (copied into .devcontainer/ alongside
-# network-manifest.json — see setup-devcontainer/SKILL.md step 5); nothing
-# consumes it yet.
+# firewall-lib.sh's firewall_collect_domains() (copied into .devcontainer/
+# alongside network-manifest.json — see setup-devcontainer/SKILL.md step 5)
+# is the consumer: both init-firewall.sh and refresh-allowlist.sh source it
+# to build their domain list.
 
 usage() {
   cat >&2 <<'EOF'
