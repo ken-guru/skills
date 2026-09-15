@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Keeps skills/setup-devcontainer/templates/Dockerfile's digest-pinned base
+  # image (ADR-0004) current: opens a PR whenever a newer digest is published
+  # for the pinned `mcr.microsoft.com/devcontainers/base:ubuntu` tag.
+  - package-ecosystem: "docker"
+    directory: "/skills/setup-devcontainer/templates"
+    schedule:
+      interval: "weekly"

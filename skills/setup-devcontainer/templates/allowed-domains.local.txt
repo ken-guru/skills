@@ -1,0 +1,11 @@
+# This project's own network hosts for the opt-in firewall layer (ADR-0005),
+# one host per line. Blank lines and lines starting with # are ignored.
+#
+# Read by .devcontainer/init-firewall.sh and .devcontainer/refresh-allowlist.sh
+# alongside the Network Manifest's derived domains (network-manifest.json) —
+# use this file for hosts specific to *this* project (your own API, a
+# private package registry, etc.), not for anything a CLI Skill or the base
+# skill already declares in the Network Manifest.
+#
+# Created empty by setup-devcontainer and never touched again by any skill —
+# add your project's hosts directly, they survive every rerun.

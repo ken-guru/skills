@@ -1,0 +1,46 @@
+name: Setup devcontainer image scan
+
+# Weekly, schedule-triggered CVE surfacing job — deliberately separate from
+# setup-devcontainer-tool-container.yml's PR-triggered render/verify/integration
+# job. That job never runs `docker build` on the template Dockerfile at all; this
+# one builds the pinned digest and scans it on a recurring cadence so a CVE
+# disclosed against an already-pinned, unchanged digest still surfaces over time
+# (see ADR-0004, skills/setup-devcontainer/docs/adr/0004-digest-pin-base-image-reject-docker-hardened-images.md).
+on:
+  schedule:
+    # Every Monday 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: setup-devcontainer-image-scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image-scan:
+    name: Build template image and scan for CVEs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build shared devcontainer image
+        run: |
+          docker build \
+            -f skills/setup-devcontainer/templates/Dockerfile \
+            -t setup-devcontainer-image-scan:latest \
+            skills/setup-devcontainer/templates
+
+      - name: Scan built image for CVEs
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: setup-devcontainer-image-scan:latest
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"

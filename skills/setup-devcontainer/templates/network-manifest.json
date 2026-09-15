@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "networkAllowlist": [
+      {
+        "host": "registry.npmjs.org",
+        "purpose": "npm/npx package installs and version checks — needed regardless of which CLI Skills are installed",
+        "source": "https://docs.npmjs.com/cli/v10/using-npm/registry"
+      },
+      {
+        "host": "github.com",
+        "purpose": "git clone/fetch/push over HTTPS",
+        "source": "https://docs.github.com/en/get-started/quickstart/set-up-git"
+      },
+      {
+        "host": "api.github.com",
+        "purpose": "gh CLI API requests (PRs, issues, releases)",
+        "source": "https://docs.github.com/en/rest"
+      },
+      {
+        "host": "archive.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (amd64/i386 hosts) — without this, `apt-get update` silently fails to refresh the package index and only already-cached packages remain installable",
+        "source": "observed"
+      },
+      {
+        "host": "ports.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (arm64 and other non-amd64/i386 hosts, per the base image's own /etc/apt/sources.list.d/ubuntu.sources) — same failure mode as archive.ubuntu.com above",
+        "source": "observed"
+      }
+    ]
+  }
+}

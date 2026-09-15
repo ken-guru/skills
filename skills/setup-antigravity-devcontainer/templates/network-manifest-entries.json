@@ -1,0 +1,42 @@
+[
+  {
+    "host": "aiplatform.googleapis.com",
+    "purpose": "Agent Platform API",
+    "source": "https://antigravity.google/docs/enterprise/"
+  },
+  {
+    "host": "antigravity.google",
+    "purpose": "product surface / web app",
+    "source": "observed"
+  },
+  {
+    "host": "antigravity-cli-auto-updater-974169037036.us-central1.run.app",
+    "purpose": "CLI auto-updater",
+    "source": "observed"
+  },
+  {
+    "host": "storage.googleapis.com",
+    "purpose": "asset/config storage",
+    "source": "observed"
+  },
+  {
+    "host": "accounts.google.com",
+    "purpose": "Google account auth",
+    "source": "observed"
+  },
+  {
+    "host": "oauth2.googleapis.com",
+    "purpose": "OAuth token exchange",
+    "source": "observed"
+  },
+  {
+    "host": "daily-cloudcode-pa.googleapis.com",
+    "purpose": "Cloud Code backend API",
+    "source": "observed"
+  },
+  {
+    "host": "lh3.googleusercontent.com",
+    "purpose": "user avatar/profile images",
+    "source": "observed"
+  }
+]

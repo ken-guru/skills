@@ -21,14 +21,15 @@ RUN_COUNT=0
 FAIL_COUNT=0
 
 run_case() {
-  local ssh="$1" have_git_defaults="$2"
+  local ssh="$1" have_git_defaults="$2" firewall="$3"
   RUN_COUNT=$((RUN_COUNT + 1))
 
-  local label="ssh=$ssh git-defaults=$have_git_defaults"
+  local label="ssh=$ssh git-defaults=$have_git_defaults firewall=$firewall"
   local out="$TMP_DIR/$RUN_COUNT-post-create.sh"
+  local post_start_out="$TMP_DIR/$RUN_COUNT-post-start.sh"
 
-  local render_args=(--repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out")
-  local verify_args=(--file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets")
+  local render_args=(--repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out" --post-start-out "$post_start_out")
+  local verify_args=(--file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" --post-start-file "$post_start_out")
 
   if [ "$ssh" = true ]; then
     render_args+=(--ssh)
@@ -37,6 +38,10 @@ run_case() {
   if [ "$have_git_defaults" = true ]; then
     render_args+=(--git-email-default "dev@example.com" --git-name-default "Dev Example")
     verify_args+=(--git-email-default "dev@example.com" --git-name-default "Dev Example")
+  fi
+  if [ "$firewall" = true ]; then
+    render_args+=(--firewall)
+    verify_args+=(--firewall)
   fi
 
   if ! "$RENDER" "${render_args[@]}"; then
@@ -53,7 +58,9 @@ run_case() {
 
 for ssh in $BOOLS; do
   for git_defaults in $BOOLS; do
-    run_case "$ssh" "$git_defaults"
+    for firewall in $BOOLS; do
+      run_case "$ssh" "$git_defaults" "$firewall"
+    done
   done
 done
 
@@ -120,6 +127,39 @@ check_post_attach() {
   fi
 }
 check_post_attach
+
+# Dockerfile and network-manifest.json don't vary by ssh/git-defaults/firewall
+# (one file each, always copied verbatim — ADR-0004's digest pin and
+# ADR-0005's multi-stage build/manifest skeleton), so — same precedent as
+# run_case_local_checkout and check_post_attach above — this is a one-off
+# spot-check outside the main matrix, not something to repeat per
+# combination.
+check_dockerfile_and_network_manifest() {
+  RUN_COUNT=$((RUN_COUNT + 1))
+  local label="Dockerfile + network-manifest.json"
+  local templates_dir out dockerfile_out manifest_out
+
+  templates_dir="$(cd "$SCRIPT_DIR/../templates" && pwd)"
+  out="$TMP_DIR/$RUN_COUNT-post-create.sh"
+  dockerfile_out="$TMP_DIR/$RUN_COUNT-Dockerfile"
+  manifest_out="$TMP_DIR/$RUN_COUNT-network-manifest.json"
+
+  cp "$templates_dir/Dockerfile" "$dockerfile_out"
+  cp "$templates_dir/network-manifest.json" "$manifest_out"
+
+  if ! "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out"; then
+    echo "FAIL (render): $label" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    return
+  fi
+
+  if ! "$VERIFY" --file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" \
+       --dockerfile-file "$dockerfile_out" --network-manifest-file "$manifest_out" >/dev/null; then
+    echo "FAIL (verify): $label" >&2
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  fi
+}
+check_dockerfile_and_network_manifest
 
 echo "Ran $RUN_COUNT combinations, $FAIL_COUNT failed."
 if [ "$FAIL_COUNT" -gt 0 ]; then

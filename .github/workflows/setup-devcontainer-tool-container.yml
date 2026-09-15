@@ -75,5 +75,11 @@ jobs:
       - name: Run patch-json-array-if-absent.sh (Capability Seam) idempotency tests
         run: skills/setup-devcontainer/scripts/test-patch-json-array-if-absent.sh
 
+      - name: Run network-manifest-domains.sh (Network Manifest) derivation tests
+        run: skills/setup-devcontainer/scripts/test-network-manifest-domains.sh
+
+      - name: Run firewall-lib.sh domain-collection tests
+        run: skills/setup-devcontainer/scripts/test-firewall-lib.sh
+
       - name: Run end-to-end integration check across all four CLI skills
         run: skills/setup-devcontainer/scripts/test-integration.sh

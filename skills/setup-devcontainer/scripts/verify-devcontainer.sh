@@ -11,11 +11,26 @@ usage() {
   cat >&2 <<'EOF'
 Usage: verify-devcontainer.sh --file <path> --repo-name <name> --repo-slug <slug> \
          [--ssh] [--git-email-default <email>] [--git-name-default <name>] \
-         [--local-checkout-git-init <true|false>] [--git-default-branch <branch>]
+         [--local-checkout-git-init <true|false>] [--git-default-branch <branch>] \
+         [--post-start-file <path>] [--firewall] \
+         [--dockerfile-file <path>] [--network-manifest-file <path>]
 
 Exits 0 if <path> contains exactly the blocks and substitutions expected for
 the given flag combination, non-zero otherwise (printing every failed check
 to stderr).
+
+--post-start-file, if given, is checked against post-start.sh's own expected
+content (post-start-base.sh always, plus the firewall invocation block when
+--firewall is set) — independent of --file/post-create.sh, since the
+firewall layer never touches post-create.sh.
+
+--dockerfile-file and --network-manifest-file, if given, are each checked
+independently against templates/Dockerfile and templates/network-manifest.json
+(both copied verbatim, no placeholders, one file each regardless of any
+flag above) — plus, for the Dockerfile, that it's still digest-pinned
+(ADR-0004) and still exposes both the "base" and "firewall" build stages
+(ADR-0005), and for the manifest, that it's valid JSON seeding the
+universal baseline hosts.
 EOF
 }
 
@@ -33,6 +48,10 @@ HAVE_GIT_EMAIL_DEFAULT=false
 HAVE_GIT_NAME_DEFAULT=false
 LOCAL_CHECKOUT_GIT_INIT="false"
 GIT_DEFAULT_BRANCH=""
+POST_START_FILE=""
+FIREWALL=false
+DOCKERFILE_FILE=""
+NETWORK_MANIFEST_FILE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,6 +63,10 @@ while [ $# -gt 0 ]; do
     --git-name-default) GIT_NAME_DEFAULT="$2"; HAVE_GIT_NAME_DEFAULT=true; shift 2 ;;
     --local-checkout-git-init) LOCAL_CHECKOUT_GIT_INIT="$2"; shift 2 ;;
     --git-default-branch) GIT_DEFAULT_BRANCH="$2"; shift 2 ;;
+    --post-start-file) POST_START_FILE="$2"; shift 2 ;;
+    --firewall) FIREWALL=true; shift ;;
+    --dockerfile-file) DOCKERFILE_FILE="$2"; shift 2 ;;
+    --network-manifest-file) NETWORK_MANIFEST_FILE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -132,6 +155,75 @@ else
   fi
   if contains "$CONTENT" "$expected_warnings"; then
     fail "ssh-warnings block present but --ssh was not set"
+  fi
+fi
+
+if [ -n "$POST_START_FILE" ]; then
+  if [ ! -f "$POST_START_FILE" ]; then
+    fail "no such post-start file: $POST_START_FILE"
+  else
+    POST_START_CONTENT="$(cat "$POST_START_FILE")"
+
+    expected_post_start_base="$(post_start_base_block)"
+    if ! contains "$POST_START_CONTENT" "$expected_post_start_base"; then
+      fail "post-start.sh base skeleton missing or doesn't match post-start-base.sh"
+    fi
+
+    expected_firewall_post_start="$(firewall_post_start_block)"
+    if [ "$FIREWALL" = true ]; then
+      if ! contains "$POST_START_CONTENT" "$expected_firewall_post_start"; then
+        fail "firewall post-start block missing (--firewall was set)"
+      fi
+      if ! contains "$POST_START_CONTENT" 'sudo /workspace/.devcontainer/init-firewall.sh'; then
+        fail "firewall post-start block doesn't invoke init-firewall.sh as expected"
+      fi
+      if ! contains "$POST_START_CONTENT" 'refresh-allowlist.sh'; then
+        fail "firewall post-start block doesn't start the refresh-allowlist.sh background loop"
+      fi
+    else
+      if contains "$POST_START_CONTENT" "$expected_firewall_post_start"; then
+        fail "firewall post-start block present but --firewall was not set"
+      fi
+    fi
+  fi
+fi
+
+if [ -n "$DOCKERFILE_FILE" ]; then
+  if [ ! -f "$DOCKERFILE_FILE" ]; then
+    fail "no such Dockerfile: $DOCKERFILE_FILE"
+  else
+    DOCKERFILE_CONTENT="$(cat "$DOCKERFILE_FILE")"
+    expected_dockerfile="$(dockerfile_block)"
+    if [ "$DOCKERFILE_CONTENT" != "$expected_dockerfile" ]; then
+      fail "Dockerfile content doesn't match templates/Dockerfile verbatim"
+    fi
+    if ! contains "$DOCKERFILE_CONTENT" '@sha256:'; then
+      fail "Dockerfile's base image isn't digest-pinned (ADR-0004) — no @sha256: found on the FROM line"
+    fi
+    if ! contains "$DOCKERFILE_CONTENT" 'AS base'; then
+      fail "Dockerfile missing its \"base\" build stage (ADR-0005 multi-stage)"
+    fi
+    if ! contains "$DOCKERFILE_CONTENT" 'AS firewall'; then
+      fail "Dockerfile missing its \"firewall\" build stage (ADR-0005 multi-stage)"
+    fi
+  fi
+fi
+
+if [ -n "$NETWORK_MANIFEST_FILE" ]; then
+  if [ ! -f "$NETWORK_MANIFEST_FILE" ]; then
+    fail "no such Network Manifest: $NETWORK_MANIFEST_FILE"
+  else
+    NETWORK_MANIFEST_CONTENT="$(cat "$NETWORK_MANIFEST_FILE")"
+    expected_manifest="$(network_manifest_block)"
+    if [ "$NETWORK_MANIFEST_CONTENT" != "$expected_manifest" ]; then
+      fail "network-manifest.json content doesn't match templates/network-manifest.json verbatim"
+    fi
+    if ! jq empty "$NETWORK_MANIFEST_FILE" >/dev/null 2>&1; then
+      fail "network-manifest.json is not valid JSON"
+    elif ! jq -e '.baseline.networkAllowlist | map(.host) | contains(["registry.npmjs.org","github.com","api.github.com"])' \
+        "$NETWORK_MANIFEST_FILE" >/dev/null 2>&1; then
+      fail "network-manifest.json's baseline entry is missing one of the universal hosts (registry.npmjs.org, github.com, api.github.com)"
+    fi
   fi
 fi
 
