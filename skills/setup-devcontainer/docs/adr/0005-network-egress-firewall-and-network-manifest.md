@@ -145,3 +145,28 @@ and its derivation helper, and the setup-flow question.
   is opted into, matching what the reference mechanism requires.
 - No change to any repo that declines the opt-in question — the Shared Container's unrestricted
   network behavior is unchanged for anyone who says no.
+
+## Addendum (2026-09-15, from PR #290's own manual validation)
+
+This Decision's framing — bounding what "a misbehaving *or compromised* AI CLI process" (issue
+#291's Problem Statement) can reach — turns out to only hold for the first half. Verified live: the
+base image (`mcr.microsoft.com/devcontainers/base:ubuntu`) bakes in a blanket
+`vscode ALL=(root) NOPASSWD: ALL` sudoers grant, independent of and unnarrowed by this firewall's
+own scoped `/etc/sudoers.d/vscode-firewall` rule. As `vscode`, running
+`sudo iptables -P OUTPUT ACCEPT && sudo iptables -F OUTPUT` (the same policy-reset-before-flush
+pattern `init-firewall.sh` uses for its own bootstrap) fully disables a running firewall — a
+previously-blocked host becomes reachable immediately, no restart needed.
+
+This isn't a bug in the mechanism above — the firewall does exactly what it says against a process
+that never thinks to touch `iptables`. It's a gap in the threat model's second half: a *deliberately
+compromised* process, running as `vscode`, can simply undo the firewall the same way a legitimate
+troubleshooting session would reset it. Not fixed here — narrowing `vscode`'s blanket sudo access
+runs into the same wall ADR-0006 already hit rejecting `no-new-privileges` (this container's own
+mechanisms, including this firewall's own invocation, depend on `sudo` working, and issue #291
+story 19 promises an open-ended ad hoc `sudo apt-get install <anything>` keeps working — fundamentally
+in tension with a fixed command allowlist). Tracked as
+[issue #298](https://github.com/ken-guru/skills/issues/298) for a future effort with its own
+destination, not fog this ADR's Wayfinder map should carry. This firewall retains its value as a
+guardrail against accidental/naive misbehavior and reachability mistakes — see the threat-model note
+added to `templates/README.firewall-block.md` — just not as a sandbox against a fully compromised
+process specifically.

@@ -83,7 +83,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # script failing partway through. Mirrors Anthropic's own reference
 # devcontainer's approach of baking this into the Dockerfile rather than
 # granting it at runtime.
-RUN echo 'vscode ALL=(root) NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh' \
+#
+# `sudo`'s default env_reset strips every custom env var, including
+# refresh-allowlist.sh's own FIREWALL_REFRESH_INTERVAL override — without
+# env_keep it silently always falls back to that script's 300s default no
+# matter what a repo sets in .env. Scoped to exactly this one variable, for
+# exactly the vscode user, not a blanket env passthrough.
+RUN { echo 'Defaults:vscode env_keep += "FIREWALL_REFRESH_INTERVAL"'; \
+      echo 'vscode ALL=(root) NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh'; } \
       > /etc/sudoers.d/vscode-firewall \
     && chmod 0440 /etc/sudoers.d/vscode-firewall
 

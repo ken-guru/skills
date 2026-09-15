@@ -48,3 +48,15 @@ script.
 this layer is present — `iptables`/`ipset` need them, and they're withheld
 entirely (along with the rest of this layer) if you declined the firewall
 question at setup.
+
+**What this firewall does and doesn't protect against:** it blocks a
+process that tries to reach a host outside the allowlist — accidental
+misconfiguration, a naive script hitting the wrong endpoint, a dependency
+phoning home somewhere unexpected. It does **not** block a process that
+deliberately runs `sudo iptables -F` (or any other root command) to
+disable enforcement itself: `vscode` has passwordless root via a sudoers
+grant baked into the base image, independent of and not narrowed by this
+firewall layer's own scoped rule. Treat this firewall as a guardrail
+against mistakes, not a sandbox against a fully compromised agent
+process — narrowing that is a separate, larger effort than this layer
+alone.

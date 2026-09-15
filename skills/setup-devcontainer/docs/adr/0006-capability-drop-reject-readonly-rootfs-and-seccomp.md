@@ -166,4 +166,6 @@ container's root doesn't have, `sudo` still can't grant regardless of the sudoer
 does mean a compromised (not just misbehaving) process running as `vscode` can invoke any root
 command, including disabling the firewall's own iptables rules, once `sudo` itself works again per
 the fix above. Tracked as a known, accepted limitation of this container's `sudo`-dependent design
-rather than something this ADR's cap-drop decision was ever positioned to close.
+rather than something this ADR's cap-drop decision was ever positioned to close — see ADR-0005's own
+addendum for the full threat-model treatment and [issue #298](https://github.com/ken-guru/skills/issues/298)
+for the future effort that would need to exist to close it.

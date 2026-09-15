@@ -323,6 +323,9 @@ check_dockerfile_stages() {
   if ! echo "$firewall_stage" | grep -q 'NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh'; then
     fail "[Dockerfile firewall stage] sudoers rule must be scoped to exactly init-firewall.sh and refresh-allowlist.sh, nothing broader"
   fi
+  if ! echo "$firewall_stage" | grep -q 'env_keep += "FIREWALL_REFRESH_INTERVAL"'; then
+    fail "[Dockerfile firewall stage] missing env_keep for FIREWALL_REFRESH_INTERVAL — sudo's env_reset would silently strip it, making the interval override dead"
+  fi
   if [ "$(echo "$firewall_stage" | tail -1)" != "USER vscode" ]; then
     fail "[Dockerfile firewall stage] must end with USER vscode"
   fi

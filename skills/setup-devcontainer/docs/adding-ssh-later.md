@@ -35,13 +35,14 @@ already exists by construction, so this flow only adds the SSH mount and the SSH
    setup and recording why in `~/.ssh/.ssh-setup-skipped` — but it does mean the SSH layer silently
    never activates (this is the *only* thing that gates it; `GH_TOKEN` is never required), so set
    it before the first rebuild rather than relying on the warning to catch it.
-6. Insert [../templates/README.ssh-block.md](../templates/README.ssh-block.md) into
-   `.devcontainer/README.md`, positioned before `## Installed CLI Tools` (which stays the file's
-   last section regardless of when SSH is added), and delete that file's "SSH deploy key and
-   signing key automation — Not set up here" closing section:
+6. Insert [../templates/README.ssh-block.md](../templates/README.ssh-block.md), substituted
+   (`{{REPO_NAME}}`, `{{REPO_SLUG}}`) into a scratch copy first, into `.devcontainer/README.md`,
+   positioned before `## Installed CLI Tools` (which stays the file's last section regardless of
+   when SSH is added), and delete that file's "SSH deploy key and signing key automation — Not set
+   up here" closing section:
 
    ```bash
-   scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## SSH deploy key and signing key" "## Installed CLI Tools" templates/README.ssh-block.md
+   scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## SSH deploy key and signing key" "## Installed CLI Tools" <substituted-copy-of-templates/README.ssh-block.md>
    scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
    ```
 7. Tell the user, in order: add the `DEVCONTAINER_HOST` line from step 5 to `.devcontainer/.env`

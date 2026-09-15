@@ -229,14 +229,16 @@ If step 3's SSH answer was yes:
   ```bash
   scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
   ```
-- `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md)
-  inserted **before** `## Installed CLI Tools`, not appended to end-of-file — this keeps that
-  section as the file's last one no matter when SSH is added — and the baseline template's closing
-  "SSH deploy key and signing key automation — Not set up here" section is deleted (superseded by
-  the real section):
+- `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md),
+  substituted (`{{REPO_NAME}}`, `{{REPO_SLUG}}`) into a scratch copy first — unlike every other
+  substituted template above, this one is also an *input* to another command rather than a file
+  written directly, so substitute before patching, not after — inserted **before** `## Installed
+  CLI Tools`, not appended to end-of-file — this keeps that section as the file's last one no
+  matter when SSH is added — and the baseline template's closing "SSH deploy key and signing key
+  automation — Not set up here" section is deleted (superseded by the real section):
 
   ```bash
-  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## SSH deploy key and signing key" "## Installed CLI Tools" templates/README.ssh-block.md
+  scripts/patch-if-absent.sh insert-before .devcontainer/README.md "## SSH deploy key and signing key" "## Installed CLI Tools" <substituted-copy-of-templates/README.ssh-block.md>
   scripts/patch-if-absent.sh delete-section .devcontainer/README.md "## SSH deploy key and signing key automation"
   ```
 
