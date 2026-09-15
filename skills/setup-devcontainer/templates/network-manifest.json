@@ -15,6 +15,16 @@
         "host": "api.github.com",
         "purpose": "gh CLI API requests (PRs, issues, releases)",
         "source": "https://docs.github.com/en/rest"
+      },
+      {
+        "host": "archive.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (amd64/i386 hosts) — without this, `apt-get update` silently fails to refresh the package index and only already-cached packages remain installable",
+        "source": "observed"
+      },
+      {
+        "host": "ports.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (arm64 and other non-amd64/i386 hosts, per the base image's own /etc/apt/sources.list.d/ubuntu.sources) — same failure mode as archive.ubuntu.com above",
+        "source": "observed"
       }
     ]
   }

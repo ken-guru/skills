@@ -156,11 +156,15 @@ later](docs/adding-firewall-later.md)).
 - `.devcontainer/network-manifest.json` ← [templates/network-manifest.json](templates/network-manifest.json),
   copied verbatim (no placeholders). This is the **Network Manifest** (see
   [CONTEXT.md](CONTEXT.md)): an object keyed by CLI name, each value holding a `networkAllowlist`
-  array of `{host, purpose, source}` entries. Seeded here with only the universal baseline every
-  CLI needs regardless of which CLI Skills end up installed (`registry.npmjs.org`, `github.com`,
-  `api.github.com`), filed under a `"baseline"` key rather than a fake CLI name, since it isn't
-  owned by any one CLI. Each CLI Skill later adds its own keyed entry (a separate concern, not
-  generated here). Generated unconditionally, firewall opt-in or not — a CLI Skill installed later
+  array of `{host, purpose, source}` entries. Seeded here with the universal baseline every
+  container needs regardless of which CLI Skills end up installed — `registry.npmjs.org`,
+  `github.com`, `api.github.com` for npm/git/gh, plus `archive.ubuntu.com`/`ports.ubuntu.com` so
+  ad hoc `sudo apt-get install <tool>` mid-session (issue #291 story 19) keeps working under the
+  firewall too, not just with it declined; without these two, `apt-get update` silently fails to
+  refresh the package index and only already-cached packages stay installable — filed under a
+  `"baseline"` key rather than a fake CLI name, since none of this is owned by any one CLI. Each
+  CLI Skill later adds its own keyed entry (a separate concern, not generated here). Generated
+  unconditionally, firewall opt-in or not — a CLI Skill installed later
   always gets its own entry recorded here, and the firewall (whether added now or later) picks it
   up automatically with no extra step.
 - `.devcontainer/network-manifest-domains.sh` ←

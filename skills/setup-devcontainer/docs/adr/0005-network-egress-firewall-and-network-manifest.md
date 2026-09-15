@@ -170,3 +170,27 @@ destination, not fog this ADR's Wayfinder map should carry. This firewall retain
 guardrail against accidental/naive misbehavior and reachability mistakes — see the threat-model note
 added to `templates/README.firewall-block.md` — just not as a sandbox against a fully compromised
 process specifically.
+
+## Addendum 2 (2026-09-15, also from PR #290's own manual validation)
+
+The firewall's baseline seed — `registry.npmjs.org`, `github.com`, `api.github.com` — turned out to
+be missing a host every container needs regardless of which CLI Skills are installed: Ubuntu's own
+package mirror. Verified live, through the real `@devcontainers/cli` (not a hand-picked `docker
+run`): with the firewall on, `sudo apt-get update` reports success (exit 0) while silently failing
+every fetch (`archive.ubuntu.com`/`ports.ubuntu.com` unreachable — confirmed directly with `curl`,
+`Could not connect... No route to host`), so `sudo apt-get install cowsay` (a package with no
+chance of already being cached) fails with `E: Unable to locate package cowsay`. This directly
+breaks issue #291 story 19 ("an ordinary ad hoc `sudo apt-get install <tool>`... keeps working
+exactly as before") specifically under the firewall — Phase D of the same validation already
+confirmed it works fine with the firewall declined, so this was never a capability-drop problem
+(ADR-0006's unaffected), purely a Network Manifest completeness gap.
+
+Fixed by adding `archive.ubuntu.com` (amd64/i386) and `ports.ubuntu.com` (arm64 and other
+architectures, per the base image's own `/etc/apt/sources.list.d/ubuntu.sources`) to the baseline
+seed in `templates/network-manifest.json`, both labeled `"source": "observed"` — confirmed by
+inspecting the running container's own apt configuration and testing reachability directly, not
+read from a vendor doc. Both architectures' mirrors are seeded unconditionally since the Dockerfile
+itself is architecture-agnostic (whichever the host's Docker daemon builds for), and the arm64 host
+couldn't be verified from this validation's own (arm64) sandbox — reasoned from Ubuntu's own
+packaging convention instead, worth a maintainer double-check on an amd64 host if one becomes
+available.

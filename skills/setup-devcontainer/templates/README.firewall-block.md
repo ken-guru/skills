@@ -20,6 +20,13 @@
 - GitHub's IP ranges are fetched live from `api.github.com/meta` at every
   run (not hardcoded), so `git`/`gh` keep working even as GitHub's published
   ranges change.
+- The Network Manifest's baseline also includes `archive.ubuntu.com` and
+  `ports.ubuntu.com` (Ubuntu's own package mirrors, for amd64/i386 and
+  arm64/other architectures respectively), so an ordinary ad hoc `sudo
+  apt-get install <tool>` mid-session keeps working under this layer too —
+  without them, `apt-get update` silently "succeeds" while failing to
+  refresh the package index, and only already-cached packages stay
+  installable.
 - `init-firewall.sh` self-verifies its own effect at the end of every run: a
   request to a disallowed host must fail, and `https://api.github.com/zen`
   must succeed. Either unexpected result fails the container's
