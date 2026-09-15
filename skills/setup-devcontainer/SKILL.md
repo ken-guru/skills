@@ -163,7 +163,11 @@ later](docs/adding-firewall-later.md)).
   (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if step 3's SSH
   answer was yes), substitute `{{REPO_NAME}}`. The `runArgs` field starts pre-populated with the
   unconditional Baseline Containment capability-drop entries (`--cap-drop=ALL --cap-add=CHOWN
-  --cap-add=DAC_OVERRIDE --cap-add=FOWNER`) — not gated behind any setup question — and this is
+  --cap-add=DAC_OVERRIDE --cap-add=FOWNER --cap-add=SETUID --cap-add=SETGID` — the last two are
+  `sudo` itself: its binary is setuid-root, but it still calls `setresuid()`/`setresgid()`
+  internally to fully switch identity, which needs those capabilities in the bounding set
+  regardless of the setuid bit, or every `sudo` invocation fails outright, including the firewall's
+  own) — not gated behind any setup question — and this is
   also the Capability Seam, the one extension point a CLI skill (today, only
   `setup-codex-devcontainer`) may idempotently append its own entries to on top. `containerEnv.BASH_ENV`
   points at `bash-env.sh` above — this is what makes `GH_TOKEN` visible to an AI CLI's own tool
@@ -272,8 +276,8 @@ If step 3's firewall answer was yes:
 Done when every file above exists, `devcontainer.json` parses as valid JSON with `runArgs`
 containing exactly the baseline capability-drop entries, plus `--cap-add=NET_ADMIN` and
 `--cap-add=NET_RAW` if step 3's firewall answer was yes
-(`jq -e '.runArgs | sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
-declined, or `... sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
+(`jq -e '.runArgs | sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=SETGID","--cap-add=SETUID","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
+declined, or `... sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-add=SETGID","--cap-add=SETUID","--cap-drop=ALL"]' .devcontainer/devcontainer.json`
 accepted), `build.target` is `"base"` if declined or `"firewall"` if accepted
 (`jq -e '.build.target == "base"' .devcontainer/devcontainer.json` or `... == "firewall"'`), no
 `{{...}}` placeholder remains

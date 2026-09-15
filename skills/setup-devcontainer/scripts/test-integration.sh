@@ -137,7 +137,7 @@ run_scenario() {
   # from a fresh copy of the base template, before any CLI skill touches the
   # file) and Codex's own capability-seam entries, composed cleanly on top —
   # no duplicates, order-independent (Docker unions --cap-add entries).
-  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=SETGID","--cap-add=SETUID","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
   if [ "$runargs" != "$expected" ]; then
     fail "[$order_desc] expected runArgs to contain baseline cap-drop entries plus Codex's capability entries, got $runargs"
   fi
@@ -192,13 +192,16 @@ run_scenario() {
 }
 
 # Unconditional capability-drop baseline (issue #293 / ADR-0006): both base
-# templates must already carry the four baseline entries in runArgs on a
+# templates must already carry the six baseline entries in runArgs on a
 # fresh copy, before any CLI skill's own patch touches the file — not gated
 # behind any setup question, and not something only appears after a CLI
-# skill's patch runs.
+# skill's patch runs. SETUID/SETGID are in here because `sudo` itself needs
+# them (setresuid()/setresgid() internally, regardless of its setuid-root
+# bit) — without them every `sudo` call fails outright, including the
+# firewall's own invocation of init-firewall.sh/refresh-allowlist.sh.
 check_fresh_generation_baseline() {
   local template="$1" label="$2"
-  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-drop=ALL"]'
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=SETGID","--cap-add=SETUID","--cap-drop=ALL"]'
   local runargs
   runargs=$(jq -c '.runArgs | sort' "$SKILLS_ROOT/setup-devcontainer/templates/$template")
   if [ "$runargs" != "$expected" ]; then
@@ -219,7 +222,7 @@ check_fresh_generation_baseline "devcontainer.with-ssh.json" "SSH template"
 # a CLI skill.
 check_firewall_capability_entries() {
   local template="$1" label="$2"
-  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-drop=ALL"]'
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-add=SETGID","--cap-add=SETUID","--cap-drop=ALL"]'
   local tmp
   tmp="$(mktemp)"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/$template" "$tmp"
@@ -255,7 +258,7 @@ check_firewall_capability_entries "devcontainer.with-ssh.json" "SSH template + f
 # --cap-add entry in runArgs, order-independent (ADR-0006's addendum).
 check_firewall_plus_codex_capability_entries() {
   local order_desc="$1" first_entries="$2" second_entries="$3"
-  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
+  local expected='["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add=FOWNER","--cap-add=NET_ADMIN","--cap-add=NET_RAW","--cap-add=SETGID","--cap-add=SETUID","--cap-add=SYS_ADMIN","--cap-drop=ALL","--security-opt=seccomp=unconfined","--security-opt=systempaths=unconfined"]'
   local tmp
   tmp="$(mktemp)"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$tmp"

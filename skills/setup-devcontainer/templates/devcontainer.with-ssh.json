@@ -19,7 +19,9 @@
     "--cap-drop=ALL",
     "--cap-add=CHOWN",
     "--cap-add=DAC_OVERRIDE",
-    "--cap-add=FOWNER"
+    "--cap-add=FOWNER",
+    "--cap-add=SETUID",
+    "--cap-add=SETGID"
   ],
   "initializeCommand": "test -f \"${localWorkspaceFolder}/.devcontainer/.env\" || cp \"${localWorkspaceFolder}/.devcontainer/.env.example\" \"${localWorkspaceFolder}/.devcontainer/.env\"",
   "postCreateCommand": "bash .devcontainer/post-create.sh",

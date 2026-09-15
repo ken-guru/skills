@@ -128,3 +128,42 @@ reconciliation was chartered to solve. `--cap-drop=ALL` plus the selective `--ca
 composes cleanly with Codex's `--cap-add=SYS_ADMIN` regardless — Docker computes the final capability
 set as a union of every `--cap-add` entry in `runArgs`, order-independent, so both sides' needs are
 met with no conflict.
+
+## Addendum (2026-09-15, from PR #290's own manual validation)
+
+The Decision's claim above — "It's compatible with `sudo`... because it doesn't touch the setuid
+mechanism itself" — is wrong in a way this ADR didn't anticipate. The setuid *bit* on `/usr/bin/sudo`
+is indeed untouched by capability dropping, and does still grant the process effective UID 0 at
+`exec()`. But `sudo` doesn't stop there: it calls `setresuid()`/`setresgid()` internally to fully
+transition identity (drop supplementary groups, become real-and-effective root, not just
+effective), and those syscalls need `CAP_SETUID`/`CAP_SETGID` in the process's capability *bounding
+set* — which `--cap-drop=ALL` plus this ADR's original three-entry allowlist (`CHOWN`,
+`DAC_OVERRIDE`, `FOWNER`) never granted. Verified live during PR #290's pre-merge validation: built
+the Dockerfile's `firewall` stage, ran a container with exactly the `runArgs` this baseline plus the
+firewall's own grant would produce, and `sudo whoami` as `vscode` failed with `sudo: unable to
+change to root gid: Operation not permitted`; a control container with only `--cap-add=SETUID
+--cap-add=SETGID` (no other capabilities at all) made it succeed, isolating the two missing
+capabilities precisely.
+
+This wasn't a narrow gap — every `sudo` call in every generated Shared Container was broken by the
+original baseline, including the firewall's own invocation of `init-firewall.sh`/
+`refresh-allowlist.sh` (so the firewall layer never actually started once opted into) and the
+ordinary ad hoc `sudo apt-get install <tool>` workflow this same ADR's Decision and Consequences
+sections explicitly promised would keep working unchanged. `CAP_SETUID`/`CAP_SETGID` are now part of
+the unconditional baseline allowlist alongside `CHOWN`/`DAC_OVERRIDE`/`FOWNER` — `sudo` itself needs
+them regardless of what it's then asked to run, so they belong in the baseline (unconditional) set,
+not the firewall's conditional one. This doesn't change the Decision's cap-drop-vs-no-new-privileges
+comparison (no-new-privileges is still rejected for the same reason: it blocks the setuid mechanism
+itself, which is a strictly different failure mode from a missing capability in the bounding set) —
+only the enumeration of which capabilities `sudo` compatibility actually requires.
+
+Separately, also surfaced during this validation: the base image
+(`mcr.microsoft.com/devcontainers/base:ubuntu`) already grants `vscode` blanket passwordless root
+(`NOPASSWD: ALL`) via its own pre-existing `/etc/sudoers.d/vscode`, entirely independent of and
+unnarrowed by the firewall's own scoped `/etc/sudoers.d/vscode-firewall` rule (ADR-0005). That
+blanket grant predates this ADR and isn't something cap-dropping can narrow — a capability the
+container's root doesn't have, `sudo` still can't grant regardless of the sudoers policy — but it
+does mean a compromised (not just misbehaving) process running as `vscode` can invoke any root
+command, including disabling the firewall's own iptables rules, once `sudo` itself works again per
+the fix above. Tracked as a known, accepted limitation of this container's `sudo`-dependent design
+rather than something this ADR's cap-drop decision was ever positioned to close.
