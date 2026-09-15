@@ -76,6 +76,16 @@ test -f .devcontainer/devcontainer.json && echo "devcontainer already exists"
   and add the `devcontainer-env-load` block from
   [templates/post-create-base.sh](templates/post-create-base.sh) to `.devcontainer/post-create.sh`
   if it isn't already there. Needs **Dev Containers: Rebuild Container** to take effect.
+
+  Warning, not an exception (nothing here auto-patches this one): if `devcontainer.json` has no
+  `build.target` field, it predates the Baseline Containment hardening (`--cap-drop=ALL` plus a
+  small `--cap-add` allowlist, unconditionally; the opt-in network firewall; the digest-pinned,
+  multi-stage `Dockerfile`) — the whole container still runs with Docker's full default capability
+  set and an unpinned, single-stage image, regardless of anything the setup-`<tool>`-devcontainer
+  skills or the "later" docs above do to it. There's no automated backfill for this (a deliberate
+  choice, not an oversight — see the skill's own git history for the reasoning). Tell the user
+  plainly: to actually get the hardening, delete `.devcontainer/` and regenerate from scratch,
+  rerunning any `setup-<tool>-devcontainer` skills and redoing the SSH/firewall answers afterward.
 - **Doesn't exist**: fresh setup, continue to step 3.
 
 Also check for a leftover container from an unrelated prior setup of this same workspace folder —

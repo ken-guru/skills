@@ -24,6 +24,12 @@ since ticket #294, firewall opt-in or not).
    old single-stage `Dockerfile` with no `firewall` stage to target — replace it with
    [../templates/Dockerfile](../templates/Dockerfile) (copied verbatim, no placeholders) first, in
    that case.
+
+   That same signal (no `build.target` field at all) also means this devcontainer predates the
+   Baseline Containment capability-drop, not just the multi-stage Dockerfile — this flow only adds
+   `NET_ADMIN`/`NET_RAW`, it doesn't backfill `--cap-drop=ALL` and its allowlist. See `SKILL.md`
+   step 2's own warning for this exact case: there's no automated backfill, tell the user to delete
+   `.devcontainer/` and regenerate from scratch if they want the hardening, not just the firewall.
 2. Copy [../templates/init-firewall.sh](../templates/init-firewall.sh),
    [../templates/refresh-allowlist.sh](../templates/refresh-allowlist.sh), and
    [../templates/firewall-lib.sh](../templates/firewall-lib.sh) to `.devcontainer/`, verbatim (no
