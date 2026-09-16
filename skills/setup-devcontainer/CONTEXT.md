@@ -111,6 +111,28 @@ base-owned file.
 _Avoid_: allowlist (too generic — say Network Manifest for the file, plain
 "allowlist" only for the resulting ipset/firewall rule set it produces)
 
+**Release Age Manifest**:
+A third base-owned, per-CLI-keyed JSON file (parallel to the Network Manifest), where each CLI
+Skill that has a Release Age Gate declares its own `minimumReleaseAgeDays` and how to check a
+release's age (a `versionCheck` source — at minimum, a GitHub Releases repo). Entries aren't
+uniform: Codex's and Copilot CLI's installers support pinning to a specific version, so their gate
+can hold at the newest release that's old enough; Claude Code's and Antigravity's installers only
+ever fetch "latest," so their gate can only allow the install when latest is already old enough, or
+skip installing this run.
+_Avoid_: age manifest, version manifest (say Release Age Manifest for the file)
+
+**Release Age Gate**:
+The age-check logic itself: given a Release Age Manifest entry, decides whether an install may
+proceed, should pin to an older eligible release, or should hold (skip installing this run) when a
+release's age can't be confirmed — absence of proof of age is treated as insufficient age, never as
+permission to proceed. Unlike `install_cli()`, which only a CLI Skill's own install-block.sh calls,
+the Release Age Gate is built as a standalone, reusable primitive from the start: the same fail-safe
+logic a project's own hand-written scripts (e.g. installing its own MCP servers) can call directly
+for their own needs, without setup-devcontainer itself managing or knowing about that project-owned
+thing — the same reusability the Own-Block Contract's primitives (`patch-if-absent.sh`,
+`patch-json-array-if-absent.sh`) already have.
+_Avoid_: age check, version gate (too generic — say Release Age Gate for this specific mechanism)
+
 **Project Mounts**:
 A project-owned JSON file (`project-mounts.local.json`), parallel to
 `allowed-domains.local.txt` — created empty, unconditionally, never touched again by any skill —
