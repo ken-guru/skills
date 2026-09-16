@@ -26,10 +26,10 @@ _Avoid_: tool skill, add-on skill
 **Own-Block Contract**:
 A CLI Skill's writes are scoped to exactly its own marker-keyed block or
 line, wherever it lives (a `post-create.sh` install block, a README bullet,
-etc.) — never anything owned by the base skill or another CLI Skill. The
-Shared Container's own definition (`devcontainer.json`, the Dockerfile, SSH
-key/volume wiring) is exclusively base-skill-owned; the one documented
-exception is the Capability Seam.
+etc.) — never anything owned by the base skill, another CLI Skill, or a
+project's own Project-Owned Block. The Shared Container's own definition
+(`devcontainer.json`, the Dockerfile, SSH key/volume wiring) is exclusively
+base-skill-owned; the one documented exception is the Capability Seam.
 _Avoid_: ownership rule (too generic)
 
 **Project-Owned Block**:

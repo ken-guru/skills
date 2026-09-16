@@ -7,12 +7,21 @@ about there being exactly one container — so instead, install the service *ins
 Container itself, the same way a CLI Skill installs its own CLI: imperatively, from an idempotent,
 project-owned lifecycle-script block, never baked into the base-owned `Dockerfile`.
 
-This isn't a new mechanism. Every piece below — `patch-if-absent.sh`, a marker-keyed
-`post-start.sh` block, a `project-mounts.local.json` volume entry — already exists for other
-reasons; a backing service is just another **Project-Owned Block** (see [CONTEXT.md](../CONTEXT.md))
-using them. Two worked examples follow: PostgreSQL (more involved — a third-party apt repository,
-password/database bootstrap) and Redis (simpler — stock Ubuntu package, no bootstrap). Both use the
-same shape:
+This isn't a new mechanism (see ADR-0002,
+[docs/adr/0002-collapse-tool-container-isolation.md](adr/0002-collapse-tool-container-isolation.md),
+for why this skill has exactly one container to install into in the first place). Every piece below
+— `patch-if-absent.sh`, a marker-keyed `post-start.sh` block, a `project-mounts.local.json` volume
+entry — already exists for other reasons; a backing service is just another **Project-Owned Block**
+(see [CONTEXT.md](../CONTEXT.md)) using them. Two worked examples follow: PostgreSQL (more involved
+— a third-party apt repository, password/database bootstrap) and Redis (simpler — stock Ubuntu
+package, no bootstrap). Both use the same shape:
+
+`{{REPO_NAME}}` below is this repo's own `{{REPO_NAME}}` (resolved the same way as the main flow's
+step 1) — substitute it with the actual value everywhere it appears before writing any file or
+running any command. Unlike the base skill's own templates, `project-mounts.local.json` and
+`post-start.sh` are never substituted again after being written, so a literal `{{REPO_NAME}}` left
+in place here would land as-is in `devcontainer.json`'s `mounts` array or in a running shell
+command — exactly the `{{...}}`-placeholder leak `SKILL.md`'s own "Done when" step 5 checks against.
 
 1. Declare a named volume for the service's data directory in `project-mounts.local.json`, fold it
    into `devcontainer.json`, rebuild.
