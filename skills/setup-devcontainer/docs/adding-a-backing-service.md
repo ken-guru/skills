@@ -39,10 +39,17 @@ checks against.
 
 ## Example: PostgreSQL
 
-1. Add a data volume in `.devcontainer/project-mounts.local.json`:
+1. Add data **and config** volumes in `.devcontainer/project-mounts.local.json` — persisting only
+   the data directory works on a fresh volume, then breaks on every subsequent rebuild: a rebuilt
+   container has leftover data but no `/etc/postgresql` config (never persisted), and the
+   `postgresql-16` package's own postinst aborts (`Error: move_conffile: required configuration
+   file .../postgresql.conf does not exist`) instead of treating it as a clean install:
 
    ```json
-   ["source={{REPO_NAME}}-postgres-data,target=/var/lib/postgresql/16/main,type=volume"]
+   [
+     "source={{REPO_NAME}}-postgres-data,target=/var/lib/postgresql/16/main,type=volume",
+     "source={{REPO_NAME}}-postgres-config,target=/etc/postgresql/16/main,type=volume"
+   ]
    ```
 
    Fold it into `devcontainer.json` and rebuild:
@@ -82,12 +89,19 @@ checks against.
    # post-create.sh runs once, so start it here rather than waiting for
    # post-start.sh — post-start.sh's own block (below) will find it already
    # online on every subsequent start and leave it alone.
+   # sudo -u postgres <cmd> doesn't work here: this container's sudoers grant
+   # is `(root) NOPASSWD: ALL`, not `(ALL)` — switching to a *different*
+   # non-root user via `-u` isn't covered by that grant and prompts for a
+   # password that never arrives, failing silently under a non-interactive
+   # postCreateCommand. `sudo su postgres -c '<cmd>'` only needs the `(root)`
+   # grant already present (sudo to root, then su to postgres, which root can
+   # always do password-free).
    BOOTSTRAP_MARKER="/var/lib/postgresql/16/main/.bootstrapped"
    if [ ! -f "$BOOTSTRAP_MARKER" ]; then
      sudo pg_ctlcluster 16 main start
-     sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'devpassword';"
-     sudo -u postgres createdb "{{REPO_NAME}}"
-     sudo -u postgres touch "$BOOTSTRAP_MARKER"
+     sudo su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'devpassword';\""
+     sudo su postgres -c "createdb '{{REPO_NAME}}'"
+     sudo su postgres -c "touch '$BOOTSTRAP_MARKER'"
    fi
    EOF
    scripts/patch-if-absent.sh append .devcontainer/post-create.sh "# --- Project: PostgreSQL ---" /tmp/postgres-install-block.sh
@@ -111,7 +125,10 @@ checks against.
    ```
 
 Done when `pg_lsclusters` reports cluster `16 main` `online` after a rebuild and a restart, and
-`psql -U postgres -h localhost -d {{REPO_NAME}}` connects with the bootstrapped password.
+`psql -U postgres -h localhost -d {{REPO_NAME}}` connects with the bootstrapped password — check
+this after a **second** rebuild too, not just the first: that's the one that actually exercises the
+config-volume persistence fix above (the postinst failure this avoids only manifests once leftover
+data meets a missing config on a rebuilt container, not on the first, truly-fresh one).
 
 ## Example: Redis
 
@@ -167,3 +184,12 @@ service is running, nothing more. Keeping install/bootstrap out of `post-start.s
 avoids the firewall-ordering hazard described above. Nothing here is specific to PostgreSQL or
 Redis — swap the package name, the data directory, and the start command for whatever the service
 needs.
+
+Two more things worth checking for a service PostgreSQL and Redis don't both exercise: if the
+service keeps its config in a directory separate from its data directory (PostgreSQL does; many
+don't), persist that too — a rebuilt container with leftover data but a missing config directory
+can make a package's postinst script abort instead of treating it as a clean install. And if any
+bootstrap step needs to run commands as a *different* non-root user, use `sudo su <user> -c
+'<cmd>'`, not `sudo -u <user> <cmd>` — this container's sudoers grant is scoped to `(root)`, not
+`(ALL)`, so `sudo -u` prompts for a password that never arrives under a non-interactive
+`postCreateCommand`.
