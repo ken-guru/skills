@@ -26,11 +26,21 @@ _Avoid_: tool skill, add-on skill
 **Own-Block Contract**:
 A CLI Skill's writes are scoped to exactly its own marker-keyed block or
 line, wherever it lives (a `post-create.sh` install block, a README bullet,
-etc.) — never anything owned by the base skill or another CLI Skill. The
-Shared Container's own definition (`devcontainer.json`, the Dockerfile, SSH
-key/volume wiring) is exclusively base-skill-owned; the one documented
-exception is the Capability Seam.
+etc.) — never anything owned by the base skill, another CLI Skill, or a
+project's own Project-Owned Block. The Shared Container's own definition
+(`devcontainer.json`, the Dockerfile, SSH key/volume wiring) is exclusively
+base-skill-owned; the one documented exception is the Capability Seam.
 _Avoid_: ownership rule (too generic)
+
+**Project-Owned Block**:
+A marker-keyed block a project adds to a Scaffold lifecycle script for its own needs (e.g.
+installing a backing service from `post-create.sh`, starting it from `post-start.sh`) — not owned
+by the base skill or any CLI Skill. A single project need can own a block in more than one lifecycle
+script at once. Uses the
+same `patch-if-absent.sh` idempotent-append mechanism as a CLI Skill's own block, with a
+project-chosen marker instead; no skill ever reads, edits, or removes it. A third party under the
+Own-Block Contract, alongside the base skill and a CLI Skill.
+_Avoid_: project hook, custom block (too generic)
 
 **Capability Seam**:
 The one designated, explicitly-named extension point in `devcontainer.json`
@@ -100,3 +110,12 @@ conflate the two just because both are per-CLI-Skill extension points on a
 base-owned file.
 _Avoid_: allowlist (too generic — say Network Manifest for the file, plain
 "allowlist" only for the resulting ipset/firewall rule set it produces)
+
+**Project Mounts**:
+A project-owned JSON file (`project-mounts.local.json`), parallel to
+`allowed-domains.local.txt` — created empty, unconditionally, never touched again by any skill —
+where a project declares its own `devcontainer.json` `mounts` entries, folded in via the same
+`patch-json-array-if-absent.sh` primitive the Capability Seam and Network Manifest use. Unlike the
+Network Manifest, it has no per-CLI-keyed structure: no CLI Skill needs its own mount entries, only
+the project does.
+_Avoid_: mounts manifest (implies per-CLI-keyed structure, which this doesn't have)

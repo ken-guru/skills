@@ -10,7 +10,8 @@ one **Shared Container** — a single `devcontainer.json` and `Dockerfile` —
 that every selected AI CLI installs into via its own independent skill, run
 separately after this one. See [CONTEXT.md](CONTEXT.md) for this skill's
 vocabulary (Shared Container, Local Checkout, Shared Checkout, Scaffold,
-CLI Skill, Own-Block Contract, Capability Seam).
+CLI Skill, Own-Block Contract, Project-Owned Block, Capability Seam, Network
+Manifest, Project Mounts).
 
 This skill owns the container definition (`devcontainer.json`, `Dockerfile`)
 and the shared parts of `post-create.sh`/`post-start.sh`/`README.md`
@@ -173,6 +174,24 @@ later](docs/adding-firewall-later.md)).
   manifest file, prints one deduplicated host per line across every keyed entry's
   `networkAllowlist`. Also generated unconditionally; sourced by `firewall-lib.sh` (below) when the
   firewall layer is present, otherwise present but unused.
+- `.devcontainer/project-mounts.local.json` ←
+  [templates/project-mounts.local.json](templates/project-mounts.local.json), copied verbatim — an
+  empty JSON array. This is the **Project Mounts** seam (see [CONTEXT.md](CONTEXT.md)): a
+  project-owned file, parallel to `allowed-domains.local.txt` below, never touched again by any
+  skill after this. Generated unconditionally (mounts are orthogonal to the SSH/firewall
+  questions). Add this project's own `devcontainer.json` `mounts` entries here (raw mount strings,
+  e.g. `"source=my-project-data,target=/var/lib/data,type=volume"`, matching the format of the
+  `mounts` entry `devcontainer.json` already carries), then fold them into `devcontainer.json` with:
+
+  ```bash
+  scripts/patch-json-array-if-absent.sh .devcontainer/devcontainer.json .mounts .devcontainer/project-mounts.local.json
+  ```
+
+  Safe to re-run after every edit — already-present entries are left untouched. Needs **Dev
+  Containers: Rebuild Container** to take effect, since `mounts` is set at container creation, not
+  read again on a plain restart.
+- Add `.devcontainer/project-mounts.local.json` to `.gitignore` if it isn't already ignored
+  (parallel to `.devcontainer/.env` above).
 - `.devcontainer/devcontainer.json` ← [templates/devcontainer.json](templates/devcontainer.json)
   (or [templates/devcontainer.with-ssh.json](templates/devcontainer.with-ssh.json) if step 3's SSH
   answer was yes), substitute `{{REPO_NAME}}`. The `runArgs` field starts pre-populated with the
@@ -185,7 +204,12 @@ later](docs/adding-firewall-later.md)).
   also the Capability Seam, the one extension point a CLI skill (today, only
   `setup-codex-devcontainer`) may idempotently append its own entries to on top. `containerEnv.BASH_ENV`
   points at `bash-env.sh` above — this is what makes `GH_TOKEN` visible to an AI CLI's own tool
-  calls, not just the lifecycle scripts. If step 3's firewall answer was yes, also patch in the
+  calls, not just the lifecycle scripts. `initializeCommand` invokes the generated
+  `.devcontainer/initialize.sh` (below) via `sh`, not `bash` — it runs on the host, before the
+  container exists, and the script's own content has no bash dependency to preserve. `mounts`
+  starts with just the shared config volume; a project's own entries come from
+  `project-mounts.local.json` (below), folded in separately, never hand-added here. If step 3's
+  firewall answer was yes, also patch in the
   firewall's own capability grant (`--cap-add=NET_ADMIN --cap-add=NET_RAW` — `iptables`/`ipset`
   need them), through the same `patch-json-array-if-absent.sh` primitive the Capability Seam itself
   is built on — not the Capability Seam extension point itself, since this is the base skill
@@ -208,17 +232,30 @@ later](docs/adding-firewall-later.md)).
   scripts/render-devcontainer.sh \
     --repo-name "{{REPO_NAME}}" --repo-slug "{{REPO_SLUG}}" \
     --out .devcontainer/post-create.sh \
+    --initialize-out .devcontainer/initialize.sh \
     [--ssh] \
     [--git-email-default "<value>"] [--git-name-default "<value>"] \
     [--local-checkout-git-init "{{LOCAL_CHECKOUT_GIT_INIT}}"] [--git-default-branch "{{GIT_DEFAULT_BRANCH}}"]
   ```
 
   Verify with [scripts/verify-devcontainer.sh](scripts/verify-devcontainer.sh), passing the exact
-  same flags (minus `--out`, plus `--file`).
+  same flags (minus `--out`/`--initialize-out`, plus `--file`/`--initialize-file`).
 
   This skeleton is what every CLI skill later appends its own install block to. The SSH block
   never fails the build — an under-scoped or missing `GH_TOKEN` (or unset `DEVCONTAINER_HOST`)
   degrades to skipping the rest of the SSH setup, recording why in `~/.ssh/.ssh-setup-skipped`.
+
+  The same command also writes `.devcontainer/initialize.sh` (chmod +x'd) — the same
+  `--initialize-out` flag above, unconditional, no `--ssh`/`--firewall` variants. This is
+  `initializeCommand`'s target (see `devcontainer.json` above): today's exact `.env`-bootstrap
+  behavior, ported into an appendable script file rather than an inline one-liner, so a project
+  needing its own host-side initialization step (something that must run before the container
+  exists, so it can't live in `post-create.sh`) can append its own **Project-Owned Block** the same
+  way it already can for `post-create.sh`/`post-start.sh`:
+
+  ```bash
+  scripts/patch-if-absent.sh append .devcontainer/initialize.sh "# --- Project: <name> ---" <block-file>
+  ```
 - `.devcontainer/post-start.sh` ← [templates/post-start-base.sh](templates/post-start-base.sh),
   copied verbatim, chmod +x. Empty skeleton — each CLI skill appends its own skill-sync block here
   if the user opts into it for that tool, and (below) the base skill appends the firewall
@@ -297,9 +334,10 @@ declined, or `... sort == ["--cap-add=CHOWN","--cap-add=DAC_OVERRIDE","--cap-add
 accepted), `build.target` is `"base"` if declined or `"firewall"` if accepted
 (`jq -e '.build.target == "base"' .devcontainer/devcontainer.json` or `... == "firewall"'`), no
 `{{...}}` placeholder remains
-in any written file (`grep -rn '{{' .devcontainer/`), and `post-create.sh` passes
-[scripts/verify-devcontainer.sh](scripts/verify-devcontainer.sh) for the exact flags it was
-rendered with.
+in any written file (`grep -rn '{{' .devcontainer/`), and `post-create.sh`/`initialize.sh` pass
+[scripts/verify-devcontainer.sh](scripts/verify-devcontainer.sh) for the exact flags they were
+rendered with (`--file`/`--initialize-file`, plus `--project-mounts-file
+.devcontainer/project-mounts.local.json` to confirm it still matches the template verbatim).
 
 ## 6. Report next steps
 
@@ -318,6 +356,13 @@ Tell the user, adapted to whether SSH/the firewall are present:
    except the Network Manifest's allowlist. Add any of this project's own hosts to
    `.devcontainer/allowed-domains.local.txt` before they're needed — a host missing from there,
    the Network Manifest, or GitHub's/npm's own ranges is unreachable by design.}}
+7. If this project needs its own `devcontainer.json` mounts (a database data directory, a
+   persistent history volume, etc.), add them to `.devcontainer/project-mounts.local.json` and fold
+   them in with `scripts/patch-json-array-if-absent.sh .devcontainer/devcontainer.json .mounts
+   .devcontainer/project-mounts.local.json`, then rebuild. If it needs its own host-side
+   initialization step, append it to `.devcontainer/initialize.sh` the same way you'd append to
+   `post-create.sh`/`post-start.sh`. If it needs an in-container backing service (e.g. PostgreSQL),
+   see [Adding a backing service](docs/adding-a-backing-service.md).
 
 ## Adding SSH to a tool later
 
@@ -328,6 +373,12 @@ See [docs/adding-ssh-later.md](docs/adding-ssh-later.md).
 
 For a repo that already has a devcontainer and now wants the opt-in network egress firewall. See
 [docs/adding-firewall-later.md](docs/adding-firewall-later.md).
+
+## Adding a backing service
+
+For a project that needs a backing service (e.g. PostgreSQL) running inside the Shared Container,
+without reintroducing Docker Compose. See
+[docs/adding-a-backing-service.md](docs/adding-a-backing-service.md).
 
 ## Connecting a Local Checkout to a real GitHub repo
 

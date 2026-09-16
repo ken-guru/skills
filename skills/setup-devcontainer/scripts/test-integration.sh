@@ -280,6 +280,90 @@ check_firewall_plus_codex_capability_entries "codex,firewall" \
   "$SKILLS_ROOT/setup-codex-devcontainer/templates/capability-seam-entries.json" \
   "$SKILLS_ROOT/setup-devcontainer/templates/firewall-capability-entries.json"
 
+# Project Mounts (issue #300/#304): patch-json-array-if-absent.sh must
+# compose cleanly against .mounts the same way it already does against
+# .runArgs (Capability Seam) and .{cliName}.networkAllowlist (Network
+# Manifest) — a project's own project-mounts.local.json entries land
+# alongside the base template's own {{REPO_NAME}}-config volume entry
+# without disturbing it, and a second application is a no-op.
+check_project_mounts_entries() {
+  local tmp entries_file
+  tmp="$(mktemp)"
+  entries_file="$(mktemp)"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$tmp"
+  echo '["source=acme-widgets-postgres-data,target=/var/lib/postgresql/data,type=volume"]' > "$entries_file"
+
+  "$PATCH_JSON" "$tmp" .mounts "$entries_file"
+  local mounts
+  mounts=$(jq -c '.mounts | sort' "$tmp")
+  # devcontainer.json is copied raw here (no {{REPO_NAME}} substitution —
+  # that's render-devcontainer.sh's job for post-create.sh, not exercised by
+  # this scenario), so the base config-volume entry keeps its placeholder.
+  local expected='["source=acme-widgets-postgres-data,target=/var/lib/postgresql/data,type=volume","source={{REPO_NAME}}-config,target=/home/vscode,type=volume"]'
+  if [ "$mounts" != "$expected" ]; then
+    fail "[project-mounts] expected .mounts to contain the base config volume plus the project's own entry, got $mounts"
+  else
+    echo "OK: [project-mounts] patch-json-array-if-absent.sh composes a project entry onto the base .mounts array"
+  fi
+
+  # Second application must be a no-op (idempotent, safe to rerun after
+  # editing project-mounts.local.json and re-applying).
+  "$PATCH_JSON" "$tmp" .mounts "$entries_file"
+  local mounts2
+  mounts2=$(jq -c '.mounts | sort' "$tmp")
+  if [ "$mounts2" != "$expected" ]; then
+    fail "[project-mounts] second application changed .mounts — not idempotent, got $mounts2"
+  fi
+
+  rm -f "$tmp" "$entries_file"
+}
+check_project_mounts_entries
+
+# initializeCommand chaining (issue #301/#305): a second full render (a
+# rebuild re-running render-devcontainer.sh) must reproduce byte-identical
+# initialize.sh content — no {{...}} placeholders, no drift between runs.
+# A project's own patch-if-absent.sh-appended block onto initialize.sh must
+# also survive a second full pass unchanged, matching the same
+# no-op-on-rerun guarantee already enforced for post-create.sh/post-start.sh
+# above.
+check_initialize_idempotency() {
+  local tmp_dir out
+  tmp_dir="$(mktemp -d)"
+  out="$tmp_dir/initialize.sh"
+
+  "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$tmp_dir/post-create.sh" --initialize-out "$out"
+
+  if [[ "$(cat "$out")" == *'{{'* ]]; then
+    fail "[initialize.sh] leftover {{...}} placeholder found"
+  fi
+
+  local marker="# --- Project: keep-awake ---"
+  local block_file="$tmp_dir/keep-awake-block.sh"
+  {
+    echo "$marker"
+    echo 'echo "keep the host awake here"'
+  } > "$block_file"
+
+  "$PATCH" append "$out" "$marker" "$block_file"
+  cp "$out" "$out.before-pass2"
+
+  "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$tmp_dir/post-create.sh" --initialize-out "$tmp_dir/initialize.sh.regenerated"
+  "$PATCH" append "$out" "$marker" "$block_file"
+
+  if ! diff -q "$out.before-pass2" "$out" >/dev/null; then
+    fail "[initialize.sh] second pass changed initialize.sh after a project block was appended — not idempotent"
+  else
+    echo "OK: [initialize.sh] project-appended block survives a second full pass unchanged"
+  fi
+
+  if ! diff -q "$tmp_dir/initialize.sh.regenerated" "$SKILLS_ROOT/setup-devcontainer/templates/initialize-base.sh" >/dev/null; then
+    fail "[initialize.sh] regenerated base content drifted from templates/initialize-base.sh"
+  fi
+
+  rm -rf "$tmp_dir"
+}
+check_initialize_idempotency
+
 # One multi-stage Dockerfile (ADR-0005's fix for the base/firewall
 # duplication a two-file variant would otherwise reintroduce): the "base"
 # stage must carry none of the firewall's build-time surface, the

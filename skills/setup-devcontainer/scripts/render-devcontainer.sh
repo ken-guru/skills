@@ -12,7 +12,8 @@ Usage: render-devcontainer.sh --repo-name <name> --repo-slug <slug> \
          --out <path> [--ssh] \
          [--git-email-default <email>] [--git-name-default <name>] \
          [--local-checkout-git-init <true|false>] [--git-default-branch <branch>] \
-         [--post-start-out <path>] [--firewall]
+         [--post-start-out <path>] [--firewall] \
+         [--initialize-out <path>]
 
 Writes post-create.sh's base skeleton to --out (chmod +x'd), in the fixed
 order:
@@ -31,6 +32,11 @@ post-create.sh (its capability grant is a devcontainer.json Capability Seam
 patch, applied separately — see SKILL.md step 5), only post-start.sh, so
 this is a second, independent output rather than another post-create.sh
 block.
+
+--initialize-out, if given, also writes initialize.sh's content to that path
+(chmod +x'd): initialize-base.sh's skeleton, unconditionally — it never
+varies by --ssh/--firewall, so it's a third, independent output rather than
+another post-create.sh or post-start.sh block.
 EOF
 }
 
@@ -50,6 +56,7 @@ LOCAL_CHECKOUT_GIT_INIT="false"
 GIT_DEFAULT_BRANCH=""
 POST_START_OUT=""
 FIREWALL=false
+INITIALIZE_OUT=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -63,6 +70,7 @@ while [ $# -gt 0 ]; do
     --git-default-branch) GIT_DEFAULT_BRANCH="$2"; shift 2 ;;
     --post-start-out) POST_START_OUT="$2"; shift 2 ;;
     --firewall) FIREWALL=true; shift ;;
+    --initialize-out) INITIALIZE_OUT="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -104,4 +112,9 @@ if [ -n "$POST_START_OUT" ]; then
   } > "$POST_START_OUT"
 
   chmod +x "$POST_START_OUT"
+fi
+
+if [ -n "$INITIALIZE_OUT" ]; then
+  initialize_base_block > "$INITIALIZE_OUT"
+  chmod +x "$INITIALIZE_OUT"
 fi

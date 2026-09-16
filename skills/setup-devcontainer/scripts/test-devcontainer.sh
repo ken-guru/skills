@@ -27,9 +27,10 @@ run_case() {
   local label="ssh=$ssh git-defaults=$have_git_defaults firewall=$firewall"
   local out="$TMP_DIR/$RUN_COUNT-post-create.sh"
   local post_start_out="$TMP_DIR/$RUN_COUNT-post-start.sh"
+  local initialize_out="$TMP_DIR/$RUN_COUNT-initialize.sh"
 
-  local render_args=(--repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out" --post-start-out "$post_start_out")
-  local verify_args=(--file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" --post-start-file "$post_start_out")
+  local render_args=(--repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out" --post-start-out "$post_start_out" --initialize-out "$initialize_out")
+  local verify_args=(--file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" --post-start-file "$post_start_out" --initialize-file "$initialize_out")
 
   if [ "$ssh" = true ]; then
     render_args+=(--ssh)
@@ -128,24 +129,26 @@ check_post_attach() {
 }
 check_post_attach
 
-# Dockerfile and network-manifest.json don't vary by ssh/git-defaults/firewall
-# (one file each, always copied verbatim — ADR-0004's digest pin and
-# ADR-0005's multi-stage build/manifest skeleton), so — same precedent as
-# run_case_local_checkout and check_post_attach above — this is a one-off
-# spot-check outside the main matrix, not something to repeat per
-# combination.
+# Dockerfile, network-manifest.json, and project-mounts.local.json don't
+# vary by ssh/git-defaults/firewall (one file each, always copied verbatim —
+# ADR-0004's digest pin, ADR-0005's multi-stage build/manifest skeleton, and
+# the Project Mounts seam), so — same precedent as run_case_local_checkout
+# and check_post_attach above — this is a one-off spot-check outside the
+# main matrix, not something to repeat per combination.
 check_dockerfile_and_network_manifest() {
   RUN_COUNT=$((RUN_COUNT + 1))
-  local label="Dockerfile + network-manifest.json"
-  local templates_dir out dockerfile_out manifest_out
+  local label="Dockerfile + network-manifest.json + project-mounts.local.json"
+  local templates_dir out dockerfile_out manifest_out project_mounts_out
 
   templates_dir="$(cd "$SCRIPT_DIR/../templates" && pwd)"
   out="$TMP_DIR/$RUN_COUNT-post-create.sh"
   dockerfile_out="$TMP_DIR/$RUN_COUNT-Dockerfile"
   manifest_out="$TMP_DIR/$RUN_COUNT-network-manifest.json"
+  project_mounts_out="$TMP_DIR/$RUN_COUNT-project-mounts.local.json"
 
   cp "$templates_dir/Dockerfile" "$dockerfile_out"
   cp "$templates_dir/network-manifest.json" "$manifest_out"
+  cp "$templates_dir/project-mounts.local.json" "$project_mounts_out"
 
   if ! "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$out"; then
     echo "FAIL (render): $label" >&2
@@ -154,7 +157,8 @@ check_dockerfile_and_network_manifest() {
   fi
 
   if ! "$VERIFY" --file "$out" --repo-name "acme-widgets" --repo-slug "acme/widgets" \
-       --dockerfile-file "$dockerfile_out" --network-manifest-file "$manifest_out" >/dev/null; then
+       --dockerfile-file "$dockerfile_out" --network-manifest-file "$manifest_out" \
+       --project-mounts-file "$project_mounts_out" >/dev/null; then
     echo "FAIL (verify): $label" >&2
     FAIL_COUNT=$((FAIL_COUNT + 1))
   fi
