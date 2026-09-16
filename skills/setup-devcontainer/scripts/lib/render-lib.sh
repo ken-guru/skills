@@ -92,3 +92,11 @@ firewall_post_start_block() { cat "$TEMPLATES_DIR/post-start-firewall-block.sh";
 # Dockerfile got copied, selects the firewall stage).
 dockerfile_block() { cat "$TEMPLATES_DIR/Dockerfile"; }
 network_manifest_block() { cat "$TEMPLATES_DIR/network-manifest.json"; }
+
+# initialize.sh (host-side initializeCommand chaining) and
+# project-mounts.local.json (the Project Mounts seam): also no placeholders,
+# also always copied/generated verbatim, unconditionally — one file each
+# regardless of ssh/firewall flags, same precedent as Dockerfile and
+# network-manifest.json above.
+initialize_base_block() { cat "$TEMPLATES_DIR/initialize-base.sh"; }
+project_mounts_block() { cat "$TEMPLATES_DIR/project-mounts.local.json"; }

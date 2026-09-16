@@ -13,7 +13,8 @@ Usage: verify-devcontainer.sh --file <path> --repo-name <name> --repo-slug <slug
          [--ssh] [--git-email-default <email>] [--git-name-default <name>] \
          [--local-checkout-git-init <true|false>] [--git-default-branch <branch>] \
          [--post-start-file <path>] [--firewall] \
-         [--dockerfile-file <path>] [--network-manifest-file <path>]
+         [--dockerfile-file <path>] [--network-manifest-file <path>] \
+         [--initialize-file <path>] [--project-mounts-file <path>]
 
 Exits 0 if <path> contains exactly the blocks and substitutions expected for
 the given flag combination, non-zero otherwise (printing every failed check
@@ -31,6 +32,12 @@ flag above) — plus, for the Dockerfile, that it's still digest-pinned
 (ADR-0004) and still exposes both the "base" and "firewall" build stages
 (ADR-0005), and for the manifest, that it's valid JSON seeding the
 universal baseline hosts.
+
+--initialize-file and --project-mounts-file, if given, are each checked
+verbatim against templates/initialize-base.sh and
+templates/project-mounts.local.json (also one file each, unconditional,
+same precedent as the Dockerfile/Network Manifest pair above) — plus, for
+--project-mounts-file, that it's valid JSON.
 EOF
 }
 
@@ -52,6 +59,8 @@ POST_START_FILE=""
 FIREWALL=false
 DOCKERFILE_FILE=""
 NETWORK_MANIFEST_FILE=""
+INITIALIZE_FILE=""
+PROJECT_MOUNTS_FILE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -67,6 +76,8 @@ while [ $# -gt 0 ]; do
     --firewall) FIREWALL=true; shift ;;
     --dockerfile-file) DOCKERFILE_FILE="$2"; shift 2 ;;
     --network-manifest-file) NETWORK_MANIFEST_FILE="$2"; shift 2 ;;
+    --initialize-file) INITIALIZE_FILE="$2"; shift 2 ;;
+    --project-mounts-file) PROJECT_MOUNTS_FILE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -223,6 +234,33 @@ if [ -n "$NETWORK_MANIFEST_FILE" ]; then
     elif ! jq -e '.baseline.networkAllowlist | map(.host) | contains(["registry.npmjs.org","github.com","api.github.com"])' \
         "$NETWORK_MANIFEST_FILE" >/dev/null 2>&1; then
       fail "network-manifest.json's baseline entry is missing one of the universal hosts (registry.npmjs.org, github.com, api.github.com)"
+    fi
+  fi
+fi
+
+if [ -n "$INITIALIZE_FILE" ]; then
+  if [ ! -f "$INITIALIZE_FILE" ]; then
+    fail "no such initialize file: $INITIALIZE_FILE"
+  else
+    INITIALIZE_CONTENT="$(cat "$INITIALIZE_FILE")"
+    expected_initialize="$(initialize_base_block)"
+    if [ "$INITIALIZE_CONTENT" != "$expected_initialize" ]; then
+      fail "initialize.sh content doesn't match templates/initialize-base.sh verbatim"
+    fi
+  fi
+fi
+
+if [ -n "$PROJECT_MOUNTS_FILE" ]; then
+  if [ ! -f "$PROJECT_MOUNTS_FILE" ]; then
+    fail "no such project-mounts file: $PROJECT_MOUNTS_FILE"
+  else
+    PROJECT_MOUNTS_CONTENT="$(cat "$PROJECT_MOUNTS_FILE")"
+    expected_project_mounts="$(project_mounts_block)"
+    if [ "$PROJECT_MOUNTS_CONTENT" != "$expected_project_mounts" ]; then
+      fail "project-mounts.local.json content doesn't match templates/project-mounts.local.json verbatim"
+    fi
+    if ! jq empty "$PROJECT_MOUNTS_FILE" >/dev/null 2>&1; then
+      fail "project-mounts.local.json is not valid JSON"
     fi
   fi
 fi

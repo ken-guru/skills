@@ -108,3 +108,12 @@ conflate the two just because both are per-CLI-Skill extension points on a
 base-owned file.
 _Avoid_: allowlist (too generic — say Network Manifest for the file, plain
 "allowlist" only for the resulting ipset/firewall rule set it produces)
+
+**Project Mounts**:
+A project-owned JSON file (`project-mounts.local.json`), parallel to
+`allowed-domains.local.txt` — created empty, unconditionally, never touched again by any skill —
+where a project declares its own `devcontainer.json` `mounts` entries, folded in via the same
+`patch-json-array-if-absent.sh` primitive the Capability Seam and Network Manifest use. Unlike the
+Network Manifest, it has no per-CLI-keyed structure: no CLI Skill needs its own mount entries, only
+the project does.
+_Avoid_: mounts manifest (implies per-CLI-keyed structure, which this doesn't have)
