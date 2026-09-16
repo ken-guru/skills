@@ -33,8 +33,10 @@ base-skill-owned; the one documented exception is the Capability Seam.
 _Avoid_: ownership rule (too generic)
 
 **Project-Owned Block**:
-A marker-keyed block a project adds to a Scaffold lifecycle script for its own needs (e.g. starting
-a backing service from `post-start.sh`) — not owned by the base skill or any CLI Skill. Uses the
+A marker-keyed block a project adds to a Scaffold lifecycle script for its own needs (e.g.
+installing a backing service from `post-create.sh`, starting it from `post-start.sh`) — not owned
+by the base skill or any CLI Skill. A single project need can own a block in more than one lifecycle
+script at once. Uses the
 same `patch-if-absent.sh` idempotent-append mechanism as a CLI Skill's own block, with a
 project-chosen marker instead; no skill ever reads, edits, or removes it. A third party under the
 Own-Block Contract, alongside the base skill and a CLI Skill.
