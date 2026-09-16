@@ -32,6 +32,14 @@ key/volume wiring) is exclusively base-skill-owned; the one documented
 exception is the Capability Seam.
 _Avoid_: ownership rule (too generic)
 
+**Project-Owned Block**:
+A marker-keyed block a project adds to a Scaffold lifecycle script for its own needs (e.g. starting
+a backing service from `post-start.sh`) — not owned by the base skill or any CLI Skill. Uses the
+same `patch-if-absent.sh` idempotent-append mechanism as a CLI Skill's own block, with a
+project-chosen marker instead; no skill ever reads, edits, or removes it. A third party under the
+Own-Block Contract, alongside the base skill and a CLI Skill.
+_Avoid_: project hook, custom block (too generic)
+
 **Capability Seam**:
 The one designated, explicitly-named extension point in `devcontainer.json`
 (`runArgs`) that a CLI Skill may idempotently append to when it needs
