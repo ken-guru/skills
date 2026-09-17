@@ -264,3 +264,47 @@ fi
 # (see the base skill's install-cli-block.sh).
 chown_config_volume "$HOME/.claude"
 install_cli "Claude Code" "$HOME/.local/bin/claude" "https://claude.ai/install.sh" bash
+# --- Codex ---
+# Fix ownership on the .codex config volume mount, then install Codex CLI
+# via the official installer, exactly as OpenAI's own docs invoke it
+# (developers.openai.com/codex/cli).
+#
+# CODEX_NON_INTERACTIVE=1 is the installer's own documented switch for
+# skipping its prompts, passed through install_cli's `env` wrapper rather
+# than a `</dev/null` redirect on the piped `sh`: closing sh's own stdin
+# breaks the curl|sh pipe itself (curl gets EPIPE and the install silently
+# no-ops without ever erroring), it doesn't just suppress the prompt.
+chown_config_volume "$HOME/.codex"
+install_cli "Codex" "$HOME/.local/bin/codex" "https://chatgpt.com/codex/install.sh" sh CODEX_NON_INTERACTIVE=1
+# --- Antigravity ---
+# Fix ownership on the .antigravity config volume mount, then install
+# Antigravity CLI via the official installer — its own shebang (#!/bin/bash)
+# is why this pipes into `bash`, not `sh`.
+#
+# A prior version of this block hand-rolled architecture detection and
+# downloaded a tarball directly from a storage.googleapis.com URL that has
+# since gone stale (confirmed 404 in practice) — the official installer
+# handles detection, download, and idempotency itself, so there's nothing
+# left for this script to duplicate.
+chown_config_volume "$HOME/.antigravity"
+install_cli "Antigravity" "$HOME/.local/bin/agy" "https://antigravity.google/cli/install.sh" bash
+# --- Copilot ---
+# Fix ownership on the .copilot config volume mount, then install GitHub
+# Copilot CLI via the official install script, as GitHub's own install docs
+# invoke it. Always installs whatever's current at build time (no pinning
+# knob, no staleness-check machinery, matching the other three tools).
+#
+# Auth: the installed `copilot` CLI picks up this container's GH_TOKEN
+# automatically (falling back to OAuth/`gh auth token` if unset), so no
+# separate login step is needed here.
+#
+# COPILOT_AUTO_UPDATE=false disables the CLI's own background self-update
+# check, which otherwise throws on startup ("Error auto updating: TypeError:
+# Invalid Version: latest") — a fixed, non-user-configurable value (not a
+# secret, so it doesn't belong in .env), exported here rather than in
+# devcontainer.json's containerEnv since that file is base-owned.
+chown_config_volume "$HOME/.copilot"
+install_cli "Copilot" "$HOME/.local/bin/copilot" "https://gh.io/copilot-install" bash
+cat >> ~/.bashrc << 'EOF'
+export COPILOT_AUTO_UPDATE=false
+EOF

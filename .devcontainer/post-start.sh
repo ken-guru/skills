@@ -15,6 +15,15 @@ fi
 # Runs on every container start (not just create/rebuild). Empty by design —
 # each CLI skill appends its own skill-sync block here, under its own
 # marker, when the user opts into automatic skill sync for that tool.
+
+# --- Network egress firewall ---
+# Opt-in network egress firewall (ADR-0005). Runs on every container start
+# (not just create/rebuild), matching init-firewall.sh's own policy-reset-
+# before-flush design: a script that died mid-run on a previous start can't
+# permanently deadlock a later one. The refresh loop keeps CDN-backed
+# allowlisted hosts from going stale mid-session (see refresh-allowlist.sh).
+sudo /workspace/.devcontainer/init-firewall.sh
+sudo bash -c 'bash /workspace/.devcontainer/refresh-allowlist.sh &'
 # --- Claude Code skill-sync ---
 # Claude Code skills are wiped and reinstalled from the configured sources on
 # every start, so the skill set stays current with upstream instead of
@@ -22,3 +31,24 @@ fi
 # config volume, so no separate volume is needed.
 rm -rf /home/vscode/.claude/skills/* 2>/dev/null || true
 npx -y skills add mattpocock/skills --skill '*' -a claude-code -y --copy -g
+# --- Codex skill-sync ---
+# Codex skills are wiped and reinstalled from the configured sources on
+# every start, so the skill set stays current with upstream instead of
+# persisting a stale copy across rebuilds. This lives inside the shared
+# config volume, so no separate volume is needed.
+rm -rf /home/vscode/.codex/skills/* 2>/dev/null || true
+npx -y skills add mattpocock/skills --skill '*' -a codex -y --copy -g
+# --- Antigravity skill-sync ---
+# Antigravity skills are wiped and reinstalled from the configured sources on
+# every start, so the skill set stays current with upstream instead of
+# persisting a stale copy across rebuilds. This lives inside the shared
+# config volume, so no separate volume is needed.
+rm -rf /home/vscode/.gemini/antigravity/skills/* 2>/dev/null || true
+npx -y skills add mattpocock/skills --skill '*' -a antigravity -y --copy -g
+# --- Copilot skill-sync ---
+# Copilot skills are wiped and reinstalled from the configured sources on
+# every start, so the skill set stays current with upstream instead of
+# persisting a stale copy across rebuilds. This lives inside the shared
+# config volume, so no separate volume is needed.
+rm -rf /home/vscode/.copilot/skills/* 2>/dev/null || true
+npx -y skills add mattpocock/skills --skill '*' -a github-copilot -y --copy -g
