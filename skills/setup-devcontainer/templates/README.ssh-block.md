@@ -19,8 +19,10 @@ api repos/.../keys` needs the repo's **Administration** permission, and
 that's disproportionate to grant `GH_TOKEN` just for this, especially since
 it's sourced into every AI CLI's shell in this container. `postAttachCommand`
 prints a one-time combined prompt with each key's public key to paste in:
-the deploy key at `https://github.com/{{REPO_SLUG}}/settings/keys/new` (as
-an **Authentication Key**), the signing key at
+the deploy key at `https://github.com/{{REPO_SLUG}}/settings/keys/new` (that
+page has no "Key type" selector — only Title, Key, and an **Allow write
+access** checkbox, which must be **checked**, since this key is what makes
+`git push` work, not just `git pull`), the signing key at
 <https://github.com/settings/ssh> (as a **Signing Key**). Dismiss each once
 done:
 
