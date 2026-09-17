@@ -90,8 +90,8 @@ else
   echo "  ⚠ ACTION REQUIRED — register the SSH deploy key with GitHub"
   echo "    1. Open https://github.com/$REPO/settings/keys/new"
   echo "    2. Title:    $DEPLOY_KEY_TITLE"
-  echo "    3. Key type: Authentication Key"
-  echo "    4. Paste the deploy public key printed below"
+  echo "    3. Paste the deploy public key printed below"
+  echo "    4. Check 'Allow write access' (needed for git push, not just pull)"
   echo "    5. When done, dismiss this reminder:"
   echo "       touch ~/.ssh/.deploy-key-registered"
 fi
