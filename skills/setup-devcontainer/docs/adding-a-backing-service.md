@@ -96,8 +96,14 @@ checks against.
    # postCreateCommand. `sudo su postgres -c '<cmd>'` only needs the `(root)`
    # grant already present (sudo to root, then su to postgres, which root can
    # always do password-free).
+   # `initdb` locks the data directory to 0700 postgres:postgres as a side
+   # effect of a successful bootstrap — so from the second rebuild onward, a
+   # plain `[ -f "$BOOTSTRAP_MARKER" ]` run as vscode gets EACCES, not "file
+   # doesn't exist"; `[ -f ]` can't tell those apart, both evaluate false,
+   # and the guard silently re-runs, crashing on `createdb: already exists`.
+   # `sudo test -f` checks as root instead, avoiding the EACCES entirely.
    BOOTSTRAP_MARKER="/var/lib/postgresql/16/main/.bootstrapped"
-   if [ ! -f "$BOOTSTRAP_MARKER" ]; then
+   if ! sudo test -f "$BOOTSTRAP_MARKER"; then
      sudo pg_ctlcluster 16 main start
      sudo su postgres -c "psql -c \"ALTER USER postgres PASSWORD 'devpassword';\""
      sudo su postgres -c "createdb '{{REPO_NAME}}'"
@@ -192,4 +198,9 @@ can make a package's postinst script abort instead of treating it as a clean ins
 bootstrap step needs to run commands as a *different* non-root user, use `sudo su <user> -c
 '<cmd>'`, not `sudo -u <user> <cmd>` — this container's sudoers grant is scoped to `(root)`, not
 `(ALL)`, so `sudo -u` prompts for a password that never arrives under a non-interactive
-`postCreateCommand`.
+`postCreateCommand`. And if the service locks down its own data directory's permissions once
+initialized (databases commonly do — PostgreSQL's `initdb` sets `0700`), guard the bootstrap
+marker file with `sudo test -f "$MARKER"`, not a plain `[ -f "$MARKER" ]`: run as the unprivileged
+`vscode` user, the plain check can't tell "doesn't exist" from "can't tell, EACCES" — both
+evaluate false — so the guard silently starts re-running the bootstrap on every rebuild after the
+first successful one, and won't be caught by a test plan that only checks the first rebuild.
