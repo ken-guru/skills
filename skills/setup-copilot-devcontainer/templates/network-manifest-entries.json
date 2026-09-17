@@ -1,5 +1,10 @@
 [
   {
+    "host": "gh.io",
+    "purpose": "install-block.sh's install URL (https://gh.io/copilot-install) redirects through this shortener before reaching GitHub's actual install script",
+    "source": "observed"
+  },
+  {
     "host": "github.githubassets.com",
     "purpose": "static assets",
     "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
