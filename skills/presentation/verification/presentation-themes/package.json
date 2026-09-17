@@ -18,7 +18,7 @@
     "test:full": "npm run acceptance && npm run acceptance:gallery && npm run check-gallery-docs"
   },
   "overrides": {
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "puppeteer-core": "25.8.0",
     "@xmldom/xmldom": "0.9.12"
   },
