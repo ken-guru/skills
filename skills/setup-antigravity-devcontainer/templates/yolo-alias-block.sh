@@ -9,6 +9,9 @@
 # starting from git, gh, ls, cat and never rm, curl, raw bash -c, or a
 # wildcard — see the reported next steps for setting it up as a manual,
 # once-per-machine step.
+if ! grep -q "devcontainer-antigravity-yolo-alias" ~/.bashrc 2>/dev/null; then
 cat >> ~/.bashrc << 'EOF'
+# devcontainer-antigravity-yolo-alias
 alias agy-yolo="agy --mode accept-edits"
 EOF
+fi

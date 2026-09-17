@@ -5,6 +5,9 @@
 # triggers Claude Code's own bwrap sandbox, whose mount-namespace view of the
 # repo conflicts with git's worktree identity check and breaks worktree
 # creation 100% of the time.
+if ! grep -q "devcontainer-claude-yolo-alias" ~/.bashrc 2>/dev/null; then
 cat >> ~/.bashrc << 'EOF'
+# devcontainer-claude-yolo-alias
 alias claude-yolo="claude --permission-mode auto --worktree --remote-control"
 EOF
+fi
