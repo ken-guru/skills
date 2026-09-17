@@ -15,6 +15,9 @@
 # devcontainer.json's containerEnv since that file is base-owned.
 chown_config_volume "$HOME/.copilot"
 install_cli "Copilot" "$HOME/.local/bin/copilot" "https://gh.io/copilot-install" bash
+if ! grep -q "devcontainer-copilot-auto-update" ~/.bashrc 2>/dev/null; then
 cat >> ~/.bashrc << 'EOF'
+# devcontainer-copilot-auto-update
 export COPILOT_AUTO_UPDATE=false
 EOF
+fi

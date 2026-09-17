@@ -8,6 +8,9 @@
 # rather than never escalating. This container's Capability Seam grant (see
 # the skill's own SKILL.md) is what lets the workspace-write sandbox actually
 # create its Bubblewrap namespace.
+if ! grep -q "devcontainer-codex-yolo-alias" ~/.bashrc 2>/dev/null; then
 cat >> ~/.bashrc << 'EOF'
+# devcontainer-codex-yolo-alias
 alias codex-yolo="codex --ask-for-approval on-request --sandbox workspace-write -c sandbox_workspace_write.network_access=true"
 EOF
+fi

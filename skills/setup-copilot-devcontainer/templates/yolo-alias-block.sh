@@ -5,6 +5,9 @@
 # GitHub's own docs explicitly warn against ever aliasing these for every
 # session start — so this stays a manual-invocation reminder, not a
 # persistent auto-approve alias.
+if ! grep -q "devcontainer-copilot-yolo-alias" ~/.bashrc 2>/dev/null; then
 cat >> ~/.bashrc << 'EOF'
+# devcontainer-copilot-yolo-alias
 alias copilot-yolo="echo 'Copilot CLI now supports --allow-all (--yolo) and --autopilot --max-autopilot-continues <N> for unattended runs. GitHub'\''s own docs warn against aliasing these for every session start, so run them directly when you want them: copilot --allow-all --autopilot --max-autopilot-continues 10. Consider /sandbox enable first.'"
 EOF
+fi
