@@ -54,6 +54,22 @@ RUN if ! id vscode >/dev/null 2>&1; then \
       useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode; \
     fi
 
+# nodesource's default global prefix (/usr) is root-owned, so a plain `npm
+# install -g` from a Project-Owned Block (running as vscode at
+# postCreateCommand time) fails EACCES. Repointing the prefix here — not to
+# ~/.npm-global under /home/vscode, which is the persisted config volume and
+# only seeded from the image on a volume's first creation, so a Dockerfile
+# change here would silently stop applying to any project's volume after
+# its first build — sidesteps that, and avoids chowning /usr/bin itself
+# (npm's global-bin symlink target), a shared system directory. Deliberately
+# not `corepack enable`: its pnpm/yarn shims land in this same directory and
+# collide (EEXIST) with a project doing `npm install -g pnpm`, which is the
+# documented pattern — see issue #299's notes.
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH="/usr/local/share/npm-global/bin:${PATH}"
+RUN mkdir -p /usr/local/share/npm-global \
+    && chown -R vscode:vscode /usr/local/share/npm-global
+
 USER vscode
 
 # ---------------------------------------------------------------------------
