@@ -1,0 +1,15 @@
+# PROTOTYPE — throwaway, for issue #319 (two-tier sudo wrapper spike)
+Defaults:vscode env_keep += "FIREWALL_REFRESH_INTERVAL"
+
+# Tier 2 (break-glass) listed FIRST: sudoers is last-match-wins, so a broad
+# ALL catch-all listed AFTER a specific allowlist would silently override it.
+# Putting the catch-all first, and the specific allowlist last, makes the
+# specific (and more narrowly matching) tier-1 rules win for the commands
+# they name, while everything else falls through to this PASSWD:ALL rule.
+vscode ALL=(root) PASSWD: ALL
+
+# Tier 0 (untouched, pre-existing, narrowly scoped): the firewall's own scripts
+vscode ALL=(root) NOPASSWD: /workspace/.devcontainer/init-firewall.sh, /workspace/.devcontainer/refresh-allowlist.sh
+
+# Tier 1: default allowlist — no password, exactly what the sudo-usage audit found load-bearing
+vscode ALL=(root) NOPASSWD: /usr/bin/mkdir, /usr/bin/chown, /usr/bin/apt-get, /usr/bin/apt, /usr/bin/dpkg, /usr/bin/install, /usr/bin/curl, /usr/bin/tee, /usr/bin/test, /usr/bin/su, /usr/bin/pg_ctlcluster, /usr/bin/service

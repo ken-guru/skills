@@ -1,0 +1,3 @@
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
+COPY sudoers-two-tier /etc/sudoers.d/vscode-two-tier-prototype
+RUN chmod 0440 /etc/sudoers.d/vscode-two-tier-prototype && visudo -c
