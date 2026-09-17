@@ -1,0 +1,182 @@
+{
+  "baseline": {
+    "networkAllowlist": [
+      {
+        "host": "registry.npmjs.org",
+        "purpose": "npm/npx package installs and version checks — needed regardless of which CLI Skills are installed",
+        "source": "https://docs.npmjs.com/cli/v10/using-npm/registry"
+      },
+      {
+        "host": "github.com",
+        "purpose": "git clone/fetch/push over HTTPS",
+        "source": "https://docs.github.com/en/get-started/quickstart/set-up-git"
+      },
+      {
+        "host": "api.github.com",
+        "purpose": "gh CLI API requests (PRs, issues, releases)",
+        "source": "https://docs.github.com/en/rest"
+      },
+      {
+        "host": "archive.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (amd64/i386 hosts) — without this, `apt-get update` silently fails to refresh the package index and only already-cached packages remain installable",
+        "source": "observed"
+      },
+      {
+        "host": "ports.ubuntu.com",
+        "purpose": "ad hoc `sudo apt-get install <tool>` mid-session (arm64 and other non-amd64/i386 hosts, per the base image's own /etc/apt/sources.list.d/ubuntu.sources) — same failure mode as archive.ubuntu.com above",
+        "source": "observed"
+      }
+    ]
+  },
+  "claude": {
+    "networkAllowlist": [
+      {
+        "host": "api.anthropic.com",
+        "purpose": "Claude API requests, WebFetch domain safety check, feature-flag fetches, telemetry",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "claude.ai",
+        "purpose": "account auth",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "claude.com",
+        "purpose": "sign-in redirect; pre-approved WebFetch doc lookups",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "platform.claude.com",
+        "purpose": "Console auth, OAuth token exchange",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "mcp-proxy.anthropic.com",
+        "purpose": "MCP connectors from claude.ai",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "downloads.claude.ai",
+        "purpose": "plugin/installer downloads",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "storage.googleapis.com",
+        "purpose": "plugin metadata",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "bridge.claudeusercontent.com",
+        "purpose": "Chrome extension bridge",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "raw.githubusercontent.com",
+        "purpose": "changelog feed",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      },
+      {
+        "host": "code.claude.com",
+        "purpose": "doc lookups",
+        "source": "https://code.claude.com/docs/en/network-config#network-access-requirements"
+      }
+    ]
+  },
+  "codex": {
+    "networkAllowlist": [
+      {
+        "host": "api.openai.com",
+        "purpose": "Codex API requests",
+        "source": "https://learn.chatgpt.com/docs/agent-approvals-security"
+      },
+      {
+        "host": "auth.openai.com",
+        "purpose": "sign-in / auth token exchange",
+        "source": "observed"
+      },
+      {
+        "host": "chatgpt.com",
+        "purpose": "ChatGPT account sign-in",
+        "source": "observed"
+      }
+    ]
+  },
+  "antigravity": {
+    "networkAllowlist": [
+      {
+        "host": "aiplatform.googleapis.com",
+        "purpose": "Agent Platform API",
+        "source": "https://antigravity.google/docs/enterprise/"
+      },
+      {
+        "host": "antigravity.google",
+        "purpose": "product surface / web app",
+        "source": "observed"
+      },
+      {
+        "host": "antigravity-cli-auto-updater-974169037036.us-central1.run.app",
+        "purpose": "CLI auto-updater",
+        "source": "observed"
+      },
+      {
+        "host": "storage.googleapis.com",
+        "purpose": "asset/config storage",
+        "source": "observed"
+      },
+      {
+        "host": "accounts.google.com",
+        "purpose": "Google account auth",
+        "source": "observed"
+      },
+      {
+        "host": "oauth2.googleapis.com",
+        "purpose": "OAuth token exchange",
+        "source": "observed"
+      },
+      {
+        "host": "daily-cloudcode-pa.googleapis.com",
+        "purpose": "Cloud Code backend API",
+        "source": "observed"
+      },
+      {
+        "host": "lh3.googleusercontent.com",
+        "purpose": "user avatar/profile images",
+        "source": "observed"
+      }
+    ]
+  },
+  "copilot": {
+    "networkAllowlist": [
+      {
+        "host": "github.githubassets.com",
+        "purpose": "static assets",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      },
+      {
+        "host": "avatars.githubusercontent.com",
+        "purpose": "user avatars",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      },
+      {
+        "host": "copilot-proxy.githubusercontent.com",
+        "purpose": "suggestions/completions API",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      },
+      {
+        "host": "origin-tracker.githubusercontent.com",
+        "purpose": "origin tracking",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      },
+      {
+        "host": "copilot-telemetry.githubusercontent.com",
+        "purpose": "telemetry",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      },
+      {
+        "host": "default.exp-tas.com",
+        "purpose": "experimentation",
+        "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+      }
+    ]
+  }
+}

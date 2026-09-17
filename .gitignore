@@ -1,6 +1,8 @@
 .vscode/
 .envrc
 .devcontainer/.env
+.devcontainer/project-mounts.local.json
+.devcontainer/allowed-domains.local.txt
 skills/presentation/verification/presentation-themes/.generated/
 skills/presentation/verification/presentation-themes/reports/
 skills/presentation/verification/presentation-themes/node_modules/
