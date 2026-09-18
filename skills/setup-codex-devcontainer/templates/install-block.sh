@@ -8,5 +8,8 @@
 # than a `</dev/null` redirect on the piped `sh`: closing sh's own stdin
 # breaks the curl|sh pipe itself (curl gets EPIPE and the install silently
 # no-ops without ever erroring), it doesn't just suppress the prompt.
+#
+# Runs once, here in post-create.sh (container creation), not on every
+# start — and only if the binary isn't already installed.
 chown_config_volume "$HOME/.codex"
 install_cli "Codex" "$HOME/.local/bin/codex" "https://chatgpt.com/codex/install.sh" sh CODEX_NON_INTERACTIVE=1
