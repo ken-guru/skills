@@ -138,5 +138,29 @@ if (
   FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
+# --- firewall_host_is_google_fronted(): pure predicate, no network access ---
+assert_google_fronted() {
+  local host="$1" expected="$2"
+  local actual="no"
+  if (
+    # shellcheck source=../templates/firewall-lib.sh
+    source "$TEMPLATES_DIR/firewall-lib.sh"
+    firewall_host_is_google_fronted "$host"
+  ); then
+    actual="yes"
+  fi
+  assert_eq "firewall_host_is_google_fronted($host)" "$expected" "$actual"
+}
+
+assert_google_fronted "lh3.googleusercontent.com" "yes"
+assert_google_fronted "storage.googleapis.com" "yes"
+assert_google_fronted "accounts.google.com" "yes"
+assert_google_fronted "google.com" "yes"
+assert_google_fronted "antigravity.google" "yes"
+assert_google_fronted "api.github.com" "no"
+assert_google_fronted "registry.npmjs.org" "no"
+assert_google_fronted "notgoogle.com" "no"
+assert_google_fronted "evilgoogleapis.com" "no"
+
 echo "$RUN_COUNT assertions, $FAIL_COUNT failed"
 [ "$FAIL_COUNT" -eq 0 ]
