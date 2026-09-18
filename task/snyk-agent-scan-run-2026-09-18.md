@@ -93,3 +93,38 @@ the actual risk/false-positive-rate/noise-level data this task ticket set out to
 capture is **not yet captured**. That's the concrete blocker a follow-up ticket
 needs to clear before the tool-choice/gating decision (see the map) can be made on
 real evidence rather than vendor claims.
+
+## Follow-up (issue #338): token provisioned, but the free tier's daily quota was already exhausted
+
+With a real `SNYK_TOKEN` in place, the same scoped, two-path invocation was re-run:
+
+```
+SNYK_TOKEN=<token> uvx snyk-agent-scan@latest scan --skills --json \
+  "<repo>/skills" "<repo>/skills/presentation"
+```
+
+Authentication succeeded (no auth error) and the CLI exited `0`, but **every path came
+back with an error instead of risk data**:
+
+```
+"message": "Daily usage limit reached for the public version of Agent-Scan. Unlock
+higher limits and enterprise features by contacting us at
+https://evo.ai.snyk.io/#contact-us.",
+"exception": "429, message='Too Many Requests', url='https://api.snyk.io/hidden/
+mcp-scan/cli/analysis-machine?version=2026-07-10'"
+```
+
+`server_risks` and `skill_risks` were both empty arrays — no partial results, just the
+rate-limit error, on what was this token's first authenticated analysis call. This is
+itself a real, decision-relevant fact for the map: **the free/"public version" of Agent
+Scan's verification backend enforces a daily quota tight enough to exhaust on a single
+two-path scan of a 14-skill repo**, and clearing it requires contacting Snyk's Evo team
+about enterprise/higher-limit access — not just having a free-tier account token. This
+materially affects both the "cost" and "gating vs. advisory" parts of the pending
+decision: a hard per-day cap is very difficult to reconcile with gating *every* PR, and
+even advisory/scheduled usage (mirroring the existing Trivy image-scan cadence) would
+need headroom-planning against whatever the actual daily cap turns out to be — that
+number itself is still unknown; only that two calls exhausted it. Not retried further
+given the explicit "daily" framing and to avoid hammering a rate-limited vendor
+endpoint — a fresh attempt after quota reset (timing unconfirmed) would be needed to
+get first real per-skill findings.
