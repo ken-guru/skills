@@ -14,9 +14,8 @@
 # secret, so it doesn't belong in .env), exported here rather than in
 # devcontainer.json's containerEnv since that file is base-owned.
 #
-# The install itself runs once, here in post-create.sh (container
-# creation), not on every start — and only if the binary isn't already
-# installed.
+# Runs once, here in post-create.sh (container creation), not on every
+# start — and only if the binary isn't already installed.
 chown_config_volume "$HOME/.copilot"
 install_cli "Copilot" "$HOME/.local/bin/copilot" "https://gh.io/copilot-install" bash
 if ! grep -q "devcontainer-copilot-auto-update" ~/.bashrc 2>/dev/null; then

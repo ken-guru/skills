@@ -14,7 +14,7 @@ from the line-oriented one everything else here uses. It also idempotently
 ensures its own Network Manifest entry exists in
 `.devcontainer/network-manifest.json`, via the same JSON-aware primitive.
 
-## Security & Trust
+## 0. Security & Trust
 
 This skill's generated automation touches three areas an external audit may flag. Each is
 opt-in, scoped to this container, and exists for a specific reason — none of it runs on the

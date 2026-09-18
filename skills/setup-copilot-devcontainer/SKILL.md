@@ -12,7 +12,7 @@ marker-keyed content to `post-create.sh`, `post-start.sh` (if skill sync is
 opted into), and `README.md`, and idempotently ensures its own Network
 Manifest entry exists in `.devcontainer/network-manifest.json`.
 
-## Security & Trust
+## 0. Security & Trust
 
 This skill's generated automation touches three areas an external audit may flag. Each is
 opt-in, scoped to this container, and exists for a specific reason — none of it runs on the
