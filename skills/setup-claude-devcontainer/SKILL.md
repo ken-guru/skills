@@ -12,6 +12,30 @@ marker-keyed content to `post-create.sh`, `post-start.sh` (if skill sync is
 opted into), and `README.md`, and idempotently ensures its own Network
 Manifest entry exists in `.devcontainer/network-manifest.json`.
 
+## Security & Trust
+
+This skill's generated automation touches three areas an external audit may flag. Each is
+opt-in, scoped to this container, and exists for a specific reason — none of it runs on the
+host, only inside the generated devcontainer.
+
+- **Installer Provenance**: installs Claude Code via Anthropic's own official installer
+  (`https://claude.ai/install.sh`, documented at code.claude.com/docs/en/quickstart). Runs
+  once, at container creation (`postCreateCommand`), not on every start — and only if
+  `~/.local/bin/claude` doesn't already exist.
+- **Agent Authority**: the optional `claude-yolo` alias uses `--permission-mode auto
+  --worktree --remote-control`, deliberately not `--dangerously-skip-permissions` — that flag
+  triggers Claude Code's own bwrap sandbox, whose mount-namespace view of the repo conflicts
+  with git's worktree identity check and breaks worktree creation. Off by default; only added
+  if accepted during setup.
+- **Skill Source Trust**: if skill sync is accepted, `~/.claude/skills` is wiped and
+  repopulated from the source(s) you name, on every container start. The wipe is scoped to
+  that one fixed directory inside this container — it can't reach anything else. The real
+  trust decision is the source itself: naming one means trusting its skills unattended, with
+  no per-skill review step, every time the container starts. Off by default.
+
+See [ADR-0007](../setup-devcontainer/docs/adr/0007-agent-trust-hub-audit-response.md) for the
+full reasoning and the alternatives rejected.
+
 ## 1. Detect the base devcontainer
 
 ```bash
