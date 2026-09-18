@@ -110,6 +110,39 @@ for domain in "${FIREWALL_DOMAINS[@]}"; do
   done < <(echo "$ips")
 done
 
+# Any Network Manifest / local-file host fronted by Google's shared GFE
+# pool (googleapis.com, google.com, googleusercontent.com, *.google) can't
+# be pinned to the single IP the dig loop above just resolved — GFE
+# round-robins a given host across widely separated ranges within seconds
+# (see firewall_host_is_google_fronted()'s own comment). Google's full
+# published ranges, fetched live, are the only reliable way to keep such a
+# host reachable — same shape as the GitHub CIDR handling above, applied
+# only when the manifest actually declares a Google-fronted host so a
+# container with none doesn't get Google's entire network opened for no
+# reason.
+needs_google_ranges=false
+for domain in "${FIREWALL_DOMAINS[@]}"; do
+  if firewall_host_is_google_fronted "$domain"; then
+    needs_google_ranges=true
+    break
+  fi
+done
+if [ "$needs_google_ranges" = true ]; then
+  echo "Fetching Google IP ranges (Network Manifest declares a Google-fronted host)..."
+  if ! firewall_collect_google_ranges; then
+    echo "ERROR: could not fetch Google's IP ranges — aborting" >&2
+    exit 1
+  fi
+  echo "Processing Google IP ranges..."
+  for cidr in "${FIREWALL_GOOGLE_CIDRS[@]}"; do
+    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+      echo "ERROR: Invalid CIDR range from Google's ipranges: $cidr" >&2
+      exit 1
+    fi
+    ipset add allowed-domains "$cidr" -exist
+  done
+fi
+
 # Host network — lets the container reach the Docker host itself (e.g. a
 # database or dev server bound on the host).
 HOST_IP=$(ip route | awk '/default/ {print $3; exit}')

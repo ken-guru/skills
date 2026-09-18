@@ -48,6 +48,59 @@ firewall_collect_github_ranges() {
   return 0
 }
 
+# Google fronts most of its own products (googleapis.com, google.com,
+# googleusercontent.com, and *.google itself, e.g. antigravity.google)
+# through the same shared Google Front End (GFE) pool — a single `dig` at
+# a moment in time only ever captures one of many IPs a GFE-fronted host
+# round-robins across, observed rotating within seconds across widely
+# separated /16-ish blocks in manual testing (this is the mechanism behind
+# the "eligibility check" `no route to host` failures the Antigravity CLI
+# hit against lh3.googleusercontent.com — see ADR-0005's addendum). A host
+# matching this predicate needs firewall_collect_google_ranges()'s full
+# published range, not (only) a resolved single IP, to stay reliably
+# reachable. Pure/no network access, unlike the two collectors below.
+firewall_host_is_google_fronted() {
+  local host="$1"
+  case "$host" in
+    google.com|*.google.com|*.googleapis.com|*.googleusercontent.com|google|*.google)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# Google's own published IP ranges — fetched live from
+# https://www.gstatic.com/ipranges/goog.json (Google's documented source of
+# truth for its infrastructure ranges, the same shape of source GitHub's
+# api.github.com/meta is for GitHub's), never hardcoded. Needed because a
+# GFE-fronted host (see firewall_host_is_google_fronted() above) can't be
+# reliably pinned to any single resolved IP. Sets FIREWALL_GOOGLE_CIDRS (a
+# bash array of aggregated IPv4 CIDR strings; the source also carries IPv6
+# prefixes, dropped here since the rest of this firewall's allowlist —
+# ipset type hash:net, GitHub ranges included — is IPv4-only).
+firewall_collect_google_ranges() {
+  local goog_ranges
+  goog_ranges=$(curl -s --connect-timeout 10 https://www.gstatic.com/ipranges/goog.json 2>/dev/null || true)
+  if [ -z "$goog_ranges" ] || ! echo "$goog_ranges" | jq -e '.prefixes' >/dev/null 2>&1; then
+    echo "firewall-lib: failed to fetch or parse Google IP ranges from gstatic.com/ipranges/goog.json" >&2
+    return 1
+  fi
+
+  FIREWALL_GOOGLE_CIDRS=()
+  local cidr
+  while IFS= read -r cidr; do
+    [ -n "$cidr" ] && FIREWALL_GOOGLE_CIDRS+=("$cidr")
+  done < <(echo "$goog_ranges" | jq -r '.prefixes[].ipv4Prefix // empty' | aggregate -q)
+
+  if [ "${#FIREWALL_GOOGLE_CIDRS[@]}" -eq 0 ]; then
+    echo "firewall-lib: no CIDR ranges derived from Google's ipranges response" >&2
+    return 1
+  fi
+  return 0
+}
+
 # Sets FIREWALL_DOMAINS (a bash array) on success — the Network Manifest
 # (network-manifest.json, via its own network-manifest-domains.sh
 # derivation helper) plus this repo's own project-specific

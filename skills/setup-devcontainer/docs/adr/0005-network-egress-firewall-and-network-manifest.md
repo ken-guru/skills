@@ -194,3 +194,54 @@ itself is architecture-agnostic (whichever the host's Docker daemon builds for),
 couldn't be verified from this validation's own (arm64) sandbox — reasoned from Ubuntu's own
 packaging convention instead, worth a maintainer double-check on an amd64 host if one becomes
 available.
+
+## Addendum 3 (2026-09-17, from a reported Antigravity eligibility-check failure)
+
+A user reported Antigravity's (`agy`) "Eligibility Check" intermittently failing inside a firewalled
+devcontainer with `failed to get profile picture: Get "https://lh3.googleusercontent.com/...": dial
+tcp 216.58.201.193:443: connect: no route to host`, recovering after restarting `agy` (not the
+container). Root-caused directly: `lh3.googleusercontent.com` is fronted by Google's shared Google
+Front End (GFE) pool, and repeated `dig` queries against it (from this machine, and separately
+confirmed via `@8.8.8.8`/`@1.1.1.1`) returned four different IPs within seconds — `216.58.201.161`,
+`216.58.201.193` (the exact IP the user's error named), `216.58.207.97`, `142.250.178.33` — spanning
+three separate `/16`-ish blocks. `init-firewall.sh`'s per-host `dig` loop (this ADR's own §Context
+already named this class of problem: "resolves most hosts once via `dig`... a one-shot resolution
+that goes stale") only ever captures one such IP into the ipset; the background refresh loop
+(5-minute cadence) mitigates staleness across a long session but does nothing for the gap right
+after container start, and even a fresh refresh cycle's own `dig` call only captures one IP at a
+time from the same rotating pool. This is architecturally different from the CDN churn the refresh
+loop was built for (a single IP going stale over time) — it's a single `dig` never covering the
+pool's breadth to begin with, at any point in time.
+
+Verified live (not just reasoned from code): built a scratch container with this ADR's real
+`init-firewall.sh`, ran it unmodified against a manifest containing `lh3.googleusercontent.com`, then
+used `curl --resolve` to force connections straight at the four independently-observed GFE IPs above
+(bypassing the container's own DNS, to test the firewall's enforcement in isolation) — only the one
+IP `dig` happened to resolve during that run was reachable; the other three were rejected at the
+network layer, reproducing the report exactly (down to matching the user's own IP).
+
+Fixed structurally, the same way this ADR already handles GitHub (§Decision: "GitHub's IP ranges,
+fetched live... never hardcoded"): a new `firewall_collect_google_ranges()` in `firewall-lib.sh`
+fetches Google's own published ranges (`https://www.gstatic.com/ipranges/goog.json` — Google's
+documented source of truth for its infrastructure, the same shape of source `api.github.com/meta` is
+for GitHub) and allowlists the full aggregated CIDR set, rather than relying on any single `dig`
+resolution. A new pure predicate, `firewall_host_is_google_fronted()`, matches
+`*.google.com`/`*.googleapis.com`/`*.googleusercontent.com`/`*.google` (covers `antigravity.google`
+too) and gates the fetch: both `init-firewall.sh` and `refresh-allowlist.sh` only pull in Google's
+ranges when the Network Manifest actually declares a matching host, so a container running none of
+the four CLI Skills that need one doesn't get Google's entire network opened for no reason. Re-ran
+the same live container test with the fix: all four independently-observed IPs became reachable, and
+the existing disallowed-host check (`https://example.com`) still correctly failed — confirming the
+fix doesn't loosen the firewall's default-deny posture, only Google's own range when a Google-fronted
+host is actually declared.
+
+This is a real, structural blast-radius tradeoff worth naming rather than glossing over: because GFE
+fronts most of Google's own products from one shared, unpublished-per-service IP pool, there is no
+way to allow "just `lh3.googleusercontent.com`" without either allowing Google's full published range
+or accepting the intermittent breakage this addendum fixes — the same tradeoff GitHub's own
+CIDR-range handling already made and this ADR already accepted for git/gh. Scoped by the
+Google-fronted-host gate above so it only applies to containers that actually declare one (today:
+Antigravity's `lh3.googleusercontent.com` alone — its other manifest entries, e.g.
+`aiplatform.googleapis.com`, `storage.googleapis.com`, were spot-checked during this same
+investigation and are also GFE-fronted with multiple, non-overlapping A records, so they benefit from
+this fix too, not just the host that surfaced the report).

@@ -20,6 +20,17 @@
 - GitHub's IP ranges are fetched live from `api.github.com/meta` at every
   run (not hardcoded), so `git`/`gh` keep working even as GitHub's published
   ranges change.
+- Any Network Manifest host fronted by Google's shared infrastructure
+  (`*.google.com`, `*.googleapis.com`, `*.googleusercontent.com`, `*.google`)
+  gets Google's full published IP ranges (`gstatic.com/ipranges/goog.json`),
+  not just the one IP a single `dig` happens to resolve — Google
+  round-robins a given hostname across many widely separated ranges within
+  seconds, so pinning to one resolved IP intermittently breaks that host
+  (this is what caused Antigravity's own "eligibility check" `no route to
+  host` failures against `lh3.googleusercontent.com`; see ADR-0005's third
+  addendum). Only fetched when the manifest actually declares a
+  Google-fronted host, so a container with none doesn't get Google's entire
+  network opened for no reason.
 - The Network Manifest's baseline also includes `archive.ubuntu.com` and
   `ports.ubuntu.com` (Ubuntu's own package mirrors, for amd64/i386 and
   arm64/other architectures respectively), so an ordinary ad hoc `sudo

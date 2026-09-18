@@ -54,6 +54,28 @@ while true; do
     done < <(echo "$ips")
   done
 
+  # Same Google-fronted-host detection as init-firewall.sh: a GFE-fronted
+  # host resolved via dig above only ever captures one of many IPs it
+  # round-robins across, so it needs Google's full published range too.
+  needs_google_ranges=false
+  for domain in "${FIREWALL_DOMAINS[@]}"; do
+    if firewall_host_is_google_fronted "$domain"; then
+      needs_google_ranges=true
+      break
+    fi
+  done
+  if [ "$needs_google_ranges" = true ]; then
+    if ! firewall_collect_google_ranges; then
+      echo "WARN: refresh-allowlist: failed to fetch Google IP ranges — skipping swap" >&2
+      ipset destroy allowed-domains-new 2>/dev/null || true
+      continue
+    fi
+    for cidr in "${FIREWALL_GOOGLE_CIDRS[@]}"; do
+      [[ "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || continue
+      ipset add allowed-domains-new "$cidr" -exist 2>/dev/null || true
+    done
+  fi
+
   ipset swap allowed-domains-new allowed-domains
   ipset destroy allowed-domains-new
 done
