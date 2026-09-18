@@ -128,3 +128,41 @@ number itself is still unknown; only that two calls exhausted it. Not retried fu
 given the explicit "daily" framing and to avoid hammering a rate-limited vendor
 endpoint — a fresh attempt after quota reset (timing unconfirmed) would be needed to
 get first real per-skill findings.
+
+## Addendum: the official Snyk CLI doesn't route around this — and there's an explicit anti-automation clause
+
+Investigated whether authenticating through the official `snyk` CLI (rather than a
+raw `SNYK_TOKEN`) would land in a different, higher-quota tier — prompted by
+`docs.snyk.io/developer-tools/snyk-cli/getting-started-with-the-snyk-cli`, which
+states "Test limits do not apply to public repositories" for Snyk's CLI test types.
+
+That exemption is documented for Snyk's established products (Snyk Open Source,
+Snyk Code, IaC, Container) — already ruled out for this repo's shape (see the map's
+Out of scope). It is **not** documented anywhere for Agent Scan, which is a
+separate, newer product with its own quota system. Reading the installed package's
+own source (`agent_scan/verify_api.py`) confirms `SNYK_CLI_USE=true` (the official-
+CLI-proxy auth mode) resolves to the exact same `/hidden/mcp-scan/cli/analysis-
+machine` endpoint that the raw `SNYK_TOKEN` path already hit and got rate-limited
+on — only the auth transport differs (bearer token vs. proxy-injected auth), not the
+backend or its quota. The `snyk` CLI was not installed or tested empirically, since
+the source already shows it wouldn't reach a different endpoint.
+
+More importantly, `snyk/agent-scan`'s own README states plainly (verified verbatim
+against the raw file, not a summary):
+
+> "If you want to include Agent Scan results in your own project or registry,
+> please [reach out](https://evo.ai.snyk.io/#contact-us). There are designated APIs
+> for this purpose. **Using the standard Agent Scan API for large scale scanning is
+> considered abuse and will result in your account being blocked.**"
+
+This sits in tension with the same README documenting a `--ci` flag and a "CI mode"
+example invocation (`snyk-agent-scan --ci --dangerously-run-mcp-servers`) elsewhere
+— so Snyk clearly intends *some* CI use, but explicitly reserves the right to block
+an account for what it judges "large scale scanning" via "the standard" (i.e.
+non-enterprise) API, with no stated threshold for where that line sits. Combined
+with a daily quota tight enough to exhaust in two calls, this is a real constraint
+on any per-PR CI adoption of Agent Scan as-is: repeated automated use risks the
+account being blocked outright, not just rate-limited, unless whoever owns this
+decision reaches out to Snyk's Evo team for the "designated" API path first. Not
+tested further — deliberately avoided additional automated calls against this
+endpoint given that policy.
