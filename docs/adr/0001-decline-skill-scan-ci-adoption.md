@@ -10,7 +10,7 @@ treated as grounds for account blocking, with no stated threshold — and a real
 authenticated scan attempt exhausted its daily quota on the very first call, returning
 zero risk findings. The undefined account-blocking risk is the deciding factor, not the
 quota alone: this repo isn't mission-critical infrastructure, and that risk isn't worth
-taking for an unproven, rate-limited signal.
+taking for a signal this unproven.
 
 ## Considered options
 
@@ -18,8 +18,10 @@ taking for an unproven, rate-limited signal.
   own publishing pipeline, not a self-serve CLI/Action/API a third-party repo can call.
 - **Snyk Agent Scan on a low-frequency schedule** (mirroring the existing Trivy
   image-scan job, `.github/workflows/setup-devcontainer-image-scan.yml`) — rejected:
-  still counts as "automated use of the standard API" per the tool's own README, with
-  no stated abuse threshold to plan a safe cadence around.
+  the tool's own README treats "large scale scanning" of its standard API as grounds
+  for account blocking, with no stated threshold distinguishing a weekly single-repo
+  scan from what it considers abuse; not worth planning a cadence around that
+  ambiguity. Gating vs. advisory is moot given no adoption either way.
 
 ## False-positive tuning
 
