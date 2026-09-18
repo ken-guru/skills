@@ -19,7 +19,39 @@ entirely — no CLI skill ever edits them directly, except for one narrow,
 explicit exception (the Capability Seam, `runArgs`, used by
 `setup-codex-devcontainer`).
 
-## 1. Detect the target repo
+## 1. Resolve the workspace root, then detect the target repo
+
+Before anything else, make sure you're standing in the directory VS Code will actually open for
+this devcontainer. Every check and file write from here on — including the stale-container check
+in step 2 — trusts `$(pwd)`; getting this wrong lets a stale container or a misplaced
+`.devcontainer/` slip through silently instead of being caught.
+
+```bash
+git rev-parse --is-inside-work-tree 2>/dev/null
+```
+
+- **Fails**: not a git repo yet (the Local Checkout case below, before `git init`). Skip this
+  check entirely and continue to detecting the repo.
+- **Succeeds**: compare the current checkout's root against the repo's main working tree:
+
+  ```bash
+  git rev-parse --show-toplevel
+  git rev-parse --git-common-dir
+  ```
+
+  `--git-common-dir` is the shared `.git` directory; its parent is the *main* checkout's root,
+  which is what differs in a linked worktree (each worktree has its own top level but shares this
+  common dir).
+
+  - **Parent of `--git-common-dir` matches `--show-toplevel`**: already at the repo root, or in a
+    plain subdirectory of it. `cd` to `--show-toplevel` and continue — every `$(pwd)` reference
+    later in this skill is now correct, no further changes needed.
+  - **They differ**: this is a **linked git worktree** — a separate checkout directory sharing
+    this repo's history, common in isolated per-task agent sessions. Don't guess which one VS Code
+    will open (worktree-per-devcontainer is a legitimate setup too). Stop and ask: "This looks
+    like a git worktree, not necessarily the folder you'll open in VS Code for the devcontainer.
+    Which folder will that be? If it's not this one, re-run this skill from there instead — the
+    checks below (stale containers, existing config) only ever look at the current directory."
 
 ```bash
 git remote get-url origin
