@@ -12,6 +12,30 @@ marker-keyed content to `post-create.sh`, `post-start.sh` (if skill sync is
 opted into), and `README.md`, and idempotently ensures its own Network
 Manifest entry exists in `.devcontainer/network-manifest.json`.
 
+## 0. Security & Trust
+
+This skill's generated automation touches three areas an external audit may flag. Each is
+opt-in, scoped to this container, and exists for a specific reason — none of it runs on the
+host, only inside the generated devcontainer.
+
+- **Installer Provenance**: installs Copilot CLI via GitHub's own official install script
+  (`https://gh.io/copilot-install`, GitHub's own short link for it). Runs once, at container
+  creation (`postCreateCommand`), not on every start — and only if `~/.local/bin/copilot`
+  doesn't already exist.
+- **Agent Authority**: `copilot-yolo` is **not** a persistent auto-approve alias — it's a
+  manual-invocation reminder that prints Copilot's current `--allow-all`/`--autopilot` flags
+  and GitHub's own caveat against aliasing them for every session start, rather than running
+  anything unattended itself. Off by default; only added if the guidance was accepted during
+  setup.
+- **Skill Source Trust**: if skill sync is accepted, `~/.copilot/skills` is wiped and
+  repopulated from the source(s) you name, on every container start. The wipe is scoped to
+  that one fixed directory inside this container — it can't reach anything else. The real
+  trust decision is the source itself: naming one means trusting its skills unattended, with
+  no per-skill review step, every time the container starts. Off by default.
+
+See [ADR-0007](../setup-devcontainer/docs/adr/0007-agent-trust-hub-audit-response.md) for the
+full reasoning and the alternatives rejected.
+
 ## 1. Detect the base devcontainer
 
 ```bash

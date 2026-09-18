@@ -111,6 +111,31 @@ base-owned file.
 _Avoid_: allowlist (too generic — say Network Manifest for the file, plain
 "allowlist" only for the resulting ipset/firewall rule set it produces)
 
+**Installer Provenance**:
+Trust in a CLI Skill's own install-script origin (e.g. `https://claude.ai/install.sh`),
+evaluated at Scaffold setup-time (`post-create.sh`) when the CLI itself is installed — not
+Supply-chain Hardening, which is scoped to the Dockerfile/base-image at build-time.
+_Avoid_: supply chain (too broad — say which of Installer Provenance or Supply-chain
+Hardening), install security (too generic)
+
+**Agent Authority**:
+How much autonomy or privilege a CLI's own permission system grants once running — e.g. an
+optional fast-iteration alias like `claude-yolo` widening from a CLI's default
+interactive-approval posture. A property of the CLI process's own decision-making, not the
+Shared Container; orthogonal to Blast-radius Containment, which bounds what a process can
+*reach*, not what it's *permitted to decide*.
+_Avoid_: permissions (too generic), privilege escalation (implies a container-level exploit,
+not a CLI's own opt-in mode)
+
+**Skill Source Trust**:
+The trust boundary crossed when a CLI Skill's optional skill-sync feature (`npx -y skills
+add`) pulls another party's skill instructions into the agent's own operating context,
+unattended and re-synced on every container start. Distinct from Installer Provenance (a
+fixed, versioned CLI binary) — a skill source is user-named, can be arbitrary, and its
+content can influence agent behavior directly, not just what gets installed.
+_Avoid_: RCE risk (treats it as a code-execution bug rather than a standing trust
+relationship the user configures), skill security (too generic)
+
 **Project Mounts**:
 A project-owned JSON file (`project-mounts.local.json`), parallel to
 `allowed-domains.local.txt` — created empty, unconditionally, never touched again by any skill —
