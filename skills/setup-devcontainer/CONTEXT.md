@@ -136,6 +136,22 @@ content can influence agent behavior directly, not just what gets installed.
 _Avoid_: RCE risk (treats it as a code-execution bug rather than a standing trust
 relationship the user configures), skill security (too generic)
 
+**Shared Skills Directory**:
+The single global directory (`~/.agents/skills`) the `skills` CLI writes to for every "universal"
+agent — Antigravity, Antigravity CLI, Codex and GitHub Copilot alike — whatever per-agent
+directory that agent's own documentation lists. Some CLIs read it natively; Antigravity's `agy`
+does not, and sees it only through a Skills Link. Distinct from a CLI's own skills directory
+(e.g. `~/.claude/skills`, which Claude Code does use), which is the one a per-CLI wipe can
+meaningfully target.
+_Avoid_: agents directory, global skills (too generic — say which CLI's directory)
+
+**Skills Link**:
+Antigravity's opt-in link from `agy`'s skills directory (`~/.gemini/skills`) to the Shared Skills
+Directory, so every skill installed there, now or later, is visible to `agy` without a copy step.
+Independent of skill-sync: it carries no download and no wipe, and never removes a non-empty
+directory or overrides a link pointing elsewhere.
+_Avoid_: symlink step (implementation, not the concept), skills copy (a rejected alternative)
+
 **Project Mounts**:
 A project-owned JSON file (`project-mounts.local.json`), parallel to
 `allowed-domains.local.txt` — created empty, unconditionally, never touched again by any skill —

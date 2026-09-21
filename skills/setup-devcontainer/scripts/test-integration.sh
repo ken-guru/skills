@@ -82,6 +82,9 @@ assert_manifest_keys() {
 
 # Applies every tool's own install-block/readme-bullet/capability-seam/
 # network-manifest patches, in the given order, to the fixture files in $1.
+# A tool that ships a skills-link-block.sh (Antigravity) also has it appended
+# to post-start.sh under its own marker (the block's first line) — only in
+# fixtures that have a post-start.sh.
 apply_all_patches() {
   local fixture_dir="$1"
   shift
@@ -100,6 +103,9 @@ apply_all_patches() {
       cliname="$(cliname_for_tool "$tool_dir")"
       "$PATCH_JSON" "$fixture_dir/network-manifest.json" ".${cliname}.networkAllowlist" "$tool_templates/network-manifest-entries.json"
     fi
+    if [ -f "$tool_templates/skills-link-block.sh" ] && [ -f "$fixture_dir/post-start.sh" ]; then
+      "$PATCH" append "$fixture_dir/post-start.sh" "$(head -1 "$tool_templates/skills-link-block.sh")" "$tool_templates/skills-link-block.sh"
+    fi
   done
 }
 
@@ -114,7 +120,7 @@ run_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
-  "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
+  "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh" --post-start-out "$TMP_DIR/post-start.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
@@ -123,6 +129,15 @@ run_scenario() {
   marker_count=$(grep -c '^# --- .* ---$' "$TMP_DIR/post-create.sh" || true)
   if [ "$marker_count" -ne 4 ]; then
     fail "[$order_desc] expected 4 install-block markers in post-create.sh, found $marker_count"
+  fi
+
+  # Antigravity's skills-link block lands in post-start.sh exactly once, under
+  # its own marker, whatever the install order — and doesn't disturb the
+  # other CLI Skills' post-create.sh install blocks counted above.
+  local link_marker_count
+  link_marker_count=$(grep -c '^# --- Antigravity skills-link ---$' "$TMP_DIR/post-start.sh" || true)
+  if [ "$link_marker_count" -ne 1 ]; then
+    fail "[$order_desc] expected exactly 1 skills-link marker in post-start.sh, found $link_marker_count"
   fi
 
   local bullet_count
@@ -168,6 +183,7 @@ run_scenario() {
 
   # Second full pass — every patch re-applied — must be a complete no-op.
   cp "$TMP_DIR/post-create.sh" "$TMP_DIR/post-create.sh.before-pass2"
+  cp "$TMP_DIR/post-start.sh" "$TMP_DIR/post-start.sh.before-pass2"
   cp "$TMP_DIR/README.md" "$TMP_DIR/README.md.before-pass2"
   cp "$TMP_DIR/devcontainer.json" "$TMP_DIR/devcontainer.json.before-pass2"
   cp "$TMP_DIR/network-manifest.json" "$TMP_DIR/network-manifest.json.before-pass2"
@@ -176,6 +192,9 @@ run_scenario() {
 
   if ! diff -q "$TMP_DIR/post-create.sh.before-pass2" "$TMP_DIR/post-create.sh" >/dev/null; then
     fail "[$order_desc] second pass changed post-create.sh — not idempotent"
+  fi
+  if ! diff -q "$TMP_DIR/post-start.sh.before-pass2" "$TMP_DIR/post-start.sh" >/dev/null; then
+    fail "[$order_desc] second pass changed post-start.sh — not idempotent"
   fi
   if ! diff -q "$TMP_DIR/README.md.before-pass2" "$TMP_DIR/README.md" >/dev/null; then
     fail "[$order_desc] second pass changed README.md — not idempotent"
@@ -457,6 +476,103 @@ run_partial_manifest_scenario() {
 
 run_partial_manifest_scenario "claude+copilot only" \
   setup-claude-devcontainer setup-copilot-devcontainer
+
+# Antigravity's skills-link block (issue #346): run against a scratch HOME,
+# under the same `set -euo pipefail` post-start.sh runs it in, for every
+# starting state of ~/.gemini/skills. Behavior only — the link's target, what
+# is left untouched, what is reported on stderr, and that a second run changes
+# nothing — not the block's comments or structure.
+check_skills_link_block() {
+  local block="$SKILLS_ROOT/setup-antigravity-devcontainer/templates/skills-link-block.sh"
+  local tmp_root tmp_home err link target rc
+  tmp_root="$(mktemp -d)"
+
+  # Runs the block against $tmp_home (fresh per case), stderr to $err.
+  run_link_block() {
+    rc=0
+    HOME="$tmp_home" bash -euo pipefail "$block" 2>"$err" || rc=$?
+  }
+
+  new_case() {
+    tmp_home="$(mktemp -d "$tmp_root/home.XXXXXX")"
+    err="$tmp_home/stderr.txt"
+    link="$tmp_home/.gemini/skills"
+    target="$tmp_home/.agents/skills"
+  }
+
+  # 1. Nothing there: link created, shared directory created too, silent.
+  new_case
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ ! -L "$link" ] || [ "$(readlink "$link")" != "$target" ] || [ ! -d "$target" ] || [ -s "$err" ]; then
+    fail "[skills-link] absent: expected a silent link to $target, rc=$rc, link=$(readlink "$link" 2>/dev/null || echo none), stderr=$(cat "$err")"
+  fi
+  # ...and a second run on the now-correct link changes nothing.
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ "$(readlink "$link")" != "$target" ] || [ -s "$err" ]; then
+    fail "[skills-link] correct link: second run should be a silent no-op, rc=$rc, stderr=$(cat "$err")"
+  fi
+
+  # 2. A skill written after the link is visible through it (the point of a link).
+  mkdir -p "$target/late-skill"
+  echo "x" > "$target/late-skill/SKILL.md"
+  if [ ! -f "$link/late-skill/SKILL.md" ]; then
+    fail "[skills-link] a skill added to the shared directory after linking is not visible through the link"
+  fi
+
+  # 3. Empty real directory: replaced by the link.
+  new_case
+  mkdir -p "$link"
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ ! -L "$link" ] || [ "$(readlink "$link")" != "$target" ] || [ -s "$err" ]; then
+    fail "[skills-link] empty real directory: expected it replaced by a silent link, rc=$rc, stderr=$(cat "$err")"
+  fi
+
+  # 4. Non-empty real directory: never destroyed, warned about, exit 0; and
+  # a second run behaves the same.
+  new_case
+  mkdir -p "$link"
+  echo "mine" > "$link/keep.txt"
+  local pass
+  for pass in 1 2; do
+    run_link_block
+    if [ "$rc" -ne 0 ] || [ -L "$link" ] || [ ! -f "$link/keep.txt" ] || ! grep -q '^WARN:' "$err"; then
+      fail "[skills-link] non-empty directory (run $pass): expected it left untouched with a WARN and exit 0, rc=$rc, stderr=$(cat "$err")"
+    fi
+  done
+
+  # 5. Link to somewhere else: left alone, warned about, exit 0.
+  new_case
+  mkdir -p "$tmp_home/.gemini" "$tmp_home/elsewhere"
+  ln -s "$tmp_home/elsewhere" "$link"
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ "$(readlink "$link")" != "$tmp_home/elsewhere" ] || ! grep -q '^WARN:' "$err"; then
+    fail "[skills-link] link elsewhere: expected it left alone with a WARN and exit 0, rc=$rc, link=$(readlink "$link" 2>/dev/null || echo none), stderr=$(cat "$err")"
+  fi
+
+  # 6. A relative link that resolves to the shared directory is accepted as-is.
+  new_case
+  mkdir -p "$tmp_home/.gemini" "$target"
+  ln -s ../.agents/skills "$link"
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ "$(readlink "$link")" != "../.agents/skills" ] || [ -s "$err" ]; then
+    fail "[skills-link] equivalent relative link: expected it accepted silently, rc=$rc, link=$(readlink "$link" 2>/dev/null || echo none), stderr=$(cat "$err")"
+  fi
+
+  # 7. A regular file where the link belongs: left alone, warned about, exit 0.
+  new_case
+  mkdir -p "$tmp_home/.gemini"
+  echo "not a dir" > "$link"
+  run_link_block
+  if [ "$rc" -ne 0 ] || [ -L "$link" ] || [ ! -f "$link" ] || ! grep -q '^WARN:' "$err"; then
+    fail "[skills-link] regular file: expected it left alone with a WARN and exit 0, rc=$rc, stderr=$(cat "$err")"
+  fi
+
+  rm -rf "$tmp_root"
+  if [ "$FAIL_COUNT" -eq 0 ]; then
+    echo "OK: [skills-link] link block handles absent, correct, empty-dir, non-empty-dir, other-link, relative-link and file states"
+  fi
+}
+check_skills_link_block
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
   echo "$FAIL_COUNT check(s) failed" >&2
