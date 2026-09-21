@@ -133,3 +133,20 @@ what the features are for.
 - No new confirmation gates, version pinning, or feature removal anywhere.
 - `skills/setup-devcontainer/CONTEXT.md` carries the Installer Provenance / Agent Authority / Skill
   Source Trust vocabulary this ADR and the four per-skill tickets use.
+
+## Amendment (2026-09-21): Antigravity's skill-sync no longer wipes
+
+Corrects one factual claim above; the decision itself stands. The Skill Source Trust bullet lists
+four hardcoded `rm -rf` paths, including `/home/vscode/.gemini/antigravity/skills/*`. Measured
+against `skills` 1.7.0, that directory is never written to: `npx skills add ... -a antigravity`
+(and `-a antigravity-cli`) is a "universal" agent and installs to the Shared Skills Directory,
+`~/.agents/skills`. The wipe therefore did nothing, and `agy` did not read either directory
+(issue [#346](https://github.com/ken-guru/skills/issues/346), map
+[#341](https://github.com/ken-guru/skills/issues/341)).
+
+`setup-antigravity-devcontainer` now syncs with `-a antigravity-cli`, wipes nothing, and adds an
+optional, separately-marked skills-link block (`~/.gemini/skills` → `~/.agents/skills`) with no
+download and no wipe. The trust boundary this ADR describes (the named source(s), re-fetched
+unattended on every start) is unchanged. So the list of hardcoded wipe paths is now three
+(`~/.claude/skills`, `~/.codex/skills`, `~/.copilot/skills`); the Codex and Copilot ones have their
+own separate issue ([#347](https://github.com/ken-guru/skills/issues/347)).
