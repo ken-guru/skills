@@ -245,3 +245,39 @@ Antigravity's `lh3.googleusercontent.com` alone — its other manifest entries, 
 `aiplatform.googleapis.com`, `storage.googleapis.com`, were spot-checked during this same
 investigation and are also GFE-fronted with multiple, non-overlapping A records, so they benefit from
 this fix too, not just the host that surfaced the report).
+
+## Addendum 4 (2026-09-22, from a report of the same symptom three days after Addendum 3's fix)
+
+Issue [#351](https://github.com/ken-guru/skills/issues/351) reported `agy`'s eligibility check still
+intermittently failing against `lh3.googleusercontent.com` with `no route to host`, self-healing on
+`refresh-allowlist.sh`'s next 300-second cycle — the same symptom Addendum 3 above already fixed,
+reported three days *after* that fix (`b7e913e`) merged into `main`.
+
+Verified live rather than assuming the fix had regressed: re-fetched
+`https://www.gstatic.com/ipranges/goog.json` and confirmed all four GFE IPs from Addendum 3's original
+investigation (`216.58.201.161`, `216.58.201.193`, `216.58.207.97`, `142.250.178.33`) are still covered
+by Google's currently-published ranges — the CIDR-widening fix itself is structurally sound and hasn't
+drifted. So the code fix was never wrong; something else explained a report filed after it shipped.
+
+Root-caused instead to a gap in *how* the fix reaches an already-running container:
+`refresh-allowlist.sh` only ever `source`d `firewall-lib.sh` once, before its `while true` loop — a
+one-time load into that long-lived background process's memory, not a per-cycle read. A devcontainer
+session left open across days without a restart (exactly how #341's own investigation — which is what
+surfaced #351 — ran, over 2026-09-20/21) keeps that backgrounded process running whatever
+`firewall-lib.sh` looked like at the moment it started, permanently missing a later fix to that file's
+*content* even though the file itself is live (bind-mounted from the workspace) — until the container
+is fully restarted, not just reopened. This repo's own dogfooded `.devcontainer/{firewall-lib.sh,
+init-firewall.sh,refresh-allowlist.sh}` were themselves found to still predate Addendum 3's fix entirely
+(generated before 2026-09-18, never regenerated since) — a live, in-repo reproduction of exactly this
+gap, not just a theoretical one.
+
+Fixed by moving the `source "$FIREWALL_DEVCONTAINER_DIR/firewall-lib.sh"` call inside the loop, right
+after `sleep "$INTERVAL"`, so every refresh cycle re-reads the file fresh — any future fix to
+`firewall-lib.sh` now takes effect at the next 300-second cycle of an already-running container, not
+only at its next full restart. Guarded with `if ! source ...; then WARN; continue; fi`, matching this
+file's existing per-step failure handling, so a transient read/parse failure skips just that one cycle
+(keeping the previous cycle's already-defined functions) instead of crashing the whole background loop
+— verified in isolation (a standalone success/failure smoke test of the same `if ! source; then
+continue; fi` pattern). This repo's own dogfooded copies of all three files were also brought back in
+sync with their templates as part of this fix, closing the exact drift that let the gap go unnoticed
+here.
