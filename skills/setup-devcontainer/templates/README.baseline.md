@@ -14,7 +14,7 @@ as many times as you like.
 - Every CLI's config, auth, and history persists across rebuilds in one
   shared named volume (`{{REPO_NAME}}-config`, mounted at `/home/vscode`) —
   each CLI keeps its own subdirectory within it (`~/.claude`, `~/.codex`,
-  `~/.antigravity`, `~/.copilot`).
+  `~/.gemini` for Antigravity, `~/.copilot`).
 - `gh` CLI auth comes from a `GH_TOKEN` env var supplied via one shared,
   gitignored `.devcontainer/.env` file — see below.
 - The workspace at `/workspace` is a live bind-mount of this repo's own
