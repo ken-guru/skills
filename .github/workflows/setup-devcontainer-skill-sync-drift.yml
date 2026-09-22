@@ -1,0 +1,41 @@
+name: Setup devcontainer skill-sync target drift
+
+# Weekly, schedule-triggered check — deliberately separate from
+# setup-devcontainer-tool-container.yml's PR-triggered render/verify/
+# integration job, which stays deterministic and network-free. This job
+# live-probes the real `skills` CLI (via npx) for each CLI Skill's agent
+# flag and compares the result against that skill's wipe/sync target, so a
+# future change in `skills`' agent table — or a wrong `-a` flag in one of
+# these skills — fails CI instead of silently surfacing as skills going
+# missing for a user (as happened for Antigravity, Codex and Copilot; see
+# issues #346, #347, #352).
+on:
+  schedule:
+    # Every Monday 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: setup-devcontainer-skill-sync-drift-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skill-sync-drift:
+    name: Probe skills CLI agent targets against each CLI Skill's wipe/sync config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run skill-sync target drift check
+        run: skills/setup-devcontainer/scripts/check-skill-sync-targets.sh
