@@ -1,13 +1,15 @@
 # --- Copilot skill-sync ---
-# Copilot skills are wiped and reinstalled from the configured sources on
-# every start, so the skill set stays current with upstream instead of
-# persisting a stale copy across rebuilds. This lives inside the shared
-# config volume, so no separate volume is needed.
+# Copilot skills are synced from the configured sources on every start, so
+# the skill set stays current with upstream. The `skills` CLI writes them to
+# the Shared Skills Directory (~/.agents/skills) for every "universal" agent,
+# `github-copilot` included — the same directory Codex's and Antigravity's
+# skill-sync also write into, so nothing here wipes it (a wipe from one
+# CLI's block would delete skills another CLI's block just synced). A skill
+# removed upstream stays until it is deleted by hand. This lives inside the
+# shared config volume, so no separate volume is needed.
 #
 # Trust boundary: the source(s) below were named and accepted during this
 # devcontainer's setup. Every start re-fetches and re-runs their skills
 # unattended, with no per-skill review step — only as trustworthy as the
-# source(s) chosen. The wipe itself is scoped to this one directory inside
-# the container; nothing outside it is touched.
-rm -rf /home/vscode/.copilot/skills/* 2>/dev/null || true
+# source(s) chosen.
 {{SKILLS_SOURCES_COMMANDS}}
