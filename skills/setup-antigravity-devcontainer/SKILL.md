@@ -27,7 +27,7 @@ host, only inside the generated devcontainer.
   (`antigravity-cli#36`) makes that combination a no-op sandbox, so it would grant no real
   containment while looking like it did. Stated plainly: `accept-edits` alone isn't a strong
   safety boundary either — this skill's own reported next steps also walk through setting up
-  a curated `permissions.allow` list (`~/.antigravity/antigravity-cli/settings.json`,
+  a curated `permissions.allow` list (`~/.gemini/antigravity-cli/settings.json`,
   starting from `git`/`gh`/`ls`/`cat`, never `rm`/`curl`/raw `bash -c`/a wildcard) as a
   manual, once-per-machine step, since that's the mechanism actually doing the restricting.
   Off by default; only added if accepted during setup.
@@ -155,7 +155,7 @@ this skill), tell them it is now dead and safe to delete by hand — this skill
 never rewrites a block it already wrote. If YOLO was accepted, `agy-yolo` is
 available in every new terminal — **and**
 walk them through setting up a curated `permissions.allow` list in
-`~/.antigravity/antigravity-cli/settings.json` (starting from `git`, `gh`,
+`~/.gemini/antigravity-cli/settings.json` (starting from `git`, `gh`,
 `ls`, `cat`, never `rm`/`curl`/raw `bash -c`/a wildcard) as a manual,
 once-per-machine step, since `--dangerously-skip-permissions --sandbox`
 doesn't actually sandbox anything for this CLI.
