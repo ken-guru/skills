@@ -27,11 +27,12 @@ host, only inside the generated devcontainer.
   and GitHub's own caveat against aliasing them for every session start, rather than running
   anything unattended itself. Off by default; only added if the guidance was accepted during
   setup.
-- **Skill Source Trust**: if skill sync is accepted, `~/.copilot/skills` is wiped and
-  repopulated from the source(s) you name, on every container start. The wipe is scoped to
-  that one fixed directory inside this container — it can't reach anything else. The real
-  trust decision is the source itself: naming one means trusting its skills unattended, with
-  no per-skill review step, every time the container starts. Off by default.
+- **Skill Source Trust**: if skill sync is accepted, the source(s) you name are re-synced into
+  the Shared Skills Directory (`~/.agents/skills`) on every container start — the same shared
+  directory Codex's and Antigravity's skill-sync also write into. Nothing is wiped — a skill
+  removed upstream stays until deleted by hand. The real trust decision is the source itself:
+  naming one means trusting its skills unattended, with no per-skill review step, every time
+  the container starts. Off by default.
 
 See [ADR-0007](../setup-devcontainer/docs/adr/0007-agent-trust-hub-audit-response.md) for the
 full reasoning and the alternatives rejected.
@@ -51,11 +52,12 @@ If either file is missing, **refuse** — tell the user to run
   describing Copilot's current `--allow-all`/`--autopilot` flags, **not** a
   persistent auto-approve alias — GitHub's own docs explicitly warn against
   ever aliasing these flags for every session start.
-- **Automatic skill sync**: sync AI-agent skills into `~/.copilot/skills`
-  automatically on every container start? Same mechanism as the other CLI
-  skills — two ready-made suites (`mattpocock/skills`, `ken-guru/skills`)
-  plus any individually named skill, validated live via `npx -y skills add
-  <source> --list` before rendering anything.
+- **Automatic skill sync**: sync AI-agent skills into the Shared Skills
+  Directory (`~/.agents/skills`) automatically on every container start?
+  Same mechanism as the other CLI skills — two ready-made suites
+  (`mattpocock/skills`, `ken-guru/skills`) plus any individually named
+  skill, validated live via `npx -y skills add <source> --list` before
+  rendering anything.
 
 ## 3. Patch `post-create.sh`
 
@@ -116,4 +118,8 @@ verify script exists for this skill; this re-run *is* the verification.
 Tell the user: rebuild or reopen the container, run `copilot` (auth is
 automatic via `GH_TOKEN`). If YOLO guidance was accepted, `copilot-yolo`
 prints the current unattended-run flags and their vendor caveat rather than
-running anything itself.
+running anything itself. If `.devcontainer/post-start.sh` still contains the
+line `rm -rf /home/vscode/.copilot/skills/*` (from an older version of this
+skill), tell them it is now dead and safe to delete by hand — that
+directory was never where Copilot's skill sync actually wrote — this skill
+never rewrites a block it already wrote.

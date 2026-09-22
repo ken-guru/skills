@@ -32,11 +32,14 @@ sudo bash -c 'bash /workspace/.devcontainer/refresh-allowlist.sh &'
 rm -rf /home/vscode/.claude/skills/* 2>/dev/null || true
 npx -y skills add mattpocock/skills --skill '*' -a claude-code -y --copy -g
 # --- Codex skill-sync ---
-# Codex skills are wiped and reinstalled from the configured sources on
-# every start, so the skill set stays current with upstream instead of
-# persisting a stale copy across rebuilds. This lives inside the shared
-# config volume, so no separate volume is needed.
-rm -rf /home/vscode/.codex/skills/* 2>/dev/null || true
+# Codex skills are synced from the configured sources on every start, so
+# the skill set stays current with upstream. The `skills` CLI writes them to
+# the Shared Skills Directory (~/.agents/skills) for every "universal" agent,
+# `codex` included — the same directory Copilot's and Antigravity's
+# skill-sync also write into, so nothing here wipes it (a wipe from one
+# CLI's block would delete skills another CLI's block just synced). A skill
+# removed upstream stays until it is deleted by hand. This lives inside the
+# shared config volume, so no separate volume is needed.
 npx -y skills add mattpocock/skills --skill '*' -a codex -y --copy -g
 # --- Antigravity skill-sync ---
 # Antigravity skills are synced from the configured sources on every start, so
@@ -91,9 +94,12 @@ else
 fi
 unset _agy_skills_link _agy_skills_target
 # --- Copilot skill-sync ---
-# Copilot skills are wiped and reinstalled from the configured sources on
-# every start, so the skill set stays current with upstream instead of
-# persisting a stale copy across rebuilds. This lives inside the shared
-# config volume, so no separate volume is needed.
-rm -rf /home/vscode/.copilot/skills/* 2>/dev/null || true
+# Copilot skills are synced from the configured sources on every start, so
+# the skill set stays current with upstream. The `skills` CLI writes them to
+# the Shared Skills Directory (~/.agents/skills) for every "universal" agent,
+# `github-copilot` included — the same directory Codex's and Antigravity's
+# skill-sync also write into, so nothing here wipes it (a wipe from one
+# CLI's block would delete skills another CLI's block just synced). A skill
+# removed upstream stays until it is deleted by hand. This lives inside the
+# shared config volume, so no separate volume is needed.
 npx -y skills add mattpocock/skills --skill '*' -a github-copilot -y --copy -g

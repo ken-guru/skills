@@ -29,11 +29,12 @@ host, only inside the generated devcontainer.
   sandbox and any approval checkpoint, while `on-request` gives Codex a real internal
   checkpoint where the model itself judges when to escalate to a human. Off by default; only
   added if accepted during setup.
-- **Skill Source Trust**: if skill sync is accepted, `~/.codex/skills` is wiped and
-  repopulated from the source(s) you name, on every container start. The wipe is scoped to
-  that one fixed directory inside this container — it can't reach anything else. The real
-  trust decision is the source itself: naming one means trusting its skills unattended, with
-  no per-skill review step, every time the container starts. Off by default.
+- **Skill Source Trust**: if skill sync is accepted, the source(s) you name are re-synced into
+  the Shared Skills Directory (`~/.agents/skills`) on every container start — the same shared
+  directory Copilot's and Antigravity's skill-sync also write into. Nothing is wiped — a skill
+  removed upstream stays until deleted by hand. The real trust decision is the source itself:
+  naming one means trusting its skills unattended, with no per-skill review step, every time
+  the container starts. Off by default.
 
 Separately, this skill also unconditionally grants three Capability Seam entries
 (`--cap-add=SYS_ADMIN`, `--security-opt=seccomp=unconfined`,
@@ -61,11 +62,12 @@ If either file is missing, **refuse** — tell the user to run
 - **YOLO alias**: add `codex-yolo` for fast, unattended iteration? Uses
   `--ask-for-approval on-request`, not Codex's full-bypass equivalent — see
   the template's own comment for why.
-- **Automatic skill sync**: sync AI-agent skills into `~/.codex/skills`
-  automatically on every container start? Same mechanism as the other CLI
-  skills — two ready-made suites (`mattpocock/skills`, `ken-guru/skills`)
-  plus any individually named skill, validated live via `npx -y skills add
-  <source> --list` before rendering anything.
+- **Automatic skill sync**: sync AI-agent skills into the Shared Skills
+  Directory (`~/.agents/skills`) automatically on every container start?
+  Same mechanism as the other CLI skills — two ready-made suites
+  (`mattpocock/skills`, `ken-guru/skills`) plus any individually named
+  skill, validated live via `npx -y skills add <source> --list` before
+  rendering anything.
 
 ## 3. Patch `post-create.sh`
 
@@ -133,4 +135,8 @@ Tell the user, explicitly: **rebuild the container now (Dev Containers:
 Rebuild Container)** — the Capability Seam's `runArgs` entries only take
 effect when the container is recreated, not on a plain reopen. Then run
 `codex` and log in; `codex-yolo` is available in every new terminal if
-accepted.
+accepted. If `.devcontainer/post-start.sh` still contains the line
+`rm -rf /home/vscode/.codex/skills/*` (from an older version of this
+skill), tell them it is now dead and safe to delete by hand — that
+directory was never where `codex`'s skill sync actually wrote — this skill
+never rewrites a block it already wrote.

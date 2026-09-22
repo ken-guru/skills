@@ -150,3 +150,21 @@ download and no wipe. The trust boundary this ADR describes (the named source(s)
 unattended on every start) is unchanged. So the list of hardcoded wipe paths is now three
 (`~/.claude/skills`, `~/.codex/skills`, `~/.copilot/skills`); the Codex and Copilot ones have their
 own separate issue ([#347](https://github.com/ken-guru/skills/issues/347)).
+
+## Amendment (2026-09-22): Codex and Copilot skill-sync no longer wipe
+
+Corrects the same factual claim for the remaining two paths named above. Measured against `skills`
+1.7.0, both `-a codex` and `-a github-copilot` are also "universal" agents: `npx skills add ...`
+installs both into the Shared Skills Directory, `~/.agents/skills`, the same directory Claude Code's
+skill-sync does *not* use (`claude-code` writes to its own `~/.claude/skills`). The `rm -rf
+/home/vscode/.codex/skills/*` and `rm -rf /home/vscode/.copilot/skills/*` wipes therefore did
+nothing — those directories were never written to by skill-sync — and a wipe of the shared
+directory from either block would have deleted skills the other CLI's block (or Antigravity's) just
+synced, depending on `post-start.sh` block order (issue
+[#347](https://github.com/ken-guru/skills/issues/347), map
+[#341](https://github.com/ken-guru/skills/issues/341)).
+
+`setup-codex-devcontainer` and `setup-copilot-devcontainer` now sync into the Shared Skills
+Directory and wipe nothing, matching Antigravity's fix above. The trust boundary this ADR describes
+is unchanged. The list of hardcoded wipe paths is now one: `~/.claude/skills`, the one directory
+`skills` actually dedicates to a single CLI.
