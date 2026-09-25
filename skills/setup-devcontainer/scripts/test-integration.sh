@@ -601,6 +601,43 @@ check_copilot_auth_claims() {
 }
 check_copilot_auth_claims
 
+# Copilot README bullet (issue #371): explains, in order, the token, the
+# expected "System vault not available" prompt on interactive sign-in, and
+# how to diagnose a rejected token — as nested lines under an exact
+# "- Copilot" marker line, so the top-level bullet count stays one per CLI.
+# A README from an older version (bare "- Copilot" line) must gain nothing
+# on a re-run: this skill never rewrites a block it already wrote.
+check_copilot_readme_bullet() {
+  local bullet="$SKILLS_ROOT/setup-copilot-devcontainer/templates/readme-bullet.md"
+  local tmp ok=1 pos_token pos_vault pos_diag
+  pos_token=$(grep -n "COPILOT_GITHUB_TOKEN" "$bullet" | head -1 | cut -d: -f1 || true)
+  pos_vault=$(grep -n "System vault not available" "$bullet" | head -1 | cut -d: -f1 || true)
+  pos_diag=$(grep -n "copilot -p hi" "$bullet" | head -1 | cut -d: -f1 || true)
+  if [ -z "$pos_token" ] || [ -z "$pos_vault" ] || [ -z "$pos_diag" ] \
+    || [ "$pos_token" -ge "$pos_vault" ] || [ "$pos_vault" -ge "$pos_diag" ]; then
+    fail "[copilot README bullet] expected the token, then the vault prompt, then the \`copilot -p hi\` diagnosis (lines: ${pos_token:-none}, ${pos_vault:-none}, ${pos_diag:-none})"
+    ok=0
+  fi
+  if grep -v '^- Copilot$' "$bullet" | grep -q '^- '; then
+    fail "[copilot README bullet] has a second top-level bullet — details must be nested under \"- Copilot\""
+    ok=0
+  fi
+
+  tmp="$(mktemp)"
+  printf '## Installed CLI Tools\n\n- Copilot\n' > "$tmp"
+  cp "$tmp" "$tmp.before"
+  "$PATCH" append "$tmp" "$(readme_marker_for_tool setup-copilot-devcontainer)" "$bullet"
+  if ! diff -q "$tmp.before" "$tmp" >/dev/null; then
+    fail "[copilot README bullet] re-running against an older README's bare \"- Copilot\" bullet changed it"
+    ok=0
+  fi
+  rm -f "$tmp" "$tmp.before"
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: Copilot README bullet explains token, vault prompt and diagnosis; older READMEs are left alone"
+  fi
+}
+check_copilot_readme_bullet
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 
