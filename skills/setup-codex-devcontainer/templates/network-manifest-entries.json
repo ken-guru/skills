@@ -13,5 +13,10 @@
     "host": "chatgpt.com",
     "purpose": "ChatGPT account sign-in",
     "source": "observed"
+  },
+  {
+    "host": "releases.openai.com",
+    "purpose": "Codex CLI release downloads and updates",
+    "source": "observed"
   }
 ]
