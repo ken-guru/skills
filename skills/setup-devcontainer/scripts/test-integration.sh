@@ -53,8 +53,21 @@ lookup_tool_value() {
   done
 }
 
+# tool-dir README bullet marker — the exact whole-line marker each skill's
+# own SKILL.md passes to patch-if-absent.sh when appending its bullet, so the
+# harness tests the marker users actually get, not whatever a template's
+# first line happens to be. Same nameref caveat as TOOLS above.
+# shellcheck disable=SC2034
+README_MARKERS=(
+  "setup-claude-devcontainer:- Claude Code"
+  "setup-codex-devcontainer:- Codex"
+  "setup-antigravity-devcontainer:- Antigravity"
+  "setup-copilot-devcontainer:- Copilot"
+)
+
 marker_for_tool() { lookup_tool_value TOOLS "$1"; }
 cliname_for_tool() { lookup_tool_value CLI_NAMES "$1"; }
+readme_marker_for_tool() { lookup_tool_value README_MARKERS "$1"; }
 
 # Network Manifest must have exactly the baseline key plus one key per
 # installed CLI Skill in $2.. — no more, no less. Fails (via the global
@@ -84,7 +97,9 @@ assert_manifest_keys() {
 # network-manifest patches, in the given order, to the fixture files in $1.
 # A tool that ships a skills-link-block.sh (Antigravity) also has it appended
 # to post-start.sh under its own marker (the block's first line) — only in
-# fixtures that have a post-start.sh.
+# fixtures that have a post-start.sh. A tool that ships an env-block.example
+# has it appended to .env.example the same way, under its own marker (the
+# block's first line).
 apply_all_patches() {
   local fixture_dir="$1"
   shift
@@ -95,7 +110,10 @@ apply_all_patches() {
     marker="$(marker_for_tool "$tool_dir")"
     tool_templates="$SKILLS_ROOT/$tool_dir/templates"
     "$PATCH" append "$fixture_dir/post-create.sh" "$marker" "$tool_templates/install-block.sh"
-    "$PATCH" append "$fixture_dir/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
+    "$PATCH" append "$fixture_dir/README.md" "$(readme_marker_for_tool "$tool_dir")" "$tool_templates/readme-bullet.md"
+    if [ -f "$tool_templates/env-block.example" ]; then
+      "$PATCH" append "$fixture_dir/.env.example" "$(head -1 "$tool_templates/env-block.example")" "$tool_templates/env-block.example"
+    fi
     if [ -f "$tool_templates/capability-seam-entries.json" ]; then
       "$PATCH_JSON" "$fixture_dir/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
     fi
@@ -120,6 +138,7 @@ run_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example" "$TMP_DIR/.env.example"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh" --post-start-out "$TMP_DIR/post-start.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
@@ -187,6 +206,7 @@ run_scenario() {
   cp "$TMP_DIR/README.md" "$TMP_DIR/README.md.before-pass2"
   cp "$TMP_DIR/devcontainer.json" "$TMP_DIR/devcontainer.json.before-pass2"
   cp "$TMP_DIR/network-manifest.json" "$TMP_DIR/network-manifest.json.before-pass2"
+  cp "$TMP_DIR/.env.example" "$TMP_DIR/.env.example.before-pass2"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
@@ -204,6 +224,9 @@ run_scenario() {
   fi
   if ! diff -q "$TMP_DIR/network-manifest.json.before-pass2" "$TMP_DIR/network-manifest.json" >/dev/null; then
     fail "[$order_desc] second pass changed network-manifest.json — not idempotent"
+  fi
+  if ! diff -q "$TMP_DIR/.env.example.before-pass2" "$TMP_DIR/.env.example" >/dev/null; then
+    fail "[$order_desc] second pass changed .env.example — not idempotent"
   fi
 
   rm -rf "$TMP_DIR"
@@ -442,6 +465,40 @@ check_dockerfile_stages() {
 }
 check_dockerfile_stages
 
+# The harness's README and .env.example markers must be the ones each
+# skill's own SKILL.md actually passes to patch-if-absent.sh — otherwise the
+# scenarios below would prove idempotency for a marker users never get
+# (patch-if-absent.sh matches markers as whole lines, so a drifted marker
+# means a duplicate append on every re-run).
+check_skill_markers_match_harness() {
+  local entry tool_dir skill_md marker env_block env_marker ok=1
+  for entry in "${README_MARKERS[@]}"; do
+    tool_dir="${entry%%:*}"
+    skill_md="$SKILLS_ROOT/$tool_dir/SKILL.md"
+    marker="$(readme_marker_for_tool "$tool_dir")"
+    if ! grep -qF -- "append .devcontainer/README.md \"$marker\" templates/readme-bullet.md" "$skill_md"; then
+      fail "[$tool_dir] SKILL.md does not append its README bullet under the harness's marker \"$marker\""
+      ok=0
+    fi
+    if [ "$(head -1 "$SKILLS_ROOT/$tool_dir/templates/readme-bullet.md")" != "$marker" ]; then
+      fail "[$tool_dir] readme-bullet.md's first line is not exactly its marker \"$marker\" — a fresh append would not be found by the next run's whole-line check"
+      ok=0
+    fi
+    env_block="$SKILLS_ROOT/$tool_dir/templates/env-block.example"
+    if [ -f "$env_block" ]; then
+      env_marker="$(head -1 "$env_block")"
+      if ! grep -qF -- "append .devcontainer/.env.example \"$env_marker\" templates/env-block.example" "$skill_md"; then
+        fail "[$tool_dir] SKILL.md does not append env-block.example under its first line \"$env_marker\""
+        ok=0
+      fi
+    fi
+  done
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: every CLI Skill's README/.env.example markers match the harness"
+  fi
+}
+check_skill_markers_match_harness
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 
@@ -463,6 +520,7 @@ run_partial_manifest_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example" "$TMP_DIR/.env.example"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
