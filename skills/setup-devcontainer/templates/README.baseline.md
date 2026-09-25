@@ -26,7 +26,8 @@ as many times as you like.
 1. Install Docker Desktop and VS Code's **Dev Containers** extension
    (`ms-vscode-remote.remote-containers`).
 2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and paste in a
-   GitHub token (a fine-grained PAT scoped to this repo). If you skip this,
+   GitHub token (a fine-grained PAT scoped to this repo, whose resource owner
+   is the repo's owner — the organization, for an org-owned repo). If you skip this,
    `initializeCommand` creates an empty `.env` for you so the build doesn't
    fail, but `gh` won't be authenticated until you fill in a real token and
    rebuild.

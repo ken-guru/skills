@@ -499,6 +499,58 @@ check_skill_markers_match_harness() {
 }
 check_skill_markers_match_harness
 
+# Base GH_TOKEN guidance (issue #369): the base .env.example and README must
+# steer users to a fine-grained PAT owned by the repo's owner — never the
+# classic ghp_ format or the classic token list — and, being CLI-agnostic
+# (Own-Block Contract), must not mention any one CLI's own token.
+check_base_token_guidance() {
+  local env_tpl="$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example"
+  local readme_tpl="$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md"
+  local ok=1
+  if ! grep -qxF "GH_TOKEN=github_pat_your_token_here" "$env_tpl"; then
+    fail "[base .env.example] GH_TOKEN placeholder is not the fine-grained github_pat_ format"
+    ok=0
+  fi
+  if ! grep -qF "https://github.com/settings/personal-access-tokens/new" "$env_tpl"; then
+    fail "[base .env.example] does not link the fine-grained token creation page"
+    ok=0
+  fi
+  if ! grep -qi "resource owner" "$env_tpl"; then
+    fail "[base .env.example] does not say who the token's resource owner must be"
+    ok=0
+  fi
+  if ! grep -qi "resource owner" "$readme_tpl"; then
+    fail "[base README] opening steps do not say who the token's resource owner must be"
+    ok=0
+  fi
+  if grep -qi "copilot" "$env_tpl"; then
+    fail "[base .env.example] mentions Copilot — CLI-specific token guidance belongs to that CLI Skill's own block"
+    ok=0
+  fi
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: base .env.example/README point to a fine-grained PAT owned by the repo's owner"
+  fi
+}
+check_base_token_guidance
+
+# Stale token guidance must never come back into any skill's templates: the
+# classic ghp_ placeholder and the classic token list both steer users to
+# tokens some CLIs (Copilot) reject outright.
+check_no_stale_token_guidance() {
+  local pattern hits ok=1
+  for pattern in "ghp_your" "github.com/settings/tokens"; do
+    hits=$(grep -rlF -- "$pattern" "$SKILLS_ROOT"/setup-*/templates || true)
+    if [ -n "$hits" ]; then
+      fail "stale token guidance \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
+      ok=0
+    fi
+  done
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: no stale token guidance in any skill template"
+  fi
+}
+check_no_stale_token_guidance
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 
