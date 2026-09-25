@@ -229,8 +229,35 @@ run_scenario() {
     fail "[$order_desc] second pass changed .env.example — not idempotent"
   fi
 
+  assert_copilot_env_block "$order_desc" "$TMP_DIR/.env.example" "${tool_order[@]}"
+
   rm -rf "$TMP_DIR"
   echo "OK: $order_desc"
+}
+
+# Copilot's own token block (issue #370): present exactly once when
+# setup-copilot-devcontainer is among $3.., absent otherwise (Own-Block
+# Contract). Its variable must stay commented out — sourcing the file the way
+# bash-env.sh sources .env must leave COPILOT_GITHUB_TOKEN unset, so an
+# unfilled placeholder never overrides Copilot's GH_TOKEN fallback.
+assert_copilot_env_block() {
+  local label="$1" env_file="$2"
+  shift 2
+  local tool_dir expected=0 block_count
+  for tool_dir in "$@"; do
+    [ "$tool_dir" = "setup-copilot-devcontainer" ] && expected=1
+  done
+  block_count=$(grep -cxF "# --- Copilot token ---" "$env_file" || true)
+  if [ "$block_count" -ne "$expected" ]; then
+    fail "[$label] expected $expected Copilot token block(s) in .env.example, found $block_count"
+  fi
+  if [ "$expected" -eq 1 ] && ! grep -q '^# COPILOT_GITHUB_TOKEN=github_pat_' "$env_file"; then
+    fail "[$label] Copilot token block has no commented-out COPILOT_GITHUB_TOKEN=github_pat_... line"
+  fi
+  # shellcheck disable=SC1090 # the fixture's own .env.example, sourced as bash-env.sh sources .env
+  if (set -a; unset COPILOT_GITHUB_TOKEN; source "$env_file"; [ -n "${COPILOT_GITHUB_TOKEN+set}" ]); then
+    fail "[$label] sourcing .env.example sets COPILOT_GITHUB_TOKEN — the placeholder must stay commented out"
+  fi
 }
 
 # Unconditional capability-drop baseline (issue #293 / ADR-0006): both base
@@ -551,6 +578,29 @@ check_no_stale_token_guidance() {
 }
 check_no_stale_token_guidance
 
+# Copilot auth claims (issue #370): Copilot CLI can't authorize from an
+# org-owned GH_TOKEN, so no Copilot template or SKILL.md may promise
+# automatic auth via GH_TOKEN, and nothing may pre-accept plain-text token
+# storage on the user's behalf (that stays Copilot's own prompt).
+check_copilot_auth_claims() {
+  local copilot_dir="$SKILLS_ROOT/setup-copilot-devcontainer" pattern hits ok=1
+  for pattern in "automatic via" "picks up this container's GH_TOKEN" "storeTokenPlaintext"; do
+    hits=$(grep -rliF -- "$pattern" "$copilot_dir" || true)
+    if [ -n "$hits" ]; then
+      fail "[copilot] stale or disallowed auth text \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
+      ok=0
+    fi
+  done
+  if grep -rqF -- ".copilot/settings.json" "$copilot_dir/templates"; then
+    fail "[copilot] a template touches ~/.copilot/settings.json — Copilot's own user file is not a CLI Skill block"
+    ok=0
+  fi
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: Copilot templates/SKILL.md make no GH_TOKEN auto-auth claim and don't pre-accept plain-text storage"
+  fi
+}
+check_copilot_auth_claims
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 
@@ -580,12 +630,16 @@ run_partial_manifest_scenario() {
   if assert_manifest_keys "$label" "$TMP_DIR/network-manifest.json" "${tool_order[@]}"; then
     echo "OK: [$label] network-manifest.json carries only the installed CLIs' keys plus baseline"
   fi
+  assert_copilot_env_block "$label" "$TMP_DIR/.env.example" "${tool_order[@]}"
 
   rm -rf "$TMP_DIR"
 }
 
 run_partial_manifest_scenario "claude+copilot only" \
   setup-claude-devcontainer setup-copilot-devcontainer
+
+run_partial_manifest_scenario "claude+codex only" \
+  setup-claude-devcontainer setup-codex-devcontainer
 
 # Antigravity's skills-link block (issue #346): run against a scratch HOME,
 # under the same `set -euo pipefail` post-start.sh runs it in, for every

@@ -1,0 +1,7 @@
+# --- Copilot token ---
+# GitHub Copilot CLI's own token, read before GH_TOKEN. It must be a
+# fine-grained PAT whose resource owner is your personal account, with only
+# the "Copilot Requests" account permission and no repository access.
+# Classic (ghp_) and org-owned tokens can't authorize Copilot. Create one at
+# https://github.com/settings/personal-access-tokens/new, then uncomment:
+# COPILOT_GITHUB_TOKEN=github_pat_your_token_here
