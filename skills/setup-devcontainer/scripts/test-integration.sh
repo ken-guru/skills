@@ -259,6 +259,9 @@ assert_copilot_env_block() {
   if [ "$expected" -eq 1 ] && ! grep -q '^# COPILOT_GITHUB_TOKEN=github_pat_' "$env_file"; then
     fail "[$label] Copilot token block has no commented-out COPILOT_GITHUB_TOKEN=github_pat_... line"
   fi
+  if [ "$expected" -eq 0 ] && grep -qi "copilot" "$env_file"; then
+    fail "[$label] .env.example mentions Copilot although setup-copilot-devcontainer isn't installed"
+  fi
   # shellcheck disable=SC1090 # the fixture's own .env.example, sourced as bash-env.sh sources .env
   if (set -a; unset COPILOT_GITHUB_TOKEN; source "$env_file"; [ -n "${COPILOT_GITHUB_TOKEN+set}" ]); then
     fail "[$label] sourcing .env.example sets COPILOT_GITHUB_TOKEN — the placeholder must stay commented out"
@@ -584,18 +587,24 @@ check_no_stale_token_guidance() {
 check_no_stale_token_guidance
 
 # Copilot auth claims (issue #370): Copilot CLI can't authorize from an
-# org-owned GH_TOKEN, so no Copilot template or SKILL.md may promise
-# automatic auth via GH_TOKEN, and nothing may pre-accept plain-text token
-# storage on the user's behalf (that stays Copilot's own prompt).
+# org-owned GH_TOKEN, so no skill template (nor Copilot's SKILL.md) may
+# promise automatic auth via GH_TOKEN, and nothing in the Copilot skill may
+# pre-accept plain-text token storage on the user's behalf (that stays
+# Copilot's own prompt).
 check_copilot_auth_claims() {
   local copilot_dir="$SKILLS_ROOT/setup-copilot-devcontainer" pattern hits ok=1
-  for pattern in "automatic via" "picks up this container's GH_TOKEN" "storeTokenPlaintext"; do
-    hits=$(grep -rliF -- "$pattern" "$copilot_dir" || true)
+  for pattern in "automatic via" "picks up this container's GH_TOKEN"; do
+    hits=$(grep -rliF -- "$pattern" "$SKILLS_ROOT"/setup-*/templates "$copilot_dir/SKILL.md" || true)
     if [ -n "$hits" ]; then
-      fail "[copilot] stale or disallowed auth text \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
+      fail "[copilot] stale auth claim \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
       ok=0
     fi
   done
+  hits=$(grep -rlF -- "storeTokenPlaintext" "$copilot_dir" || true)
+  if [ -n "$hits" ]; then
+    fail "[copilot] storeTokenPlaintext pre-set found in: $(echo "$hits" | tr '\n' ' ')"
+    ok=0
+  fi
   if grep -rqF -- ".copilot/settings.json" "$copilot_dir/templates"; then
     fail "[copilot] a template touches ~/.copilot/settings.json — Copilot's own user file is not a CLI Skill block"
     ok=0
