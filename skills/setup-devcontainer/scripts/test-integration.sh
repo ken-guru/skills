@@ -69,6 +69,11 @@ marker_for_tool() { lookup_tool_value TOOLS "$1"; }
 cliname_for_tool() { lookup_tool_value CLI_NAMES "$1"; }
 readme_marker_for_tool() { lookup_tool_value README_MARKERS "$1"; }
 
+# An env-block.example's marker is its first non-blank line: like the SSH
+# add-on's own .env.example block, it may open with a blank line so it
+# doesn't butt up against whatever the file ended with.
+env_block_marker() { grep -m1 -v '^$' "$1"; }
+
 # Network Manifest must have exactly the baseline key plus one key per
 # installed CLI Skill in $2.. — no more, no less. Fails (via the global
 # fail()) and returns non-zero on mismatch, so a caller can still print its
@@ -99,7 +104,7 @@ assert_manifest_keys() {
 # to post-start.sh under its own marker (the block's first line) — only in
 # fixtures that have a post-start.sh. A tool that ships an env-block.example
 # has it appended to .env.example the same way, under its own marker (the
-# block's first line).
+# block's first non-blank line).
 apply_all_patches() {
   local fixture_dir="$1"
   shift
@@ -112,7 +117,7 @@ apply_all_patches() {
     "$PATCH" append "$fixture_dir/post-create.sh" "$marker" "$tool_templates/install-block.sh"
     "$PATCH" append "$fixture_dir/README.md" "$(readme_marker_for_tool "$tool_dir")" "$tool_templates/readme-bullet.md"
     if [ -f "$tool_templates/env-block.example" ]; then
-      "$PATCH" append "$fixture_dir/.env.example" "$(head -1 "$tool_templates/env-block.example")" "$tool_templates/env-block.example"
+      "$PATCH" append "$fixture_dir/.env.example" "$(env_block_marker "$tool_templates/env-block.example")" "$tool_templates/env-block.example"
     fi
     if [ -f "$tool_templates/capability-seam-entries.json" ]; then
       "$PATCH_JSON" "$fixture_dir/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
@@ -513,9 +518,9 @@ check_skill_markers_match_harness() {
     fi
     env_block="$SKILLS_ROOT/$tool_dir/templates/env-block.example"
     if [ -f "$env_block" ]; then
-      env_marker="$(head -1 "$env_block")"
+      env_marker="$(env_block_marker "$env_block")"
       if ! grep -qF -- "append .devcontainer/.env.example \"$env_marker\" templates/env-block.example" "$skill_md"; then
-        fail "[$tool_dir] SKILL.md does not append env-block.example under its first line \"$env_marker\""
+        fail "[$tool_dir] SKILL.md does not append env-block.example under its first non-blank line \"$env_marker\""
         ok=0
       fi
     fi

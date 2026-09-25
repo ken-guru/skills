@@ -1,3 +1,4 @@
+
 # --- Copilot token ---
 # GitHub Copilot CLI's own token, read before GH_TOKEN. It must be a
 # fine-grained PAT whose resource owner is your personal account, with only
