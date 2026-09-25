@@ -296,9 +296,10 @@ install_cli "Antigravity" "$HOME/.local/bin/agy" "https://antigravity.google/cli
 # invoke it. Always installs whatever's current at build time (no pinning
 # knob, no staleness-check machinery, matching the other three tools).
 #
-# Auth: the installed `copilot` CLI picks up this container's GH_TOKEN
-# automatically (falling back to OAuth/`gh auth token` if unset), so no
-# separate login step is needed here.
+# Auth: Copilot reads COPILOT_GITHUB_TOKEN first, then GH_TOKEN, from
+# .devcontainer/.env via bash-env.sh. Only a personal-owned fine-grained PAT
+# with the Copilot Requests permission works, so an org-scoped GH_TOKEN
+# won't. See the "# --- Copilot token ---" block in .env.example.
 #
 # COPILOT_AUTO_UPDATE=false disables the CLI's own background self-update
 # check, which otherwise throws on startup ("Error auto updating: TypeError:
