@@ -1,11 +1,14 @@
 [
-  {"skill":"generate-diagrams","type":"positive","query":"render the presentation diagrams","precondition":"DIAGRAM_SPEC.md exists","expected":"skill loads"},
+  {"skill":"generate-diagrams","type":"positive","query":"render the presentation diagrams","precondition":"DIAGRAM_SPEC.md exists and no diagrams exist yet","expected":"skill loads and renders every entry in Batch with one render-diagrams.mjs call, asking the user nothing"},
   {"skill":"generate-diagrams","type":"positive","query":"render the diagram for slide 4","precondition":"DIAGRAM_SPEC.md exists","expected":"skill loads and supports a focused diagram scope"},
+  {"skill":"generate-diagrams","type":"positive","query":"render the diagrams one at a time so I can review each","precondition":"DIAGRAM_SPEC.md exists","expected":"skill uses Interactive mode: one render-diagrams.mjs --slide=N --force call per slide with Next / Redo / Stop between calls"},
+  {"skill":"generate-diagrams","type":"boundary","query":"render the presentation diagrams","precondition":"Some diagrams listed in DIAGRAM_SPEC.md already exist","expected":"skill presents the Media Scope prompt before overwriting anything, and no Generation Mode question"},
   {"skill":"generate-diagrams","type":"negative","query":"render the presentation images","precondition":"IMAGE_SPEC.md exists","expected":"skill does NOT load — generate-images should handle this"},
   {"skill":"generate-diagrams","type":"boundary","query":"generate the presentation diagrams","precondition":"DIAGRAM_SPEC.md is missing","expected":"skill loads only for an explicit diagram request, then reports the missing specification without writes"},
   {"skill":"generate-diagrams","type":"negative","query":"generate the slides","precondition":"AGENDA.md exists","expected":"skill does NOT load — generate-slides or build-presentation should handle this"},
   {"skill":"generate-diagrams","type":"boundary","query":"stop rendering after the current diagram","precondition":"Interactive diagram rendering is active","expected":"skill keeps generated assets, leaves phases.diagrams pending, and preserves unrelated phase records"},
-  {"skill":"generate-diagrams","type":"boundary","query":"render the remaining diagrams","precondition":"One selected diagram fails","expected":"skill reports the failure and leaves phases.diagrams pending"},
+  {"skill":"generate-diagrams","type":"boundary","query":"render the remaining diagrams","precondition":"One selected diagram fails","expected":"skill relays the render command's per-slide failure and fix, keeps the diagrams that rendered, and leaves phases.diagrams pending"},
+  {"skill":"generate-diagrams","type":"boundary","query":"render the diagrams","precondition":"The locked Theme Manifest predates Diagram Roles","expected":"render command exits 2; skill tells the user to refresh the theme in generate-slides and renders nothing"},
   {"skill":"generate-diagrams","type":"boundary","query":"render the visuals","precondition":"Both IMAGE_SPEC.md and DIAGRAM_SPEC.md exist and the request does not name a media type","expected":"skill asks for an explicit media type or routes through build-presentation"
   }
 ]

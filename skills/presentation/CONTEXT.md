@@ -113,7 +113,7 @@ for a run: an explicit override when given, otherwise auto-detected from which
 provider's API key is set in the environment.
 _Avoid_: provider config, provider mode
 
-**Generation Mode** — How media (images or diagrams) is produced within a run. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
+**Generation Mode** — How media (images or diagrams) is produced within a run. Batch by default; Interactive on request. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
 _Avoid_: run mode, output mode, step-by-step mode
 
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")

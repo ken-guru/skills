@@ -1,0 +1,255 @@
+#!/usr/bin/env node
+// Renders the selected DIAGRAM_SPEC.md entries to SVG with the local D2 binary.
+// Dependency-free; never prompts and never writes PROJECT.json.
+//
+// Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]
+// Exit codes: 0 every selected entry rendered (or already present)
+//             1 at least one entry failed; nothing is written when the spec is
+//               malformed or any selected entry fails `d2 validate`
+//             2 usage or prerequisite error
+//             130 interrupted
+
+import { spawn } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+const USAGE = 'Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]';
+const D2_THEME_BY_TONE = { 'tone-light': 0, 'tone-dark': 200 };
+
+class UsageError extends Error {}
+
+const temporaryPaths = new Set();
+let activeChild = null;
+
+function cleanupSync() {
+  for (const file of temporaryPaths) rmSync(file, { recursive: true, force: true });
+  temporaryPaths.clear();
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    activeChild?.kill('SIGTERM');
+    cleanupSync();
+    process.stderr.write(`\nInterrupted: temporary files removed; diagrams already promoted are kept.\n`);
+    process.exit(130);
+  });
+}
+process.on('exit', cleanupSync);
+
+function parseArguments(argv) {
+  const options = { specPath: null, force: false, slides: null };
+  const slideList = (value, flag) => {
+    const numbers = value.split(',').map((item) => item.trim());
+    if (!numbers.length || numbers.some((item) => !/^\d+$/.test(item))) throw new UsageError(`${flag} expects slide numbers, got "${value}".`);
+    return numbers.map(Number);
+  };
+  for (const argument of argv) {
+    if (argument === '--force') options.force = true;
+    else if (argument.startsWith('--slides=')) options.slides = slideList(argument.slice(9), '--slides');
+    else if (argument.startsWith('--slide=')) options.slides = slideList(argument.slice(8), '--slide').slice(0, 1);
+    else if (argument.startsWith('--')) throw new UsageError(`Unknown option ${argument}.`);
+    else if (options.specPath) throw new UsageError(`Unexpected argument ${argument}.`);
+    else options.specPath = path.resolve(argument);
+  }
+  if (!options.specPath) throw new UsageError('Missing the DIAGRAM_SPEC.md path.');
+  return options;
+}
+
+function run(command, args) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (error) {
+      resolve({ code: null, output: error.message, error });
+      return;
+    }
+    activeChild = child;
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk; });
+    child.stderr.on('data', (chunk) => { output += chunk; });
+    child.on('error', (error) => { activeChild = null; resolve({ code: null, output: error.message, error }); });
+    child.on('close', (code) => { activeChild = null; resolve({ code, output: output.trim() }); });
+  });
+}
+
+// Entries are `## Slide N — Title` sections with a **Filename:** field and a
+// fenced ```d2 block, which may be indented under a list item.
+function parseDiagramSpec(text) {
+  const entries = [];
+  for (const section of text.split(/^## /m).slice(1)) {
+    const lines = section.split('\n');
+    const heading = lines[0].match(/^Slide (\d+)\s+[—–-]\s+(.+?)\s*$/);
+    if (!heading) continue;
+    const entry = { slide: Number(heading[1]), title: heading[2], source: null, problems: [] };
+    entry.filename = section.match(/\*\*Filename:\*\*\s*`([^`]+)`/)?.[1] ?? null;
+    if (!entry.filename) entry.problems.push('missing **Filename:**');
+    const open = lines.findIndex((line) => /^\s*(`{3,}|~{3,})\s*d2\s*$/.test(line));
+    const [, indent = '', fence] = open === -1 ? [] : lines[open].match(/^(\s*)(`{3,}|~{3,})/);
+    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && line.trim() === fence);
+    if (open !== -1 && close === -1) {
+      entry.problems.push('its D2 block has no closing fence');
+    } else {
+      const body = open === -1 ? [] : lines.slice(open + 1, close).map((line) => (line.startsWith(indent) ? line.slice(indent.length) : line.trimStart()));
+      if (body.join('').trim()) entry.source = `${body.join('\n')}\n`;
+      else entry.problems.push('missing a D2 block');
+    }
+    entries.push(entry);
+  }
+  return entries;
+}
+
+async function readJson(file) {
+  return JSON.parse(await readFile(file, 'utf8'));
+}
+
+async function lockedManifest(projectDirectory) {
+  let themesPath = 'themes/';
+  try {
+    themesPath = (await readJson(path.join(projectDirectory, 'DISCOVERY.json'))).paths?.themes ?? themesPath;
+  } catch {
+    // DISCOVERY.json is optional here; fall back to the documented default.
+  }
+  const themesDirectory = path.resolve(projectDirectory, themesPath);
+  let lock;
+  try {
+    lock = await readJson(path.join(themesDirectory, 'theme-lock.json'));
+  } catch {
+    throw new UsageError(`No locked Presentation Theme at ${path.join(themesDirectory, 'theme-lock.json')}. Run generate-slides to lock the theme, then rerun.`);
+  }
+  try {
+    return await readJson(path.join(themesDirectory, lock.id, 'theme.json'));
+  } catch {
+    throw new UsageError(`The locked Theme Manifest for "${lock.id}" is missing or unreadable. Refresh the theme in generate-slides, then rerun.`);
+  }
+}
+
+// Valid SVG may open with a BOM, XML declaration, comments, or DOCTYPE.
+function svgRootTag(svg) {
+  const body = svg.replace(/^﻿?(?:\s+|<\?xml\b[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\b[^>[]*(?:\[[\s\S]*?\])?\s*>)*/i, '');
+  return body.match(/^<svg\b[^>]*>/i)?.[0];
+}
+
+function svgProblem(svg) {
+  const root = svgRootTag(svg);
+  if (!root) return 'the rendered file\'s root element is not <svg>';
+  if (!/\sviewBox=["'][^"']+["']/i.test(root)) return 'the rendered root <svg> has no viewBox';
+  return null;
+}
+
+function label(entry) {
+  return `Slide ${entry.slide} — ${entry.title} (${entry.filename ?? 'no filename'})`;
+}
+
+async function main(argv) {
+  const options = parseArguments(argv);
+  if (!existsSync(options.specPath)) throw new UsageError(`${options.specPath} not found. Create and approve DIAGRAM_SPEC.md first.`);
+  const projectDirectory = path.dirname(options.specPath);
+
+  const version = await run('d2', ['--version']);
+  if (version.code !== 0) throw new UsageError('d2 is not available on PATH. Install D2, then rerun.');
+
+  const manifest = await lockedManifest(projectDirectory);
+  const tone = manifest.archetypes?.diagram?.tone;
+  const d2Theme = D2_THEME_BY_TONE[tone];
+  if (d2Theme === undefined) throw new UsageError(`The locked Theme Manifest's diagram tone "${tone}" is not tone-light or tone-dark. Refresh the theme in generate-slides.`);
+
+  let entries = parseDiagramSpec(await readFile(options.specPath, 'utf8'));
+  if (options.slides) {
+    const missing = options.slides.filter((slide) => !entries.some((item) => item.slide === slide));
+    if (missing.length) throw new UsageError(`No diagram entry for slide ${missing.join(', ')} in ${path.basename(options.specPath)}.`);
+    entries = entries.filter((item) => options.slides.includes(item.slide));
+  }
+  if (!entries.length) throw new UsageError(`No diagram entries found in ${path.basename(options.specPath)}.`);
+
+  const boundary = `${path.resolve(projectDirectory)}${path.sep}`;
+  for (const item of entries) {
+    if (!item.filename) continue;
+    item.target = path.resolve(projectDirectory, item.filename);
+    if (!item.target.startsWith(boundary)) item.problems.push('its Filename escapes the Project Folder');
+    else if (!/\.svg$/i.test(item.filename)) item.problems.push('its Filename does not end in .svg');
+  }
+  const malformed = entries.filter((item) => item.problems.length);
+  if (malformed.length) {
+    console.log(`❌ ${malformed.length} malformed DIAGRAM_SPEC.md entr${malformed.length === 1 ? 'y' : 'ies'}; nothing was written:`);
+    for (const item of malformed) console.log(`   • ${label(item)}: ${item.problems.join('; ')}`);
+    return 1;
+  }
+
+  const selected = [];
+  for (const item of entries) {
+    if (!options.force && existsSync(item.target)) console.log(`⏭️  ${label(item)}: exists — pass --force to re-render`);
+    else selected.push(item);
+  }
+  if (!selected.length) {
+    console.log('✅ Every selected diagram already exists; nothing to render.');
+    return 0;
+  }
+
+  const workDirectory = mkdtempSync(path.join(os.tmpdir(), 'render-diagrams-'));
+  temporaryPaths.add(workDirectory);
+  for (const item of selected) {
+    item.input = path.join(workDirectory, `slide-${item.slide}.d2`);
+    await writeFile(item.input, item.source);
+  }
+
+  const invalid = [];
+  for (const item of selected) {
+    const result = await run('d2', ['validate', item.input]);
+    if (result.code !== 0) invalid.push({ item, message: result.output.split(item.input).join('D2 Source') });
+  }
+  if (invalid.length) {
+    console.log(`❌ ${invalid.length} diagram${invalid.length === 1 ? '' : 's'} failed d2 validate; nothing was written:`);
+    for (const { item, message } of invalid) console.log(`   • ${label(item)}: ${message}`);
+    console.log('   Fix the D2 Source in DIAGRAM_SPEC.md, then rerun.');
+    return 1;
+  }
+
+  const failures = [];
+  let rendered = 0;
+  for (const item of selected) {
+    const temporary = path.join(path.dirname(item.target), `.${path.basename(item.target)}.${process.pid}.tmp.svg`);
+    try {
+      await mkdir(path.dirname(item.target), { recursive: true });
+      temporaryPaths.add(temporary);
+      const result = await run('d2', ['--layout=elk', `--theme=${d2Theme}`, item.input, temporary]);
+      if (result.code !== 0) throw new Error(`d2 failed: ${result.output.split(item.input).join('D2 Source')}`);
+      const problem = svgProblem(await readFile(temporary, 'utf8'));
+      if (problem) throw new Error(problem);
+      await rename(temporary, item.target);
+      temporaryPaths.delete(temporary);
+      rendered += 1;
+      console.log(`✅ ${label(item)}`);
+    } catch (error) {
+      failures.push({ item, message: error.message });
+      console.log(`❌ ${label(item)}: ${error.message}`);
+    } finally {
+      await rm(temporary, { force: true });
+      temporaryPaths.delete(temporary);
+    }
+  }
+
+  console.log('─'.repeat(40));
+  console.log(`Rendered: ${rendered}   Failed: ${failures.length}   Skipped: ${entries.length - selected.length}`);
+  if (failures.length) {
+    console.log('Failed diagrams (rendered ones were kept):');
+    for (const { item, message } of failures) console.log(`   • ${label(item)}: ${message}`);
+    return 1;
+  }
+  return 0;
+}
+
+main(process.argv.slice(2))
+  .then((code) => { cleanupSync(); process.exitCode = code; })
+  .catch((error) => {
+    cleanupSync();
+    if (error instanceof UsageError) {
+      process.stderr.write(`❌ ${error.message}\n${USAGE}\n`);
+      process.exitCode = 2;
+    } else {
+      process.stderr.write(`❌ ${error.stack ?? error.message}\n`);
+      process.exitCode = 2;
+    }
+  });

@@ -87,6 +87,24 @@ jobs:
       - name: Run contract and documentation tests
         run: npm test
 
+      # Generate Diagrams' end-to-end tests run the real D2 CLI; the render
+      # contract is pinned to this version and archive checksum.
+      - name: Install D2 0.7.1
+        env:
+          D2_VERSION: 0.7.1
+          D2_SHA256: eb172adf59f38d1e5a70ab177591356754ffaf9bebb84e0ca8b767dfb421dad7
+        run: |
+          archive="$RUNNER_TEMP/d2.tar.gz"
+          curl -fsSL -o "$archive" "https://github.com/terrastruct/d2/releases/download/v${D2_VERSION}/d2-v${D2_VERSION}-linux-amd64.tar.gz"
+          echo "${D2_SHA256}  ${archive}" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/d2-v${D2_VERSION}/bin" >> "$GITHUB_PATH"
+        working-directory: ${{ github.workspace }}
+
+      - name: Check D2 version
+        run: d2 --version | grep -Fx 0.7.1
+        working-directory: ${{ github.workspace }}
+
       # Skill-owned tests resolve paths from the repository root.
       - name: Run Skill-owned tests
         run: node --test skills/presentation/*/tests/*.test.mjs
