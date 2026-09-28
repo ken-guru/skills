@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -166,6 +166,47 @@ test('env.prerequisites requires d2 when an .svg diagram is actually embedded', 
   const { stdout } = await run(process.execPath, [cli, 'check', 'env', '--project-dir', project, '--format', 'json']);
   const report = JSON.parse(stdout);
   assert.ok(report.findings.some((finding) => finding.check === 'env.prerequisites' && /\bd2\b/.test(finding.message)));
+});
+
+// Root tag as emitted by D2 0.7.1, which nests further <svg> elements that carry
+// their own viewBox.
+const d2Root = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" data-d2-version="0.7.1" preserveAspectRatio="xMinYMin meet" viewBox="0 0 255 404">';
+const d2Body = '<svg class="d2-svg" width="255" height="404" viewBox="-89 -89 255 404"><rect width="255" height="404"/></svg></svg>';
+
+async function svgMediaFindings(svg) {
+  const project = await fixture();
+  await mkdir(path.join(project, 'images'));
+  await writeFile(path.join(project, 'images', 'diagram-a.svg'), svg);
+  await writeFile(path.join(project, 'DIAGRAM_SPEC.md'), '## Slide 1 — Flow\n- **Filename:** `images/diagram-a.svg`\n');
+  await writeFile(path.join(project, 'PRESENTASJON.md'), `---\nmarp: true\ntheme: editorial\nsize: 16:9\npaginate: true\nlang: en\n---\n<!-- _class: archetype-diagram variation-default tone-light -->\n<h1 class="slot-title">Flow</h1>\n<figure class="slot-media"><img src="images/diagram-a.svg" alt="Flow"></figure>\n`);
+  const { stdout } = await run(process.execPath, [cli, 'check', 'media', '--project-dir', project, '--format', 'json'])
+    .catch((error) => error);
+  return JSON.parse(stdout).findings.filter((finding) => finding.check === 'media.svg');
+}
+
+for (const [name, svg] of [
+  ['no prolog', `${d2Root}${d2Body}`],
+  ['an XML declaration, as D2 emits by default', `<?xml version="1.0" encoding="utf-8"?>${d2Root}${d2Body}`],
+  ['a BOM, XML declaration, and comment', `﻿<?xml version="1.0"?>\n<!-- exported -->\n${d2Root}${d2Body}`],
+  ['a DOCTYPE', `<?xml version="1.0"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n${d2Root}${d2Body}`],
+]) {
+  test(`media.svg accepts a valid SVG with ${name}`, async () => {
+    assert.deepEqual(await svgMediaFindings(svg), []);
+  });
+}
+
+test('media.svg blocks a file whose root element is not <svg>', async () => {
+  const findings = await svgMediaFindings('<!doctype html><html><body><svg viewBox="0 0 10 10"></svg></body></html>');
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, 'blocking');
+  assert.match(findings[0].message, /root element is not <svg>/);
+});
+
+test('media.svg blocks a root <svg> without viewBox even when a nested <svg> has one', async () => {
+  const findings = await svgMediaFindings(`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">${d2Body}`);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, 'blocking');
+  assert.match(findings[0].message, /root <svg> has no viewBox/);
 });
 
 test('returns configuration status for a missing Project Folder contract', async () => {
