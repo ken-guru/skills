@@ -248,6 +248,13 @@ function mediaReferences(text) {
     .filter((reference) => !/^https?:/i.test(reference));
 }
 
+// Valid SVG may open with a BOM, XML declaration, comments, or DOCTYPE before
+// the root element; D2 emits an XML declaration by default.
+function svgRootTag(svg) {
+  const body = svg.replace(/^﻿?(?:\s+|<\?xml\b[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\b[^>[]*(?:\[[\s\S]*?\])?\s*>)*/i, '');
+  return body.match(/^<svg\b[^>]*>/i)?.[0];
+}
+
 async function checkMedia(inputs, report) {
   const presentation = await readTextIfPresent(inputs.presentation);
   const agenda = await readTextIfPresent(inputs.agenda);
@@ -274,9 +281,11 @@ async function checkMedia(inputs, report) {
       continue;
     }
     if (/\.svg$/i.test(asset)) {
-      const svg = await readText(asset);
-      if (!/^\s*<svg\b/i.test(svg) || !/\bviewBox=["'][^"']+["']/i.test(svg)) {
-        report.finding('media.svg', 'blocking', `SVG ${reference} has invalid structure or no viewBox.`, { path: normalized });
+      const rootTag = svgRootTag(await readText(asset));
+      if (!rootTag) {
+        report.finding('media.svg', 'blocking', `SVG ${reference} root element is not <svg>.`, { path: normalized });
+      } else if (!/\sviewBox=["'][^"']+["']/i.test(rootTag)) {
+        report.finding('media.svg', 'blocking', `SVG ${reference} root <svg> has no viewBox.`, { path: normalized });
       }
     }
     if (/<img\b/i.test(presentation) && new RegExp(`<img[^>]+src=["']${escapeRegExp(reference)}["'][^>]*>`, 'i').test(presentation)) {
