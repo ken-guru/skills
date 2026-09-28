@@ -310,7 +310,7 @@ If step 3's SSH answer was yes:
   auto-register itself — plus whatever else you use gh for.`
 
   ```bash
-  scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
+  scripts/patch-if-absent.sh append .devcontainer/.env.example "# Your host machine's hostname — used to label the SSH deploy/signing keys so" templates/env.ssh-block.example
   ```
 - `.devcontainer/README.md` gets [templates/README.ssh-block.md](templates/README.ssh-block.md),
   substituted (`{{REPO_NAME}}`, `{{REPO_SLUG}}`) into a scratch copy first — unlike every other
@@ -377,7 +377,10 @@ Tell the user, adapted to whether SSH/the firewall are present:
 
 1. Install Docker Desktop and the **Dev Containers** VS Code extension.
 2. Copy `.devcontainer/.env.example` to `.devcontainer/.env` and fill in `GH_TOKEN`{{, and
-   `DEVCONTAINER_HOST` (run `hostname`) if SSH is present}}.
+   `DEVCONTAINER_HOST` (run `hostname`) if SSH is present}}. {{On a re-run against an existing
+   container: if `.devcontainer/.env` still contains `github_pat_your_token_here` or
+   `your-hostname-here`, replace it with the real value or clear it — an older `.env.example`
+   shipped those placeholders as values, and they're exported as real credentials.}}
 3. Reopen the repo in the container (**Dev Containers: Reopen in Container**).
 4. Run whichever `setup-<tool>-devcontainer` skill(s) you want, to add AI CLIs.
 5. {{If SSH is present: on attach, `post-attach.sh` prints setup instructions for whichever of the

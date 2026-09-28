@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 RENDER="$SCRIPT_DIR/render-devcontainer.sh"
 PATCH="$SCRIPT_DIR/patch-if-absent.sh"
+SSH_ENV_BLOCK="$SKILLS_ROOT/setup-devcontainer/templates/env.ssh-block.example"
 PATCH_JSON="$SCRIPT_DIR/patch-json-array-if-absent.sh"
 
 FAIL_COUNT=0
@@ -542,8 +543,8 @@ check_base_token_guidance() {
   local env_tpl="$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example"
   local readme_tpl="$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md"
   local ok=1
-  if ! grep -qxF "GH_TOKEN=github_pat_your_token_here" "$env_tpl"; then
-    fail "[base .env.example] GH_TOKEN placeholder is not the fine-grained github_pat_ format"
+  if ! grep -q '^#.*github_pat_' "$env_tpl"; then
+    fail "[base .env.example] GH_TOKEN comment does not show the fine-grained github_pat_ format"
     ok=0
   fi
   if ! grep -qF "https://github.com/settings/personal-access-tokens/new" "$env_tpl"; then
@@ -568,6 +569,69 @@ check_base_token_guidance() {
 }
 check_base_token_guidance
 
+# Required .env values ship empty (issue #376): .env.example is copied to .env
+# and exported line by line, so an uncommented placeholder reaches gh, Copilot
+# and the SSH block as a real value. An empty value reads as unset to all
+# three; sourcing the rendered file must leave each required variable set
+# but empty.
+assert_env_value_empty() {
+  local label="$1" env_file="$2" var="$3" state
+  # shellcheck disable=SC1090 # the fixture's own .env.example, sourced as bash-env.sh sources .env
+  state=$(set -a; unset "$var"; source "$env_file"
+    if [ -z "${!var+set}" ]; then echo unset; elif [ -z "${!var}" ]; then echo empty; else echo value; fi)
+  if [ "$state" != "empty" ]; then
+    fail "[$label] sourcing .env.example leaves $var $state — a required value must ship empty"
+    return 1
+  fi
+}
+
+check_required_env_values_empty() {
+  local tmp_dir env_file ok=1
+  tmp_dir="$(mktemp -d)"
+  env_file="$tmp_dir/.env.example"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example" "$env_file"
+  assert_env_value_empty "base .env.example" "$env_file" GH_TOKEN || ok=0
+  "$PATCH" append "$env_file" "$(env_block_marker "$SSH_ENV_BLOCK")" "$SSH_ENV_BLOCK"
+  assert_env_value_empty "base+SSH .env.example" "$env_file" GH_TOKEN || ok=0
+  assert_env_value_empty "base+SSH .env.example" "$env_file" DEVCONTAINER_HOST || ok=0
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: required .env.example values ship empty"
+  fi
+  rm -rf "$tmp_dir"
+}
+check_required_env_values_empty
+
+# The SSH .env.example block's marker is its first non-blank line, which older
+# versions of the block share — so a re-run against a .env.example written
+# before #376 (DEVCONTAINER_HOST=your-hostname-here) appends nothing, and every
+# doc that appends the block passes that same marker.
+check_ssh_env_marker() {
+  local marker tmp_dir legacy before doc ok=1
+  marker="$(env_block_marker "$SSH_ENV_BLOCK")"
+  for doc in "$SKILLS_ROOT/setup-devcontainer/SKILL.md" "$SKILLS_ROOT/setup-devcontainer/docs/adding-ssh-later.md"; do
+    if ! grep -qF -- "append .devcontainer/.env.example \"$marker\" templates/env.ssh-block.example" "$doc"; then
+      fail "[SSH .env.example block] $(basename "$doc") does not append it under its first non-blank line \"$marker\""
+      ok=0
+    fi
+  done
+  tmp_dir="$(mktemp -d)"
+  legacy="$tmp_dir/.env.example"
+  printf '%s\n' "GH_TOKEN=github_pat_your_token_here" "" \
+    "# Your host machine's hostname — used to label the SSH deploy/signing keys so" \
+    "DEVCONTAINER_HOST=your-hostname-here" > "$legacy"
+  before="$(cat "$legacy")"
+  "$PATCH" append "$legacy" "$marker" "$SSH_ENV_BLOCK"
+  if [ "$(cat "$legacy")" != "$before" ]; then
+    fail "[SSH .env.example block] re-run against a pre-#376 .env.example appended a second block"
+    ok=0
+  fi
+  rm -rf "$tmp_dir"
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: SSH .env.example block uses its first line as marker; older files gain nothing on re-run"
+  fi
+}
+check_ssh_env_marker
+
 # Stale token guidance must never come back into any skill's templates: the
 # classic ghp_ placeholder and the classic token list both steer users to
 # tokens some CLIs (Copilot) reject outright.
@@ -580,6 +644,13 @@ check_no_stale_token_guidance() {
       ok=0
     fi
   done
+  # An uncommented placeholder is exported as a real value (issue #376);
+  # commented-out examples, like an optional variable's, are fine.
+  hits=$(grep -rlE -- '^[A-Z_]+=.*(your_token_here|your-hostname-here)' "$SKILLS_ROOT"/setup-*/templates || true)
+  if [ -n "$hits" ]; then
+    fail "uncommented placeholder value found in: $(echo "$hits" | tr '\n' ' ')"
+    ok=0
+  fi
   if [ "$ok" -eq 1 ]; then
     echo "OK: no stale token guidance in any skill template"
   fi

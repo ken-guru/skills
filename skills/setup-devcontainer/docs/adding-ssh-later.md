@@ -20,13 +20,14 @@ already exists by construction, so this flow only adds the SSH mount and the SSH
    `Administration` is only an optional convenience for auto-registration):
 
    ```bash
-   scripts/patch-if-absent.sh append .devcontainer/.env.example "DEVCONTAINER_HOST=your-hostname-here" templates/env.ssh-block.example
+   scripts/patch-if-absent.sh append .devcontainer/.env.example "# Your host machine's hostname — used to label the SSH deploy/signing keys so" templates/env.ssh-block.example
    ```
 5. `.devcontainer/.env` itself already exists in this flow (it's required for the devcontainer to
    have worked at all) and is gitignored — don't touch it programmatically, since it holds a live
    `GH_TOKEN`. `initializeCommand` only seeds `.env` from `.env.example` when `.env` doesn't yet
    exist, so appending to `.env.example` alone never reaches the file that's actually loaded. If
-   `DEVCONTAINER_HOST` isn't already set in `.env`, run `hostname` on the host yourself and give
+   `DEVCONTAINER_HOST` isn't already set in `.env`, or still holds the old
+   `your-hostname-here` placeholder, run `hostname` on the host yourself and give
    the user the fully resolved line to add, not a command to run themselves:
    ```
    DEVCONTAINER_HOST=<actual output of hostname>
