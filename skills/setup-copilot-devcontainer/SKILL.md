@@ -103,13 +103,11 @@ scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Copilot ski
 
 ## 6. Patch `.env.example` — unconditional, every run
 
-Append [templates/env-block.example](templates/env-block.example), which
-documents Copilot's own token: `COPILOT_GITHUB_TOKEN`, a personal-owned
-fine-grained PAT with only the Copilot Requests permission. Copilot reads it
-before `GH_TOKEN`, which can't authorize Copilot when it's org-owned. The
-variable line stays **commented out** — an uncommented placeholder would be
-exported as a real value and override the `GH_TOKEN` fallback. Never write
-`.devcontainer/.env` itself; it holds the user's live tokens.
+Append [templates/env-block.example](templates/env-block.example), Copilot's
+own token block. Its `COPILOT_GITHUB_TOKEN` line stays **commented out**: an
+uncommented placeholder would be exported as a real value and override the
+`GH_TOKEN` fallback. `.env.example` is the only env file this skill writes;
+`.devcontainer/.env` holds the user's live tokens.
 
 ```bash
 scripts/patch-if-absent.sh append .devcontainer/.env.example "# --- Copilot token ---" templates/env-block.example
@@ -137,21 +135,23 @@ whose resource owner is their **personal account**, with only the
 rebuild is needed for that: `.env` is re-read by every new shell, so they can
 open a new terminal and run `copilot`.
 
-On a re-run against an existing container, also tell them: an older
-`# --- Copilot ---` block in `post-create.sh` may still claim Copilot
-authenticates from `GH_TOKEN` on its own — that's outdated (this skill never
-rewrites a block it already wrote), and the `.env.example` block is correct.
-If they previously answered "yes" to Copilot's "Store token in plain text
-config file?" prompt, that token is still stored in plain text under
-`authTokens` in `~/.copilot/config.json`; they should delete that entry by
-hand, since `COPILOT_GITHUB_TOKEN` replaces it. `/logout` won't remove it:
-it only clears a `/login` session while that session is the active
-credential, and `COPILOT_GITHUB_TOKEN` takes precedence.
+If YOLO guidance was accepted, `copilot-yolo` prints the current
+unattended-run flags and their vendor caveat rather than running anything
+itself.
 
-If YOLO guidance was accepted, `copilot-yolo`
-prints the current unattended-run flags and their vendor caveat rather than
-running anything itself. If `.devcontainer/post-start.sh` still contains the
-line `rm -rf /home/vscode/.copilot/skills/*` (from an older version of this
-skill), tell them it is now dead and safe to delete by hand — that
-directory was never where Copilot's skill sync actually wrote — this skill
-never rewrites a block it already wrote.
+On a re-run against an existing container, blocks from an older version of
+this skill stay as they were written (the Own-Block Contract: this skill never
+rewrites a block it already wrote), so also tell them:
+
+- An older `# --- Copilot ---` block in `post-create.sh` may still claim
+  Copilot authenticates from `GH_TOKEN` on its own. That's outdated; the
+  `.env.example` block is correct.
+- If `.devcontainer/post-start.sh` still contains the line
+  `rm -rf /home/vscode/.copilot/skills/*`, it is now dead and safe to delete
+  by hand: that directory was never where Copilot's skill sync wrote.
+- If they previously answered "yes" to Copilot's "Store token in plain text
+  config file?" prompt, that token is still stored in plain text under
+  `authTokens` in `~/.copilot/config.json`. They should delete that entry by
+  hand, since `COPILOT_GITHUB_TOKEN` replaces it. `/logout` leaves it in
+  place: it only clears the active credential, and `COPILOT_GITHUB_TOKEN`
+  takes precedence.
