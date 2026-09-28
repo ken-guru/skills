@@ -10,6 +10,14 @@ import assert from 'node:assert/strict';
 const run = promisify(execFile);
 const cli = path.resolve('skills/presentation/presentation-validation/scripts/presentation-validation.mjs');
 
+// Returns the JSON report even when blocking findings make the CLI exit 1, so
+// assertions about findings hold whether or not marp and d2 are installed.
+async function jsonReport(...args) {
+  const { stdout } = await run(process.execPath, [cli, ...args, '--format', 'json'])
+    .catch((error) => (error.code === 1 ? error : Promise.reject(error)));
+  return JSON.parse(stdout);
+}
+
 async function fixture() {
   const project = await mkdtemp(path.join(os.tmpdir(), 'presentation-validation-'));
   await writeFile(path.join(project, 'DISCOVERY.json'), JSON.stringify({
@@ -155,16 +163,14 @@ test('structure.capacity does not spuriously trigger on markdown dash-prefixed p
 test('env.prerequisites does not require d2 for prose that merely mentions .svg', async () => {
   const project = await fixture();
   await writeFile(path.join(project, 'PRESENTASJON.md'), `---\nmarp: true\ntheme: editorial\nsize: 16:9\npaginate: true\nlang: en\n---\n<!-- _class: archetype-title variation-default tone-light -->\n<h1 class="slot-title">Convert your .svg files carefully</h1>\n`);
-  const { stdout } = await run(process.execPath, [cli, 'check', 'env', '--project-dir', project, '--format', 'json']);
-  const report = JSON.parse(stdout);
+  const report = await jsonReport('check', 'env', '--project-dir', project);
   assert.equal(report.findings.some((finding) => finding.check === 'env.prerequisites' && /\bd2\b/.test(finding.message)), false);
 });
 
 test('env.prerequisites requires d2 when an .svg diagram is actually embedded', async () => {
   const project = await fixture();
   await writeFile(path.join(project, 'PRESENTASJON.md'), `---\nmarp: true\ntheme: editorial\nsize: 16:9\npaginate: true\nlang: en\n---\n<!-- _class: archetype-title variation-default tone-light -->\n<h1 class="slot-title">Title</h1>\n<img src="diagram.svg" alt="Flow">\n`);
-  const { stdout } = await run(process.execPath, [cli, 'check', 'env', '--project-dir', project, '--format', 'json']);
-  const report = JSON.parse(stdout);
+  const report = await jsonReport('check', 'env', '--project-dir', project);
   assert.ok(report.findings.some((finding) => finding.check === 'env.prerequisites' && /\bd2\b/.test(finding.message)));
 });
 
@@ -179,9 +185,8 @@ async function svgMediaFindings(svg) {
   await writeFile(path.join(project, 'images', 'diagram-a.svg'), svg);
   await writeFile(path.join(project, 'DIAGRAM_SPEC.md'), '## Slide 1 — Flow\n- **Filename:** `images/diagram-a.svg`\n');
   await writeFile(path.join(project, 'PRESENTASJON.md'), `---\nmarp: true\ntheme: editorial\nsize: 16:9\npaginate: true\nlang: en\n---\n<!-- _class: archetype-diagram variation-default tone-light -->\n<h1 class="slot-title">Flow</h1>\n<figure class="slot-media"><img src="images/diagram-a.svg" alt="Flow"></figure>\n`);
-  const { stdout } = await run(process.execPath, [cli, 'check', 'media', '--project-dir', project, '--format', 'json'])
-    .catch((error) => error);
-  return JSON.parse(stdout).findings.filter((finding) => finding.check === 'media.svg');
+  const report = await jsonReport('check', 'media', '--project-dir', project);
+  return report.findings.filter((finding) => finding.check === 'media.svg');
 }
 
 for (const [name, svg] of [

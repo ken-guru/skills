@@ -86,3 +86,8 @@ jobs:
 
       - name: Run contract and documentation tests
         run: npm test
+
+      # Skill-owned tests resolve paths from the repository root.
+      - name: Run Skill-owned tests
+        run: node --test skills/presentation/*/tests/*.test.mjs
+        working-directory: ${{ github.workspace }}
