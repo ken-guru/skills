@@ -5,7 +5,10 @@ description: "Media Renderer. Load when DIAGRAM_SPEC.md exists or the user expli
 
 # Generate Diagrams (Media Renderer)
 
-Reads `DIAGRAM_SPEC.md`, passes the D2 syntax to the local D2 binary, and saves the resulting SVG files to the project's `images/` folder.
+Renders the approved `DIAGRAM_SPEC.md` to SVG files in the project's `images/`
+folder with one bundled command. The command owns D2 extraction, validation,
+flags, theme styling, output checks, and temp-file cleanup; this Skill owns
+scope, Interactive review, reporting, and phase state.
 
 ## Output voice
 
@@ -16,19 +19,19 @@ Before approving diagram labels or explanatory text, invoke the standalone
 `unslop` Skill as a required full editorial pass using
 `DISCOVERY.json.editorialPreferences`; preserve D2 syntax and semantic labels.
 
-Protocol: resolve Media Scope, choose Generation Mode, review and report results,
+Protocol: resolve Media Scope, Batch by default (Interactive on request), review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,
 and preserve unrelated phase records. D2 setup remains local.
 
 ## Startup
 
-Before proceeding:
-
-1. Resolve the project folder: check `DISCOVERY.json` for paths, or ask if ambiguous.
-2. Check `DIAGRAM_SPEC.md` exists. If not:
+1. Resolve the Project Folder from `DISCOVERY.json` (`paths.diagramSpec`,
+   falling back to `DIAGRAM_SPEC.md`), or ask if ambiguous.
+2. Require `DIAGRAM_SPEC.md`. If it is missing:
    > ❌ `DIAGRAM_SPEC.md` not found. Create and approve a diagram specification before rendering diagrams.
    Abort.
-3. Check `d2` is available: `which d2`. If it is not found, explain that D2 is required to render these diagrams and offer:
+3. Run `which node`. If missing, abort: `❌ node not installed — the diagram render command requires Node.js`.
+4. Run `which d2`. If missing, explain that D2 is required and offer:
 
    ```
    ❌ D2 is not installed. It is required to render SVG diagrams.
@@ -38,81 +41,85 @@ Before proceeding:
      3  Cancel
    ```
 
-   - For **1**, identify the operating system and available package manager. Ask for confirmation before executing the proposed command. Prefer `brew install d2` on macOS when Homebrew is available; on Linux, use D2’s [official installer](https://d2lang.com/tour/install/) or the distribution package manager; on Windows, use an available supported package manager or direct the user to the official installer.
-   - For **2**, link the user to the [official D2 installation guide](https://d2lang.com/tour/install/) and wait until they say it is installed.
-   - For **3**, stop without changing the project.
-   - After **1** or **2**, run `which d2` again. Continue only when the binary is available; otherwise report that D2 is still unavailable and offer the same choices again.
+   - **1**: identify the operating system and package manager, and ask for confirmation before running the install. Prefer `brew install d2` on macOS with Homebrew; on Linux use D2’s [official installer](https://d2lang.com/tour/install/) or the distribution package manager; on Windows use a supported package manager or the official installer.
+   - **2**: link the [official D2 installation guide](https://d2lang.com/tour/install/) and wait until the user says it is installed.
+   - **3**: stop without changing the project.
+   - After **1** or **2**, run `which d2` again; continue only when it resolves, otherwise offer the same choices again.
+5. Resolve the absolute directory containing this invoked `SKILL.md`. The render
+   command is `<skill-directory>/scripts/render-diagrams.mjs`; require it to
+   exist and quote its absolute path on every call. Never infer it from cwd.
 
 ## Procedure
 
-### Step 1: Resolve scope
+### Step 1: Resolve Media Scope
 
-Parse all entries from `DIAGRAM_SPEC.md`. Check which filenames already exist in the project folder.
+Read the `**Filename:**` of every `DIAGRAM_SPEC.md` entry and check which files exist.
 
-If **no diagrams exist yet**, scope = all entries — skip to Step 2.
+- **None exist:** scope is every entry. Ask nothing; go to Step 2.
+- **At least one exists:** present:
 
-If **at least one diagram already exists**, present:
+  ```
+  ⚠️  images/ — existing files detected (N of M diagrams already present)
 
-```
-⚠️  images/ — existing files detected (N of M diagrams already present)
+    Already present:    • images/foo.svg  (Slide 1 — Title)  [...]
+    Not yet generated:  • images/bar.svg  (Slide 3 — Title)  [...]
 
-  Already present:    • images/foo.svg  (Slide 1 — Title)  [...]
-  Not yet generated:  • images/bar.svg  (Slide 3 — Title)  [...]
+    A  Generate missing only   — skip the N that already exist
+    B  Regenerate everything   — overwrite all M diagrams
+    C  Choose specific slides  — I'll tell you which slide numbers
+    D  Cancel
+  ```
 
-  A  Generate missing only   — skip the N that already exist
-  B  Regenerate everything   — overwrite all M diagrams
-  C  Choose specific slides  — I'll tell you which slide numbers
-  D  Cancel
-```
+  Wait for a choice. For **C**, ask: "Which slide numbers? (e.g. `1 3 5`)". **D** stops without changes.
 
-Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
+### Step 2: Render
 
-### Step 2: Select generation mode
+Render in **Batch** unless the user asked to review diagrams one at a time.
 
-```
-💡 N diagram(s) will be generated locally.
-
-  1  All at once   — render selected diagrams in sequence
-  2  One at a time — pause after each diagram for your review
-```
-
-### Step 3: Generate
-
-For each diagram in scope, extract its D2 source code from `DIAGRAM_SPEC.md` into a temporary file (e.g. `images/[filename].d2`).
-
-Then run D2 to compile it to SVG with the ELK layout engine and a consistent theme (e.g. theme 200 for dark mode, depending on DISCOVERY.json):
+**Batch** — one call for the whole scope:
 
 ```bash
-d2 --layout=elk --theme=200 <path-to-temp-file.d2> <path-to-output.svg>
+node "<absolute skill directory>/scripts/render-diagrams.mjs" "<DIAGRAM_SPEC.md path>" [--force] [--slides=N,M,...]
 ```
 
-*(Note: Always use `--layout=elk` for robust layout routing. Adjust `--theme=` according to the user's Dark mode preference in `DISCOVERY.json` - use 200 for dark mode, 0 for light mode).*
+- No existing diagrams, or scope A → no flags (the command skips existing files).
+- Scope B → `--force`.
+- Scope C → `--slides=N,M,...`, plus `--force` to overwrite any that exist.
 
-**Batch (choice 1)**
+**Interactive** — only when the user asks. For each slide in scope, call:
 
-Execute the extraction and D2 compilation for all diagrams in scope without pausing.
+```bash
+node "<absolute skill directory>/scripts/render-diagrams.mjs" "<DIAGRAM_SPEC.md path>" --slide=N --force
+```
 
-**Interactive (choice 2)**
-
-Execute for one diagram at a time. After each, present:
+After each call, present:
 
 ```
 ✅ Saved: images/foo.svg  (Slide N — Title)
    Open to review, then choose:
 
      N  Next  — accept and continue to the next diagram
-     R  Redo  — regenerate (after you edit DIAGRAM_SPEC.md or the D2 file)
-     S  Stop  — exit and keep what has been generated so far
+     R  Redo  — render again (after you edit DIAGRAM_SPEC.md)
+     S  Stop  — exit and keep what has been rendered so far
 ```
 
-**R** re-runs the compilation. **S** exits the loop early.
+**R** repeats the same call. **S** ends the loop; the phase stays pending.
 
-### Step 4: Cleanup and report results
+The command is the whole render step: it parses entries, runs `d2 validate`,
+applies the locked Presentation Theme through Diagram Roles, checks each SVG's
+structure and 20 px Effective Text Size, and cleans up. Run D2 only through it.
 
-Remove the temporary `.d2` files.
-Present a summary output. On failure, suggest editing the D2 syntax in `DIAGRAM_SPEC.md` and retrying.
+### Step 3: Report and update state
 
-After all selected entries succeed, set `PROJECT.json`
-`phases.diagrams.status = "done"` and record its completion timestamp. On
-cancellation or any failed entry, do not mark the phase done. Preserve every other
-phase record.
+Relay the command's summary. Its messages name the slide, the problem, and the fix.
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| `0` | Every selected diagram rendered or already present | In Batch, or after the last Interactive **N**, set `PROJECT.json` `phases.diagrams.status = "done"` and its completion timestamp |
+| `1` | At least one entry failed; rendered diagrams were kept | Report each failure and its suggested fix in `DIAGRAM_SPEC.md`; leave the phase pending |
+| `2` | Usage or prerequisite error | Report the message and follow its instruction (for example, refresh the theme in `generate-slides`); leave the phase pending |
+| `130` | Interrupted | Leave the phase pending |
+
+The command never writes `PROJECT.json`; this Skill makes the only state change.
+Mark the phase done only on exit `0` for the full scope, and preserve every
+other phase record.

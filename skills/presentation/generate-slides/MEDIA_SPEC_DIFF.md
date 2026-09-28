@@ -19,7 +19,7 @@ For each Media Spec independently:
 
 For Pictures, compare Media Intent, Intended Media Orientation, Concept, Theme
 Treatment, Elements, Filename, and Prompt suggestion. For Diagrams, compare Message,
-Show, Takeaway, Theme Treatment, Palette and line guidance, Filename, and D2 Source.
+Show, Takeaway, Theme Treatment, Filename, and D2 Source.
 
 ## User-facing report
 
@@ -28,7 +28,7 @@ title, filename, and the changed generation material:
 
 - Pictures show the current prompt and, for Modified entries, the previous prompt.
 - Diagrams show the current Message and, for Modified entries, which brief,
-  treatment, palette, or D2 Source fields changed.
+  treatment, or D2 Source fields changed.
 
 Warn that removed filenames may still exist in the Project Folder and must not be
 deleted without user confirmation. Explain that Modified media should be regenerated

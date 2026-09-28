@@ -8,6 +8,41 @@
   },
   {
     "skill": "proofread-presentation",
+    "type": "positive",
+    "query": "check the finished deck for accessibility and export problems",
+    "precondition": "Generation is done and every media phase is done or skipped",
+    "expected": "skill loads, reviews local slide images for the inspection set, and reports each inspected slide by number and Slide Archetype"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "negative",
+    "query": "generate the slides and fix the layout on slide 3",
+    "precondition": "Generation is in progress and phases.generation.status is pending",
+    "expected": "skill does NOT load; generate-slides owns the in-progress Generation"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread the presentation",
+    "precondition": "Generation is done, IMAGE_SPEC.md exists, and the images media phase is pending",
+    "expected": "skill loads, names the pending media phase, and asks whether to render it first or proofread now with unrendered media reported as expected warnings"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread this presentation",
+    "precondition": "Generated outputs exist but no local Chrome, Edge, or Firefox is installed",
+    "expected": "skill blocks with Generation's missing-browser message and keeps Proofread pending"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread this presentation",
+    "precondition": "Generated outputs and required media exist",
+    "expected": "skill writes slide images to a temporary directory outside the Project Folder, deletes it afterwards, and the report states that the PDF was not visually reviewed"
+  },
+  {
+    "skill": "proofread-presentation",
     "type": "boundary",
     "query": "mark the presentation proofread",
     "precondition": "The validation profile has a blocking finding",

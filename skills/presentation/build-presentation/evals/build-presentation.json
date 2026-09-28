@@ -60,7 +60,14 @@
     "type": "boundary",
     "query": "is my presentation complete?",
     "precondition": "Presentation outputs exist, both media phases are done or skipped, and Proofread is pending",
-    "expected": "orchestrator offers proofread-presentation"
+    "expected": "orchestrator runs proofread-presentation as the fourth phase"
+  },
+  {
+    "skill": "build-presentation",
+    "type": "boundary",
+    "query": "skip proofreading, I'm done",
+    "precondition": "Presentation outputs exist, both media phases are done or skipped, and Proofread is pending",
+    "expected": "orchestrator marks Proofread skipped, explains that proofreading is recommended, and does not invoke proofread-presentation"
   },
   {
     "skill": "build-presentation",

@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 import AxeBuilder from '@axe-core/playwright';
 
+import { diagramMediaBoxIssues, measureDiagramSlot } from '../lib/diagram-media-box.mjs';
 import { themeIds } from '../lib/theme-catalog.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -372,6 +373,13 @@ try {
     });
 
     result.issues.push(...projectContractIssues);
+
+    const diagramSlot = await measureDiagramSlot(page);
+    if (!diagramSlot) {
+      result.issues.push('The capacity deck has no rendered diagram slot to measure.');
+    } else {
+      result.issues.push(...diagramMediaBoxIssues({ declared: manifest.archetypes.diagram.mediaBox, measured: diagramSlot }));
+    }
 
     if (result.slideCount !== 8) {
       result.issues.push(`Expected 8 HTML slides; found ${result.slideCount}.`);

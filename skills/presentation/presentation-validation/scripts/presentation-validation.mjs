@@ -15,7 +15,7 @@ export const REPORT_SCHEMA_VERSION = 1;
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIRECTORY = path.resolve(SCRIPT_DIRECTORY, '../../generate-slides/themes');
 const PROFILES = new Set(['generation', 'proofread']);
-const CHECKS = ['env', 'structure', 'media', 'theme', 'exports', 'sources'];
+const CHECKS = ['env', 'structure', 'media', 'media-spec', 'theme', 'exports', 'sources'];
 
 const exists = async (file) => {
   try {
@@ -302,6 +302,152 @@ async function checkMedia(inputs, report) {
   }
 }
 
+// --- Diagram checks -------------------------------------------------------
+// Generate Diagrams' render command applies the same role rule and Effective
+// Text Size; each owner keeps its own copy so installed Skills stay
+// self-contained.
+
+const DIAGRAM_NODE_ROLES = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
+const DIAGRAM_ROLES = [...DIAGRAM_NODE_ROLES, 'flow', 'optional-flow', 'risk-flow'];
+
+function diagramSpecEntries(text) {
+  const entries = [];
+  for (const section of text.split(/^## /m).slice(1)) {
+    const lines = section.split('\n');
+    const heading = lines[0].match(/^Slide (\d+)\s+[—–-]\s+(.+?)\s*$/);
+    if (!heading) continue;
+    const open = lines.findIndex((line) => /^\s*(`{3,}|~{3,})\s*d2\s*$/.test(line));
+    const fence = open === -1 ? null : lines[open].trim().match(/^(`{3,}|~{3,})/)[1];
+    // A closing fence repeats the opening character at least as many times.
+    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && new RegExp(`^${fence[0]}{${fence.length},}$`).test(line.trim()));
+    entries.push({
+      slide: Number(heading[1]),
+      filename: section.match(/\*\*Filename:\*\*\s*`([^`]+)`/)?.[1] ?? null,
+      source: close === -1 ? '' : lines.slice(open + 1, close).join('\n'),
+      unclosed: open !== -1 && close === -1,
+    });
+  }
+  return entries;
+}
+
+function diagramRoleProblems(source) {
+  const problems = [];
+  source.split('\n').forEach((line, index) => {
+    const where = `line ${index + 1}`;
+    for (const match of line.matchAll(/(?<![\w-])(fill|stroke|font-color)\s*:/g)) problems.push(`${where}: sets ${match[1]} directly (color literal)`);
+    for (const match of line.matchAll(/["']#[0-9a-fA-F]{3,8}["']|\b(?:rgba?|hsla?)\(/g)) problems.push(`${where}: color literal ${match[0]}`);
+    if (/(?<![\w-])font-size\s*:/.test(line)) problems.push(`${where}: font-size literal`);
+    if (/(?<![\w-])classes\s*:/.test(line)) problems.push(`${where}: defines its own classes`);
+    for (const match of line.matchAll(/(?<![\w-])class\s*:\s*(\[[^\]]*\]|"[^"]*"|'[^']*'|[^\s;{}]+)/g)) {
+      const names = match[1].replace(/^\[|\]$/g, '').split(/[;,]/).map((name) => name.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      for (const name of names.filter((item) => !DIAGRAM_ROLES.includes(item))) problems.push(`${where}: unknown role class "${name}"`);
+    }
+  });
+  return problems;
+}
+
+async function checkMediaSpec(inputs, report) {
+  if (!(await exists(inputs.diagramSpec))) return;
+  const entries = diagramSpecEntries(await readText(inputs.diagramSpec));
+  for (const entry of entries) {
+    const problems = entry.unclosed ? ['its D2 block has no closing fence, so its styling cannot be checked'] : diagramRoleProblems(entry.source);
+    if (!problems.length) continue;
+    report.finding('media.diagram-roles', 'blocking', `Slide ${entry.slide} diagram styles D2 outside the Diagram Roles.`, {
+      path: rel(report.projectDirectory, inputs.diagramSpec),
+      slide: entry.slide,
+      evidence: problems.join('; '),
+      remediation: `Replace colors, font sizes, and custom classes with class: <role> (${DIAGRAM_ROLES.join(', ')}).`,
+    });
+  }
+  if (entries.length) report.finding('media.diagram-roles', 'info', `Checked Diagram Role usage in ${entries.length} DIAGRAM_SPEC.md entries.`);
+}
+
+// Effective Text Size: the smallest <text> font-size times the contain scale
+// into the diagram media box must reach 20 px.
+const MINIMUM_EFFECTIVE_TEXT_SIZE = 20;
+
+function effectiveTextSize(svg, box) {
+  const viewBox = svgRootTag(svg)?.match(/\sviewBox=["']([^"']+)["']/i)?.[1].trim().split(/[\s,]+/).map(Number);
+  const [width, height] = viewBox?.slice(2) ?? [];
+  if (!(width > 0 && height > 0)) return null;
+  const tags = [...svg.matchAll(/<text\b[^>]*>/gi)].map(([tag]) => tag);
+  if (!tags.length) return null;
+  // Only px (or unitless) sizes are measurable; any other <text> fails closed.
+  const sizes = tags.map((tag) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)(?:px)?(?![\w%.])/i)?.[1]));
+  const unmeasured = sizes.filter((size) => !(size > 0)).length;
+  const measured = sizes.filter((size) => size > 0);
+  const smallest = measured.length ? Math.min(...measured) : 0;
+  const scale = Math.min(box.width / width, box.height / height);
+  const effective = smallest * scale;
+  return { smallest, scale, effective, unmeasured, svgAspect: width / height, boxAspect: box.width / box.height, pass: !unmeasured && effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
+}
+
+// The locked Theme Manifest, or the reason it cannot be read.
+async function lockedThemeManifest(inputs) {
+  let lock;
+  try {
+    lock = await readJson(path.join(inputs.themes, 'theme-lock.json'));
+  } catch {
+    return { problem: 'the project has no readable theme-lock.json' };
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(lock.id ?? '')) return { problem: 'theme-lock.json names an invalid theme identifier' };
+  try {
+    return { manifest: await readJson(path.join(inputs.themes, lock.id, 'theme.json')) };
+  } catch {
+    return { problem: `the locked Theme Manifest for "${lock.id}" is missing or unreadable` };
+  }
+}
+
+async function checkDiagramLegibility(inputs, report) {
+  if (!(await exists(inputs.diagramSpec))) return;
+  const diagrams = [];
+  const boundary = `${path.resolve(inputs.projectDirectory)}${path.sep}`;
+  for (const entry of diagramSpecEntries(await readText(inputs.diagramSpec))) {
+    if (!entry.filename || !/\.svg$/i.test(entry.filename)) continue;
+    const file = path.resolve(inputs.projectDirectory, entry.filename);
+    if (file.startsWith(boundary) && (await exists(file))) diagrams.push({ ...entry, file });
+  }
+  if (!diagrams.length) return;
+  const { manifest, problem } = await lockedThemeManifest(inputs);
+  const box = manifest?.archetypes?.diagram?.mediaBox;
+  if (!(box?.width > 0 && box?.height > 0)) {
+    report.finding('media.svg-legibility', 'blocking', `Diagram legibility cannot be checked: ${problem ?? 'the locked Theme Manifest has no diagram media box'}.`, {
+      path: rel(report.projectDirectory, inputs.themes),
+      remediation: 'Refresh the theme in generate-slides, then re-render the diagrams.',
+    });
+    return;
+  }
+  const roleSizes = Object.values(manifest.diagramRoles ?? {}).map((role) => role.fontSize).filter((size) => size > 0);
+  for (const diagram of diagrams) {
+    const result = effectiveTextSize(await readText(diagram.file), box);
+    if (!result) continue;
+    const details = { path: rel(report.projectDirectory, diagram.file), slide: diagram.slide, value: Number(result.effective.toFixed(2)) };
+    if (result.pass) {
+      report.finding('media.svg-legibility', 'info', `Slide ${diagram.slide} diagram text reaches ${result.effective.toFixed(1)} px Effective Text Size.`, details);
+      continue;
+    }
+    if (result.unmeasured) {
+      report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size cannot be measured; ${result.unmeasured} <text> element(s) have no px font-size.`, {
+        ...details,
+        remediation: 'Re-render the diagram from DIAGRAM_SPEC.md with generate-diagrams so D2 sets every size.',
+      });
+      continue;
+    }
+    const wider = result.svgAspect > result.boxAspect;
+    const fixes = wider
+      ? ['shorten labels', 'use `direction: down`', 'split it into two diagrams']
+      : ['use `direction: right`', 'reduce the number of rows', 'split it into two diagrams'];
+    if (roleSizes.length && result.smallest < Math.min(...roleSizes)) fixes.unshift('give every shape and connection a role class');
+    fixes.push('or ask for a larger role font size in the Theme Package');
+    const evidence = `smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram media box (SVG ${result.svgAspect.toFixed(2)}:1, box ${result.boxAspect.toFixed(2)}:1)`;
+    report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: ${evidence}.`, {
+      ...details,
+      evidence,
+      remediation: `The diagram is ${wider ? 'wider' : 'taller'} than the media box: ${fixes.join(', ')}; then re-render it with generate-diagrams.`,
+    });
+  }
+}
+
 async function checkTheme(inputs, report) {
   const lockPath = path.join(inputs.themes, 'theme-lock.json');
   if (!(await exists(lockPath))) {
@@ -377,6 +523,183 @@ function countPdfPages(searchableText) {
   return (searchableText.match(/\/Type\s*\/Page\b/g) ?? []).length;
 }
 
+// Export parity findings block in the proofread profile and warn in generation.
+const paritySeverity = (report) => (report.profile === 'proofread' ? 'blocking' : 'warning');
+
+// Returns the span of the innermost `<< … >>` dictionary enclosing `index`.
+function enclosingDictionary(text, index) {
+  let start = -1;
+  for (let depth = 0, i = index - 1; i > 0; i -= 1) {
+    const pair = text.slice(i - 1, i + 1);
+    if (pair === '>>') { depth += 1; i -= 1; } else if (pair === '<<') {
+      if (depth === 0) { start = i - 1; break; }
+      depth -= 1; i -= 1;
+    }
+  }
+  if (start === -1) return '';
+  for (let depth = 0, i = index; i < text.length - 1; i += 1) {
+    const pair = text.slice(i, i + 2);
+    if (pair === '<<') { depth += 1; i += 1; } else if (pair === '>>') {
+      if (depth === 0) return text.slice(start, i + 2);
+      depth -= 1; i += 1;
+    }
+  }
+  return '';
+}
+
+const MEDIA_BOX = /\/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]/;
+
+// Page objects in the order they appear in the file (raw objects, then decompressed
+// object streams), which is page order for Marp's Chromium export. A page without
+// its own MediaBox inherits the page tree's.
+function pdfPageSizes(searchableText) {
+  const pageTree = [...searchableText.matchAll(/\/Type\s*\/Pages\b/g)]
+    .map((match) => enclosingDictionary(searchableText, match.index).match(MEDIA_BOX))
+    .find(Boolean);
+  return [...searchableText.matchAll(/\/Type\s*\/Page\b/g)].map((match) => {
+    const box = enclosingDictionary(searchableText, match.index).match(MEDIA_BOX) ?? pageTree;
+    return box ? { width: Math.abs(box[3] - box[1]), height: Math.abs(box[4] - box[2]) } : null;
+  });
+}
+
+function checkPageDimensions(pdfText, report) {
+  const pages = pdfPageSizes(pdfText);
+  if (!pages.some(Boolean)) {
+    report.finding('exports.dimensions', 'warning', 'PDF dimensions could not be read from the export.');
+    return;
+  }
+  pages.forEach((size, index) => {
+    const page = index + 1;
+    if (!size) {
+      report.finding('exports.dimensions', 'warning', `PDF page ${page} dimensions could not be read.`, { page });
+    } else if (Math.abs(size.width / size.height - 16 / 9) > 0.03) {
+      report.finding('exports.dimensions', paritySeverity(report), `PDF page ${page} is not 16:9.`, {
+        page,
+        evidence: `page ${page}: ${size.width} × ${size.height}`,
+        remediation: 'Re-export the PDF from the presentation Markdown with size: 16:9.',
+      });
+    }
+  });
+}
+
+const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+function decodeEntities(text) {
+  return text
+    .replace(/&#x([\da-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(Number(decimal)))
+    .replace(/&([a-z]+);/gi, (entity, name) => NAMED_ENTITIES[name.toLowerCase()] ?? ' ');
+}
+
+// Visible words of a slide, compared as a sequence. Punctuation, markup, and
+// attributes (alt text, URLs) are ignored, so typographic quotes and dashes
+// that Marp renders differently from the source never count as differences.
+function visibleWords(markup) {
+  const text = decodeEntities(stripNonMarkupBlocks(markup).replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' '));
+  return text.normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+function markdownSlideWords(slide) {
+  return visibleWords(slide
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    // Fence lines and their info strings are not rendered as text; code spans
+    // render their content as text, including anything tag-like.
+    .replace(/^[ \t]{0,3}(?:`{3,}|~{3,}).*$/gm, ' ')
+    .replace(/(`+)([\s\S]*?)\1/g, (_, fence, code) => code.replaceAll('<', '&lt;').replaceAll('>', '&gt;'))
+    .replace(/<((?:https?|mailto):[^>\s]+)>/gi, ' $1 ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/gm, ' ')
+    .replace(/(^|\s):[a-z_+-][\w+-]*:(?=\s|$)/gim, '$1'));
+}
+
+// Marp adds header and footer directive text to every rendered slide.
+function renderedSlideWords(content) {
+  return visibleWords(content.replace(/<(header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' '));
+}
+
+// Splits presentation Markdown into slides the way Marp does: on `---` lines
+// outside fenced code blocks, keeping empty slides.
+function markdownSlides(markdown) {
+  const slides = [[]];
+  let fence = null;
+  for (const line of frontMatter(markdown).body.split('\n')) {
+    const marker = line.match(/^\s{0,3}(`{3,}|~{3,})/)?.[1];
+    if (marker && (!fence || (marker[0] === fence[0] && marker.length >= fence.length))) fence = fence ? null : marker;
+    if (!fence && /^---\s*$/.test(line)) slides.push([]);
+    else slides.at(-1).push(line);
+  }
+  return slides.map((lines) => lines.join('\n'));
+}
+
+function slideMedia(markup) {
+  return mediaReferences(markup.replace(/<!--[\s\S]*?-->/g, ' ')).map((reference) => reference.replace(/^\.\//, '')).sort();
+}
+
+function htmlSlideSections(html) {
+  return [...stripNonMarkupBlocks(html).matchAll(/<section\b([^>]*)>([\s\S]*?)<\/section>/gi)]
+    .map((match) => ({ attributes: match[1], content: match[2] }));
+}
+
+function firstDifference(expected, actual) {
+  let index = 0;
+  while (index < expected.length && expected[index] === actual[index]) index += 1;
+  const excerpt = (words) => `“${words.slice(Math.max(0, index - 3), index + 4).join(' ') || '(nothing)'}”`;
+  return `Markdown ${excerpt(expected)}; HTML ${excerpt(actual)}`;
+}
+
+function checkSlideParity(markdown, html, report) {
+  if (!markdown.trim()) return;
+  const sourceSlides = markdownSlides(markdown);
+  const renderedSlides = htmlSlideSections(html);
+  if (sourceSlides.length !== renderedSlides.length) {
+    report.finding('exports.text-parity', paritySeverity(report), 'Presentation Markdown and HTML slide counts do not match.', {
+      evidence: `Markdown ${sourceSlides.length}; HTML ${renderedSlides.length}`,
+      remediation: 'Re-export the HTML from the current presentation Markdown.',
+    });
+    return;
+  }
+  sourceSlides.forEach((slide, index) => {
+    const expected = markdownSlideWords(slide);
+    const actual = renderedSlideWords(renderedSlides[index].content);
+    if (expected.join(' ') !== actual.join(' ')) {
+      report.finding('exports.text-parity', paritySeverity(report), `Slide ${index + 1} text differs between Markdown and HTML.`, {
+        slide: index + 1,
+        evidence: firstDifference(expected, actual),
+        remediation: 'Re-export the HTML and PDF from the current presentation Markdown.',
+      });
+    }
+    const expectedMedia = slideMedia(slide);
+    const actualMedia = slideMedia(renderedSlides[index].content);
+    if (expectedMedia.join('\n') !== actualMedia.join('\n')) {
+      report.finding('exports.media-parity', paritySeverity(report), `Slide ${index + 1} media differs between Markdown and HTML.`, {
+        slide: index + 1,
+        evidence: `Markdown: ${expectedMedia.join(', ') || 'none'}; HTML: ${actualMedia.join(', ') || 'none'}`,
+        remediation: 'Re-export the HTML and PDF from the current presentation Markdown.',
+      });
+    }
+  });
+}
+
+function checkPagination(markdown, html, report) {
+  if (!markdown) return;
+  if (frontMatter(markdown).values.paginate !== 'true') {
+    report.finding('exports.pagination', paritySeverity(report), 'Presentation front matter does not set paginate: true.', {
+      evidence: `paginate: ${frontMatter(markdown).values.paginate ?? 'missing'}`,
+      remediation: 'Set paginate: true in the presentation front matter and re-export.',
+    });
+    return;
+  }
+  htmlSlideSections(html).forEach(({ attributes }, index) => {
+    if (!/\sdata-marpit-pagination=["']\d+["']/i.test(attributes)) {
+      report.finding('exports.pagination', paritySeverity(report), `Slide ${index + 1} has no page number in the HTML.`, {
+        slide: index + 1,
+        remediation: 'Remove any slide-level paginate override and re-export.',
+      });
+    }
+  });
+}
+
 async function checkExports(inputs, report) {
   const required = report.profile === 'proofread' || report.profile === 'generation';
   const htmlExists = await exists(inputs.html);
@@ -396,15 +719,7 @@ async function checkExports(inputs, report) {
   } else {
     report.finding('exports.parity', 'info', `HTML and PDF both contain ${htmlSlides} slides.`, { value: htmlSlides });
   }
-  const mediaBox = pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
-  if (mediaBox) {
-    const ratio = Number(mediaBox[1]) / Number(mediaBox[2]);
-    if (Math.abs(ratio - 16 / 9) > 0.03) {
-      report.finding('exports.dimensions', report.profile === 'proofread' ? 'blocking' : 'warning', 'PDF dimensions are not 16:9.', { evidence: `${mediaBox[1]} × ${mediaBox[2]}` });
-    }
-  } else {
-    report.finding('exports.dimensions', 'warning', 'PDF dimensions could not be read from the export.');
-  }
+  checkPageDimensions(pdfText, report);
   const markdownMedia = new Set(mediaReferences(await readTextIfPresent(inputs.presentation)).map((file) => path.basename(file)));
   const htmlMedia = new Set(mediaReferences(html).map((file) => path.basename(file)));
   if (markdownMedia.size !== htmlMedia.size || [...markdownMedia].some((file) => !htmlMedia.has(file))) {
@@ -412,6 +727,9 @@ async function checkExports(inputs, report) {
       evidence: `Markdown: ${[...markdownMedia].join(', ') || 'none'}; HTML: ${[...htmlMedia].join(', ') || 'none'}`,
     });
   }
+  const markdown = await readTextIfPresent(inputs.presentation);
+  checkSlideParity(markdown, html, report);
+  checkPagination(markdown, html, report);
 }
 
 async function checkSources(inputs, report) {
@@ -457,7 +775,11 @@ async function validate({ projectDirectory, profile, checks }) {
     return report;
   }
   if (checks.includes('structure')) await checkStructure(inputs, report);
-  if (checks.includes('media')) await checkMedia(inputs, report);
+  if (checks.includes('media')) {
+    await checkMedia(inputs, report);
+    await checkDiagramLegibility(inputs, report);
+  }
+  if (checks.includes('media-spec')) await checkMediaSpec(inputs, report);
   if (checks.includes('theme')) await checkTheme(inputs, report);
   if (checks.includes('exports')) await checkExports(inputs, report);
   if (checks.includes('sources')) await checkSources(inputs, report);

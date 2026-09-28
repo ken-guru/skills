@@ -1,7 +1,6 @@
 ---
 name: proofread-presentation
-disable-model-invocation: true
-description: "Run quality validation and proofreading passes..."
+description: "Proofreader. Load when a generated presentation needs content, accessibility, rendering, or export-parity review, or the user asks to proofread it."
 ---
 
 # Proofread Presentation
@@ -21,6 +20,11 @@ edit presentation copy, as a required full editorial pass using
 ## Startup
 
 Require `DISCOVERY.json`, `PROJECT.json`, `PRESENTASJON.md`, Node.js, and Marp CLI. Read the project-local `themes/theme-lock.json`, its selected Theme Manifest, declared CSS, and assets. Recompute the lock's SHA-256 fingerprints and validate the manifest contract described below before changing anything. A missing, modified, or incompatible Theme Package is fatal. Do not depend on another phase skill being installed.
+
+Proofread reviews a finished deck. Check readiness from `PROJECT.json` before any other work:
+
+- `phases.generation.status` is not `"done"`: stop without changes and tell the user that slides are still being generated; `generate-slides` finishes first.
+- `IMAGE_SPEC.md` or `DIAGRAM_SPEC.md` exists and its media phase (`images` or `diagrams`) is neither `"done"` nor `"skipped"`: name the pending media phase and ask whether to render it first (`generate-images` or `generate-diagrams`) or proofread now. When proofreading now, report its unrendered media as expected pending media in the warnings, never as blocking failures.
 
 Read the locked Theme Manifest and validate against its interface rather than hard-coding Editorial, Signal, or Field Notes behavior.
 
@@ -66,6 +70,21 @@ Never convert media to `img-right`, add `class: invert`, insert inline theme CSS
 
 Any failure above blocks completion and is reported with slide numbers and the relevant archetype/slot.
 
+## Slide image review
+
+The HTML is the Accessible Reference Output, so the visual checks above are judged on images of its slides. Marp renders them with the same local browser its PDF export already needed; nothing is downloaded and nothing new is installed.
+
+1. Create a temporary directory outside the Project Folder with `mktemp -d`.
+2. From the Project Folder, run `marp <presentation> --images png --allow-local-files -o <temp>/slide.png`, where `<presentation>` is `paths.presentation` from `DISCOVERY.json` (default `PRESENTASJON.md`). Marp writes `slide.001.png`, `slide.002.png`, and so on, one per slide, using the project's `.marprc.yml` theme.
+3. If Marp reports that it cannot find a browser, stop and block with: `❌ Marp found no local browser. Install Chrome, Edge, or Firefox, then rerun.`
+4. Build the inspection set, then open and inspect every image in it:
+   - the first slide of each Slide Archetype present;
+   - every slide with a Picture or Diagram;
+   - every slide named in a `presentation-validation` warning.
+5. Delete the temporary directory, whether the review passed or failed.
+
+The review is done when every slide in the inspection set has been viewed and the temporary directory is gone.
+
 ## Non-blocking content warnings
 
 Report with slide numbers:
@@ -88,12 +107,19 @@ Report with slide numbers:
 
 ## Export parity
 
-When HTML and PDF exist, confirm equal slide counts, 16:9 dimensions, text, media, and pagination. Compare PDF visually with the HTML Accessible Reference Output for layout shift, clipping, missing decoration, materially different color, and illegible media. A mismatch is blocking.
+The `proofread` profile of `presentation-validation` checks the PDF against the HTML and Markdown deterministically: every PDF page is 16:9, the page count equals the HTML slide count, each slide's text and media match between Markdown and HTML, and `paginate: true` gives every HTML slide a page number. Any blocking `exports.*` finding blocks completion; report it with its slide or page number.
+
+The PDF is not visually reviewed. Both exports come from the same Markdown through Marp and the same browser, and the slide image review covers the HTML.
 
 ## Completion
 
-Report fixed issues, blocking failures, warnings, and reference results. Mark `phases.proofread.status = "done"` with a timestamp only when no blocking issue remains. Otherwise keep it pending.
+Report fixed issues, blocking failures, warnings, and reference results. The report also carries:
+
+- **Inspected slides:** each slide number and its Slide Archetype, e.g. `Slide 4 — text-plus-image`.
+- **PDF:** the statement that the PDF was not visually reviewed and that its parity with the HTML was checked by `presentation-validation`.
+
+Mark `phases.proofread.status = "done"` with a timestamp only when no blocking issue remains. Otherwise keep it pending.
 Require `PROJECT.json` to have `projectType: "presentation"` and preserve every
 unrelated phase record when updating Proofread.
 
-The validation dispatcher must return zero before Proofread may be marked complete. A zero validator result is necessary but does not replace this Skill's mechanical-fix, user-review, and state-preservation requirements.
+The validation dispatcher must return zero before Proofread may be marked complete. A zero validator result is necessary but does not replace this Skill's mechanical-fix, slide-image review, user-review, and state-preservation requirements.

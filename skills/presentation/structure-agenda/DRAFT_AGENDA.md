@@ -17,23 +17,42 @@ When assigning filenames for pictures or diagrams, choose descriptive, stable na
 
 ### Diagram briefing
 
-Handle Diagram slides one at a time: immediately after proposing a slide with a Diagram visual, ask:
+Present the draft agenda to the user before writing any files. When it has Diagram slides, end the same message with one Diagram brief form covering every Diagram slide, so the presenter can fill in all briefs in one reply:
 
-> To make this diagram useful, what is its **Message**, what should it **Show**, and what **Takeaway** should the audience leave with?
+```
+To make each diagram useful, fill in its Message, Show, and Takeaway.
+Reply "draft" for a brief to have me propose it, or switch a slide to Picture or None.
 
-Wait for the user's reply before continuing to the next slide. When the user provides all three non-empty answers, add this block directly below that slide's visual entry in the in-memory agenda draft:
+Slide 4 — <title> (`images/example.svg`)
+- Message:
+- Show:
+- Takeaway:
 
-```markdown
-[Visual: Diagram — `images/example.svg`]
-- **Diagram brief**
-  - **Message:** …
-  - **Show:** …
-  - **Takeaway:** …
+Slide 9 — <title> (`images/other.svg`)
+- Message:
+- Show:
+- Takeaway:
 ```
 
-If an answer omits a field, identify the missing field and ask the user to complete it. If the user cannot provide a useful brief, offer to change that slide's visual to Picture or None, then apply the chosen visual to the in-memory draft. A complete brief or replacement visual needs no separate per-slide approval; the final agenda approval remains the commitment point.
+Leave every field blank: the diagram's intent is the presenter's. The form is plain text in one message; a harness's structured question tool may carry it when it fits.
 
-Present the draft agenda to the user before writing any files.
+Validate the whole reply together:
+
+- **Complete brief** (three non-empty fields): add this block directly below that slide's visual entry in the in-memory agenda draft.
+
+  ```markdown
+  [Visual: Diagram — `images/example.svg`]
+  - **Diagram brief**
+    - **Message:** …
+    - **Show:** …
+    - **Takeaway:** …
+  ```
+
+- **"draft"**: propose that slide's brief from the agenda context and show it for the presenter to edit or accept.
+- **Picture or None**: apply that visual to the slide in the in-memory draft; a Picture also gets its Intended Media Orientation.
+- **Missing fields**: re-ask only the missing fields, listing every incomplete slide with its missing fields together in one message. Leave complete briefs as they are.
+
+A complete brief or replacement visual needs no separate per-slide approval; the final agenda approval remains the commitment point.
 
 ### Step 3: Iterate
 

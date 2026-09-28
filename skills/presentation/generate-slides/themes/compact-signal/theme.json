@@ -3,7 +3,7 @@
   "id": "compact-signal",
   "name": "Compact Signal",
   "description": "Compact, clear, and high-contrast for information-dense stories with supportive or full-bleed imagery.",
-  "packageVersion": "1.0.0",
+  "packageVersion": "1.1.0",
   "markupVersion": 1,
   "marpTheme": "compact-signal",
   "css": "theme.css",
@@ -28,6 +28,16 @@
   "media": {
     "pictureTreatment": "Crisp documentary or editorial imagery with clear focal subjects, restrained saturation, clean edges, and either a supportive side panel or full-bleed composition.",
     "diagramTreatment": "Precise dark-blue linework with blue, teal, yellow, and red semantic accents on a clean light field; labels remain exact, legible, and uncropped."
+  },
+  "diagramRoles": {
+    "base": {"fill": "light", "stroke": "foreground", "fontColor": "foreground", "strokeDash": 0, "fontSize": 28},
+    "emphasis": {"fill": "accent", "stroke": "foreground", "fontColor": "light", "strokeDash": 0, "fontSize": 28},
+    "muted": {"fill": "background", "stroke": "muted", "fontColor": "muted", "strokeDash": 0, "fontSize": 28},
+    "risk": {"fill": "red", "stroke": "red", "fontColor": "light", "strokeDash": 0, "fontSize": 28},
+    "boundary": {"fill": "background", "stroke": "accent", "fontColor": "foreground", "strokeDash": 4, "fontSize": 28},
+    "flow": {"stroke": "foreground", "fontColor": "foreground", "strokeDash": 0, "fontSize": 24},
+    "optional-flow": {"stroke": "muted", "fontColor": "muted", "strokeDash": 5, "fontSize": 24},
+    "risk-flow": {"stroke": "red", "fontColor": "red", "strokeDash": 0, "fontSize": 24}
   },
   "archetypes": {
     "title": {
@@ -74,6 +84,7 @@
       "tone": "tone-light",
       "slots": ["heading", "media", "caption"],
       "capacity": {"headingLines": 2, "diagrams": 1, "captionLines": 2},
+      "mediaBox": {"width": 1152, "height": 347},
       "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
     },
     "quotation": {
