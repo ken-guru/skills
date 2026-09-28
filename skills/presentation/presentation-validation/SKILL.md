@@ -12,6 +12,9 @@ presentation-validation check all --project-dir <project> --profile generation
 presentation-validation check all --project-dir <project> --profile proofread
 ```
 
+To check only the Media Spec role rule (`media.diagram-roles`) before Media
+Specs are approved, run `check media-spec` with the `generation` profile.
+
 The dispatcher never installs tools, acquires credentials, changes project files, or updates `PROJECT.json`. The phase-owning Skill remains responsible for state changes after validation succeeds.
 
 ## Output voice

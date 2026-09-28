@@ -104,6 +104,8 @@ Tactile, natural, and shaped like a documented working session. Choose it for wo
 
 A Presentation Theme controls how media is placed, cropped, framed, graded, and visually integrated. The approved Media Spec controls what an image or diagram communicates and, for generated imagery, the artistic prompt. A theme preserves that Media Intent; it does not replace the subject, labels, relationships, or underlying artwork.
 
+Diagrams take their colors and text sizes from the theme through Diagram Roles: the Media Spec names a role such as `emphasis` or `risk-flow`, and the locked Theme Manifest supplies its styling when the diagram renders. Changing theme restyles existing diagrams on the next render without editing their D2.
+
 The gallery portrait is a committed comparison fixture, not a theme-owned asset and not an image that generated presentations automatically receive.
 
 ## Select or change a theme

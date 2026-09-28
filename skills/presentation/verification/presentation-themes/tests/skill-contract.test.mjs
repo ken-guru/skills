@@ -45,6 +45,39 @@ test('Orchestrator pointers and Media Renderer triggers are branch-specific', as
   }
 });
 
+test('Protocol, glossary, and Generate Diagrams agree on Batch by default', async () => {
+  const mediaProtocol = await read('skills/presentation/MEDIA_RENDERING.md');
+  const context = await read('skills/presentation/CONTEXT.md');
+  const diagrams = await read('skills/presentation/generate-diagrams/SKILL.md');
+  const diagramEvals = JSON.parse(await read('skills/presentation/generate-diagrams/evals/generate-diagrams.json'));
+
+  assert.match(mediaProtocol, /Batch Generation Mode by default; use Interactive only when the user asks/);
+  assert.match(context, /\*\*Generation Mode\*\*[^\n]*Batch by default; Interactive on request\./);
+  assert.match(diagrams, /Batch by default \(Interactive on request\)/);
+  assert.doesNotMatch(diagrams, /Select generation mode|One at a time\s+—/i);
+  assert.match(diagrams, /Next[\s\S]*Redo[\s\S]*Stop/);
+  assert.match(diagrams, /A {2}Generate missing only/);
+  assert.match(diagrams, /scripts\/render-diagrams\.mjs/);
+  assert.doesNotMatch(diagrams, /DISCOVERY\.json[^\n]*dark mode|Dark mode preference/i);
+  assert.ok(diagramEvals.some((item) => /asking the user nothing/.test(item.expected)));
+  assert.ok(diagramEvals.some((item) => /Media Scope prompt/.test(item.expected)));
+});
+
+test('Diagram Specs style through Diagram Roles, checked before Media Spec approval', async () => {
+  const slides = await read('skills/presentation/generate-slides/SKILL.md');
+  const context = await read('skills/presentation/CONTEXT.md');
+
+  const roleCheck = slides.indexOf('check media-spec');
+  assert.ok(roleCheck !== -1, 'Generate Slides runs the Media Spec role check');
+  assert.ok(roleCheck < slides.indexOf('ask the user to review or approve'), 'the role check precedes approval');
+  assert.doesNotMatch(slides, /Palette and line guidance/);
+  assert.match(context, /\*\*Effective Text Size\*\*[^\n]*20 px/);
+  for (const role of ['base', 'emphasis', 'muted', 'risk', 'boundary', 'flow', 'optional-flow', 'risk-flow']) {
+    assert.match(slides, new RegExp(`\`${role}\``));
+    assert.match(context, new RegExp(`\\*\\*Diagram Role\\*\\*[^\\n]*\`${role}\``));
+  }
+});
+
 test('Media Renderer evals cover trigger ambiguity and incomplete outcomes', async () => {
   const imageEvals = JSON.parse(await read('skills/presentation/generate-images/evals/generate-images.json'));
   const diagramEvals = JSON.parse(await read('skills/presentation/generate-diagrams/evals/generate-diagrams.json'));

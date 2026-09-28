@@ -9,7 +9,7 @@ installed Skills remain operationally self-contained.
 1. Resolve the Project Folder and the approved Media Spec.
 2. Determine Media Scope from existing assets: all entries when none exist;
    missing-only, regenerate-all, selected entries, or cancel when assets exist.
-3. Let the user choose batch or interactive Generation Mode.
+3. Use Batch Generation Mode by default; use Interactive only when the user asks.
 4. In interactive mode, offer Next, Redo, and Stop after each selected entry.
 5. Report every success and failure with its slide and output asset.
 6. Mark only the owned media phase `done` after every selected entry succeeds.

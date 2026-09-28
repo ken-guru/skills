@@ -113,7 +113,7 @@ for a run: an explicit override when given, otherwise auto-detected from which
 provider's API key is set in the environment.
 _Avoid_: provider config, provider mode
 
-**Generation Mode** — How media (images or diagrams) is produced within a run. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
+**Generation Mode** — How media (images or diagrams) is produced within a run. Batch by default; Interactive on request. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
 _Avoid_: run mode, output mode, step-by-step mode
 
 **Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
@@ -138,6 +138,12 @@ _Avoid_: theme files, CSS theme, theme assets
 
 **Theme Manifest** — The declarative interface of a Theme Package, defining its identity, compatibility, composition rules, Content Capacity, typography, media treatment, and required semantic slide classes. Generation and validation consume the manifest rather than inferring behavior from CSS.
 _Avoid_: theme config, style metadata
+
+**Diagram Role** — A semantic styling class a diagram shape or connection declares in Media Spec D2 (`class: <role>`). The fixed set is `base`, `emphasis`, `muted`, `risk`, and `boundary` for nodes and `flow`, `optional-flow`, and `risk-flow` for connections. Every Theme Manifest maps each role to palette keys and a default font size; the Diagram Media Renderer turns them into D2 styling at render time, so Media Specs never carry colors or font sizes.
+_Avoid_: diagram style, D2 class, diagram palette
+
+**Effective Text Size** — The size diagram text actually reaches on the slide: the smallest `<text>` font size in the rendered SVG multiplied by the contain scale `min(boxWidth / viewBoxWidth, boxHeight / viewBoxHeight)` into the diagram archetype's declared media box on the 1280×720 reference. Every diagram must reach 20 px; the Diagram Media Renderer and Generation and Proofread validation enforce it independently.
+_Avoid_: diagram font size, label size, rendered size
 
 **Theme Catalog** — The installed registry of bundled Presentation Themes, defining their stable order, default, package locations, and supported Semantic Slide Markup version. Theme-specific behavior remains in each Theme Manifest.
 _Avoid_: theme list, theme registry
