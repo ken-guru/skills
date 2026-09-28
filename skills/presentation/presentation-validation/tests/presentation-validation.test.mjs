@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -71,11 +71,10 @@ test('exports.parity counts PDF pages stored in a compressed object stream, not 
   const project = await fixture();
   await writeFile(path.join(project, 'PRESENTASJON.html'), `<!doctype html><html><body>${'<section>Slide</section>'.repeat(3)}</body></html>`);
   await writeFile(path.join(project, 'PRESENTASJON.pdf'), compressedPagesPdfFixture(3));
-  const { stdout } = await run(process.execPath, [cli, 'check', 'exports', '--project-dir', project, '--format', 'json']);
-  const report = JSON.parse(stdout);
+  const report = await jsonReport('check', 'exports', '--project-dir', project);
   const parity = report.findings.find((finding) => finding.check === 'exports.parity');
   assert.equal(parity.severity, 'info');
-  assert.equal(report.summary.blocking, 0);
+  assert.deepEqual(report.findings.filter((finding) => ['exports.parity', 'exports.dimensions'].includes(finding.check) && finding.severity === 'blocking'), []);
 });
 
 test('exports.parity still blocks on a genuine HTML/PDF slide-count mismatch', async () => {
@@ -101,10 +100,8 @@ test('exports.media-parity ignores src=/href= that appear inside script or style
   ].join('');
   await writeFile(path.join(project, 'PRESENTASJON.html'), html);
   await writeFile(path.join(project, 'PRESENTASJON.pdf'), compressedPagesPdfFixture(1));
-  const { stdout } = await run(process.execPath, [cli, 'check', 'exports', '--project-dir', project, '--format', 'json']);
-  const report = JSON.parse(stdout);
+  const report = await jsonReport('check', 'exports', '--project-dir', project);
   assert.equal(report.findings.find((finding) => finding.check === 'exports.media-parity'), undefined);
-  assert.equal(report.summary.blocking, 0);
 });
 
 test('exports.dimensions reads MediaBox from a compressed object stream and flags a genuine non-16:9 mismatch', async () => {
@@ -220,4 +217,139 @@ test('returns configuration status for a missing Project Folder contract', async
     run(process.execPath, [cli, 'check', 'structure', '--project-dir', project, '--format', 'json']),
     (error) => error.code === 2 && JSON.parse(error.stdout).summary.blocking >= 1,
   );
+});
+
+// Export parity against a committed, unmodified Marp export: the Editorial
+// capacity deck plus one presenter note, exported with marp-cli 4.4 and the
+// project's `.marprc.yml` to HTML and to PDF. The root-level test step has no
+// Marp, so the output is committed rather than built here.
+const marpExport = path.resolve('skills/presentation/presentation-validation/tests/fixtures/marp-export');
+
+async function marpExportProject(edit = {}) {
+  const project = await mkdtemp(path.join(os.tmpdir(), 'presentation-validation-marp-'));
+  await cp(marpExport, project, { recursive: true });
+  await writeFile(path.join(project, 'DISCOVERY.json'), JSON.stringify({ language: 'en', theme: { id: 'editorial' }, paths: {} }));
+  await writeFile(path.join(project, 'PROJECT.json'), JSON.stringify({ projectType: 'presentation' }));
+  for (const [file, change] of Object.entries(edit)) {
+    const target = path.join(project, file);
+    await writeFile(target, change(await readFile(target, 'utf8')));
+  }
+  return project;
+}
+
+// Rewrites the HTML of one Marp slide (1-based), leaving every other slide intact.
+const editHtmlSlide = (slide, change) => (html) => html.replace(
+  new RegExp(`<section id="${slide}"[\\s\\S]*?</section>`),
+  (section) => change(section),
+);
+
+const findingsFor = (report, check) => report.findings.filter((finding) => finding.check === check);
+
+// One Flate-compressed object stream holding a page object per MediaBox, in page order.
+function compressedPdfWithPages(mediaBoxes) {
+  const pageObjects = mediaBoxes
+    .map((box) => `<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [${box}] >>`)
+    .join('\n');
+  const compressed = deflateSync(Buffer.from(pageObjects, 'latin1'));
+  return Buffer.concat([
+    Buffer.from(`%PDF-1.7\n1 0 obj\n<< /Type /ObjStm /N ${mediaBoxes.length} /First 0 /Filter /FlateDecode /Length ${compressed.length} >>\nstream\n`, 'latin1'),
+    compressed,
+    Buffer.from('\nendstream\nendobj\n%%EOF', 'latin1'),
+  ]);
+}
+
+test('export parity reports no problems for real Marp HTML and PDF output', async () => {
+  const project = await marpExportProject();
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  assert.deepEqual(report.findings.filter((finding) => finding.severity !== 'info'), []);
+  assert.equal(findingsFor(report, 'exports.parity')[0].value, 8);
+});
+
+test('exports.dimensions checks every PDF page and names the page that is not 16:9', async () => {
+  const project = await marpExportProject();
+  await writeFile(path.join(project, 'PRESENTASJON.pdf'), compressedPdfWithPages(['0 0 960 540', '0 0 612 792', '0 0 960 540']));
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  const dimensions = findingsFor(report, 'exports.dimensions');
+  assert.equal(dimensions.length, 1);
+  assert.equal(dimensions[0].severity, 'blocking');
+  assert.equal(dimensions[0].page, 2);
+  assert.match(dimensions[0].message, /page 2\b/i);
+  assert.match(dimensions[0].evidence, /612 × 792/);
+});
+
+test('exports.text-parity blocks a slide whose HTML text differs from the Markdown', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.html': editHtmlSlide(3, (section) => section.replace('Name the audience decision', 'Name the audience choice')),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  const text = findingsFor(report, 'exports.text-parity');
+  assert.equal(text.length, 1);
+  assert.equal(text[0].severity, 'blocking');
+  assert.equal(text[0].slide, 3);
+  assert.match(text[0].evidence, /decision/);
+  assert.match(text[0].evidence, /choice/);
+});
+
+test('exports.text-parity is a warning in the generation profile', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.html': editHtmlSlide(3, (section) => section.replace('Name the audience decision', 'Name the audience choice')),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'generation');
+  assert.equal(findingsFor(report, 'exports.text-parity')[0].severity, 'warning');
+});
+
+test('exports.text-parity ignores Marp header and footer text, inline code, and autolinks', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.md': (markdown) => markdown
+      .replace('paginate: true', 'paginate: true\nfooter: Team offsite')
+      .replace('<p class="slot-label">Five moves</p>', 'Five `<moves>` at <https://example.com/moves>'),
+    'PRESENTASJON.html': (html) => html
+      .replace(/(<section id="\d+"[^>]*>)/g, '$1<header></header>')
+      .replace(/<\/section>/g, '<footer>Team offsite</footer></section>')
+      .replace('<p class="slot-label">Five moves</p>', '<p>Five <code>&lt;moves&gt;</code> at <a href="https://example.com/moves">https://example.com/moves</a></p>'),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  assert.deepEqual(findingsFor(report, 'exports.text-parity'), []);
+});
+
+test('exports.text-parity does not split slides on --- inside a fenced code block', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.md': (markdown) => markdown.replace('<p class="slot-label">Five moves</p>', '```yaml\nmoves: five\n---\nnext: slide\n```'),
+    'PRESENTASJON.html': (html) => html.replace('<p class="slot-label">Five moves</p>', '<pre><code class="language-yaml">moves: five\n---\nnext: slide\n</code></pre>'),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  assert.deepEqual(findingsFor(report, 'exports.text-parity'), []);
+});
+
+test('exports.media-parity blocks a slide whose HTML media differs even when the deck-wide set matches', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.html': editHtmlSlide(4, (section) => section.replace('media/portrait.svg', 'media/diagram.svg')),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  const media = findingsFor(report, 'exports.media-parity');
+  assert.equal(media.length, 1);
+  assert.equal(media[0].severity, 'blocking');
+  assert.equal(media[0].slide, 4);
+});
+
+test('exports.pagination blocks an HTML slide without a page number', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.html': editHtmlSlide(5, (section) => section.replace(' data-marpit-pagination="5"', '')),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  const pagination = findingsFor(report, 'exports.pagination');
+  assert.equal(pagination.length, 1);
+  assert.equal(pagination[0].severity, 'blocking');
+  assert.equal(pagination[0].slide, 5);
+});
+
+test('exports.pagination blocks when the presentation does not set paginate: true', async () => {
+  const project = await marpExportProject({
+    'PRESENTASJON.md': (markdown) => markdown.replace('paginate: true', 'paginate: false'),
+  });
+  const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
+  const pagination = findingsFor(report, 'exports.pagination');
+  assert.equal(pagination.length, 1);
+  assert.equal(pagination[0].severity, 'blocking');
+  assert.match(pagination[0].message, /paginate/);
 });

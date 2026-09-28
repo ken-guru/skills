@@ -49,6 +49,21 @@ is not a supported product guarantee.
 Each installed member contains every runtime instruction, script, and supporting file
 it needs. Members exchange project state only through the user's Project Folder.
 
+## Invoke a member by name
+
+The agent loads members on its own from your requests, and `build-presentation`
+runs them in order. To call one directly, use its name:
+
+| Harness | Invoke by name |
+|---|---|
+| Claude Code | `/<skill-name>` |
+| GitHub Copilot CLI (interactive) | `/<skill-name>` |
+| Codex | `$<skill-name>`, or pick it from `/skills` |
+
+For example, `/proofread-presentation` in Claude Code or Copilot CLI, and
+`$proofread-presentation` in Codex. In a non-interactive run such as
+`copilot -p`, name the Skill in the prompt: `Use the /proofread-presentation skill.`
+
 ## Editorial pass
 
 Presentation copy always goes through the standalone [`unslop`](../unslop/SKILL.md)
@@ -72,7 +87,8 @@ for the persisted shape.
 ## External prerequisites
 
 - **Marp and Node.js:** required and checked by Generate Slides and Proofread when
-  either phase is invoked.
+  either phase is invoked. Marp's PDF export and Proofread's slide images use a
+  locally installed Chrome, Edge, or Firefox; nothing is downloaded.
 - **Node.js:** also required and checked by Generate Images.
 - **D2:** required only when Generate Diagrams renders a diagram.
 - **Image Provider credential:** required only when Generate Images runs — either

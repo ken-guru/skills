@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -159,4 +160,76 @@ test('Generate Images confirms once before paid generation', async () => {
       `missing eval answering the confirmation with ${answer}`,
     );
   }
+});
+
+// Suite members that must stay user-invoked, each mapped to its reason. Copilot
+// CLI's skill tool cannot load a Skill that sets disable-model-invocation, and the
+// Orchestrator cannot load it in any harness, so an entry needs a real reason.
+const userInvokedMembers = new Map();
+
+async function suiteMembers() {
+  const suite = path.join(repositoryDirectory, 'skills/presentation');
+  const members = [];
+  for (const entry of await readdir(suite, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skill = await readFile(path.join(suite, entry.name, 'SKILL.md'), 'utf8').catch(() => null);
+    if (skill) members.push({ name: entry.name, frontMatter: skill.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '' });
+  }
+  return members;
+}
+
+test('Every suite member has a real Trigger and stays model-invocable unless documented', async () => {
+  const members = await suiteMembers();
+  assert.ok(members.length >= 8);
+  for (const { name, frontMatter } of members) {
+    const description = frontMatter.match(/^description:\s*"?(.*?)"?\s*$/m)?.[1] ?? '';
+    assert.ok(description.length >= 30, `${name} needs a real Trigger description`);
+    assert.doesNotMatch(description, /(\.\.\.|…)$/, `${name} has a placeholder description`);
+    if (/^disable-model-invocation:\s*true\b/m.test(frontMatter)) {
+      assert.ok(userInvokedMembers.has(name), `${name} sets disable-model-invocation without a documented reason`);
+    }
+  }
+});
+
+test('Proofread loads for review requests and runs as the fourth phase', async () => {
+  const proofread = (await suiteMembers()).find((member) => member.name === 'proofread-presentation');
+  assert.match(proofread.frontMatter, /^description: "Proofreader\. Load when /m);
+
+  const orchestrator = await read('skills/presentation/build-presentation/SKILL.md');
+  assert.match(orchestrator, /\| Proofread pending \|[^\n]*\| Run `proofread-presentation`/);
+
+  const evals = JSON.parse(await read('skills/presentation/proofread-presentation/evals/proofread-presentation.json'));
+  assert.ok(evals.some((item) => item.type === 'positive'));
+  assert.ok(evals.some((item) => item.type === 'negative' && /Generation is in progress/.test(item.precondition)));
+  assert.ok(evals.some((item) => item.type === 'boundary' && /media phase is pending/.test(item.precondition)));
+
+  const orchestratorEvals = JSON.parse(await read('skills/presentation/build-presentation/evals/build-presentation.json'));
+  assert.ok(orchestratorEvals.some((item) => /runs proofread-presentation as the fourth phase/.test(item.expected)));
+});
+
+test('Proofread reviews local HTML slide images instead of comparing the PDF visually', async () => {
+  const proofread = await read('skills/presentation/proofread-presentation/SKILL.md');
+  const generation = await read('skills/presentation/generate-slides/SLIDE_GENERATION.md');
+
+  assert.match(proofread, /--images png/);
+  assert.match(proofread, /outside the Project Folder/);
+  assert.match(proofread, /Delete the temporary directory/);
+  for (const member of ['first slide of each Slide Archetype', 'every slide with a Picture or Diagram', 'every slide named in a `presentation-validation` warning']) {
+    assert.ok(proofread.includes(member), `inspection set is missing: ${member}`);
+  }
+  assert.match(proofread, /Inspected slides/);
+  assert.match(proofread, /The PDF is not visually reviewed/);
+  assert.doesNotMatch(proofread, /Compare PDF visually/i);
+  assert.doesNotMatch(proofread, /playwright|qlmanage/i);
+
+  const browserMessage = generation.match(/`(❌ Marp found no local browser[^`]*)`/)?.[1];
+  assert.ok(browserMessage, 'Generation names its missing-browser message');
+  assert.ok(proofread.includes(browserMessage), 'Proofread blocks with the same missing-browser message as Generation');
+});
+
+test('The suite README shows how to invoke a member by name in each harness', async () => {
+  const readme = await read('skills/presentation/README.md');
+  assert.match(readme, /\| Claude Code \| `\/<skill-name>` \|/);
+  assert.match(readme, /\| GitHub Copilot CLI \(interactive\) \| `\/<skill-name>` \|/);
+  assert.match(readme, /\| Codex \| `\$<skill-name>`, or pick it from `\/skills` \|/);
 });

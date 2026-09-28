@@ -50,14 +50,13 @@ phase skipped; successful rendering marks it done.
 
 ## Media complete, Proofread pending
 
-Tell the user:
+Proofread is the fourth phase. Tell the user:
 
-> The presentation and its media have been generated. Would you like to run a proofreading pass now?
+> The presentation and its media have been generated. Starting the proofreading pass now (`proofread-presentation`).
 
-Offer:
-
-- **Yes** — call `proofread-presentation`.
-- **Skip** — mark Proofread skipped and explain that proofreading is recommended.
+Then call `proofread-presentation` with the Project Folder. When the user has
+asked to skip proofreading, mark Proofread skipped instead and explain that
+proofreading is recommended.
 
 ## Complete
 
