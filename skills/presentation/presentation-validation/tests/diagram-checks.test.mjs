@@ -2,7 +2,7 @@
 // (media.diagram-roles) and Effective Text Size (media.svg-legibility).
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -40,7 +40,44 @@ async function roleFindings(entries) {
   return report.findings.filter((finding) => finding.check === 'media.diagram-roles' && finding.severity !== 'info');
 }
 
-const clean = 'a: Explore {class: emphasis}\nb: Align {class: base}\ng: Team {class: boundary}\na -> b: next {class: flow}\nb -> g: maybe {class: [optional-flow]}';
+async function legibilityFindings(svg, { manifest = (value) => value } = {}) {
+  const project = await specProject([{ slide: 4, d2: 'a -> b {class: flow}' }]);
+  const themes = path.resolve('skills/presentation/generate-slides/themes');
+  await cp(path.join(themes, 'editorial'), path.join(project, 'themes', 'editorial'), { recursive: true });
+  const manifestPath = path.join(project, 'themes', 'editorial', 'theme.json');
+  await writeFile(manifestPath, JSON.stringify(manifest(JSON.parse(await readFile(manifestPath, 'utf8')))));
+  await writeFile(path.join(project, 'themes', 'theme-lock.json'), JSON.stringify({ lockVersion: 1, id: 'editorial' }));
+  await mkdir(path.join(project, 'images'));
+  await writeFile(path.join(project, 'images', 'diagram-4.svg'), svg);
+  const report = await jsonReport('check', 'media', '--project-dir', project, '--profile', 'proofread');
+  return report.findings.filter((finding) => finding.check === 'media.svg-legibility' && finding.severity !== 'info');
+}
+
+const d2Svg = (width, height, font) => `<?xml version="1.0" encoding="utf-8"?><svg xmlns="http://www.w3.org/2000/svg" data-d2-version="0.7.1" viewBox="0 0 ${width} ${height}"><svg class="d2-svg" viewBox="-89 -89 ${width} ${height}"><text x="10" y="40" style="text-anchor:middle;font-size:${font}px">Label</text><text x="10" y="90" style="text-anchor:middle;font-size:28px">Other</text></svg></svg>`;
+
+test('media.svg-legibility passes a diagram sized through role font sizes', async () => {
+  assert.deepEqual(await legibilityFindings(d2Svg(900, 240, 24)), []);
+});
+
+test('media.svg-legibility blocks a wide 16 px diagram with the numbers and a fix', async () => {
+  const findings = await legibilityFindings(d2Svg(1800, 200, 16));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, 'blocking');
+  assert.equal(findings[0].slide, 4);
+  assert.equal(findings[0].path, 'images/diagram-4.svg');
+  assert.match(findings[0].message, /Effective Text Size 10\.0 px is below 20 px/);
+  assert.match(findings[0].evidence, /smallest text 16 px × scale 0\.63 into the 1126×252 diagram slot \(SVG 9\.00:1, slot 4\.47:1\)/);
+  assert.match(findings[0].remediation, /direction: down/);
+});
+
+test('media.svg-legibility blocks when the locked theme has no diagram media box', async () => {
+  const findings = await legibilityFindings(d2Svg(900, 240, 24), { manifest: (value) => { delete value.archetypes.diagram.mediaBox; return value; } });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, 'blocking');
+  assert.match(findings[0].remediation, /refresh the theme in generate-slides/i);
+});
+
+const clean ='a: Explore {class: emphasis}\nb: Align {class: base}\ng: Team {class: boundary}\na -> b: next {class: flow}\nb -> g: maybe {class: [optional-flow]}';
 
 test('media.diagram-roles passes a spec that styles only through Diagram Roles', async () => {
   assert.deepEqual(await roleFindings([{ slide: 2, d2: clean }]), []);

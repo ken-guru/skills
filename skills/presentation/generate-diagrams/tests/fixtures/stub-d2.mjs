@@ -8,6 +8,7 @@
 //   stub-hang       rendering writes a partial file, then waits to be killed
 //   stub-font-N     text is emitted at N px (default 28)
 //   stub-size-WxH   root viewBox is W×H (default 600×300)
+// $STUB_D2_SVG, when set, is copied as the rendered output instead.
 // Every invocation is appended to $STUB_D2_LOG as one JSON line.
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -36,7 +37,9 @@ if (source.includes('stub-render-fail')) {
   process.stderr.write('err: failed to layout diagram\n');
   process.exit(1);
 }
-if (source.includes('stub-hang')) {
+if (process.env.STUB_D2_SVG) {
+  writeFileSync(output, readFileSync(process.env.STUB_D2_SVG));
+} else if (source.includes('stub-hang')) {
   writeFileSync(output, '<?xml version="1.0"?><svg');
   setTimeout(() => process.exit(0), 30_000);
 } else {

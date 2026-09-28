@@ -81,7 +81,19 @@ test('every bundled theme declares the fixed Diagram Role set by palette key', a
       assert.ok(Number.isInteger(definition.fontSize) && definition.fontSize >= 20, `${id} ${role}.fontSize`);
       assert.equal(typeof definition.strokeDash, 'number', `${id} ${role}.strokeDash`);
     }
+    const { mediaBox } = manifest.archetypes.diagram;
+    assert.ok(mediaBox.width > 0 && mediaBox.width <= 1280 && mediaBox.height > 0 && mediaBox.height <= 720, `${id} diagram media box`);
   }
+});
+
+test('the theme schema requires Diagram Roles, role font sizes, and the diagram media box', async () => {
+  const schema = JSON.parse(await readFile(path.join(themesDirectory, 'theme.schema.json'), 'utf8'));
+
+  assert.ok(schema.required.includes('diagramRoles'));
+  assert.deepEqual([...schema.properties.diagramRoles.required].sort(), [...nodeRoles, ...edgeRoles].sort());
+  assert.ok(schema.$defs.diagramNodeRole.required.includes('fontSize'));
+  assert.ok(schema.$defs.diagramEdgeRole.required.includes('fontSize'));
+  assert.ok(schema.properties.archetypes.properties.diagram.required.includes('mediaBox'));
 });
 
 async function resolveWithEditedManifest(edit) {
@@ -101,6 +113,8 @@ for (const [name, edit, message] of [
   ['a role naming an unknown palette key', (manifest) => { manifest.diagramRoles.base.fill = 'chartreuse'; }, /"base".*fill/],
   ['a role without a font size', (manifest) => { delete manifest.diagramRoles.flow.fontSize; }, /"flow".*fontSize/],
   ['a role written in D2 syntax', (manifest) => { manifest.diagramRoles.base.fill = '#ffffff'; }, /"base".*fill/],
+  ['no diagram media box', (manifest) => { delete manifest.archetypes.diagram.mediaBox; }, /media box/],
+  ['a diagram media box larger than the slide', (manifest) => { manifest.archetypes.diagram.mediaBox = { width: 1400, height: 300 }; }, /media box/],
 ]) {
   test(`an installed Theme Package with ${name} blocks resolution`, async () => {
     await assert.rejects(resolveWithEditedManifest(edit), (error) => {

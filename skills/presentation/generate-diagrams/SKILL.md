@@ -106,8 +106,8 @@ After each call, present:
 **R** repeats the same call. **S** ends the loop; the phase stays pending.
 
 The command is the whole render step: it parses entries, runs `d2 validate`,
-applies the locked Presentation Theme, checks each SVG, and cleans up. Run D2
-only through it.
+applies the locked Presentation Theme through Diagram Roles, checks each SVG's
+structure and 20 px Effective Text Size, and cleans up. Run D2 only through it.
 
 ### Step 3: Report and update state
 

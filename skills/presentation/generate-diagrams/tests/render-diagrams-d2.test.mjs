@@ -42,6 +42,7 @@ async function render(directory) {
 }
 
 const roleClassedSpec = [
+  'direction: right',
   'explore: Explore {class: emphasis}',
   'align: Align {class: base}',
   'risk: Drift {class: risk}',
@@ -67,3 +68,16 @@ for (const theme of ['editorial', 'signal', 'compact-signal', 'field-notes']) {
     assert.ok(!svg.includes('#0d32b2'), `${theme}: D2's default blue leaked into the diagram`);
   });
 }
+
+test('real D2: a wide diagram with 16 px labels fails Effective Text Size in the Editorial slot', { skip }, async () => {
+  const stages = ['Collect feedback', 'Triage requests', 'Draft proposal', 'Review with stakeholders', 'Revise the plan', 'Publish decision'];
+  const d2 = ['direction: right', ...stages.map((stage, index) => `s${index}: ${stage}`), ...stages.slice(1).map((_, index) => `s${index} -> s${index + 1}`)].join('\n');
+  const { directory } = await project('editorial', [{ slide: 3, d2 }]);
+
+  const result = await render(directory);
+
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /Slide 3\b[^\n]*Effective Text Size [\d.]+ px is below 20 px: smallest text 16 px × scale 0\.\d\d into the 1126×252 diagram slot/);
+  assert.match(result.output, /wider than the slot; give every shape and connection a role class, shorten labels, use `direction: down`/);
+  assert.deepEqual(await readdir(directory).then((entries) => entries.includes('images') ? readdir(path.join(directory, 'images')) : []), []);
+});

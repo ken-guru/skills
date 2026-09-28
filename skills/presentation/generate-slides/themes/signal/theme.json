@@ -82,6 +82,7 @@
       "tone": "tone-dark",
       "slots": ["heading", "media", "caption"],
       "capacity": {"headingLines": 2, "diagrams": 1, "captionLines": 2},
+      "mediaBox": {"width": 1140, "height": 291},
       "variations": [{"id": "default", "class": "variation-default", "when": "always"}]
     },
     "quotation": {

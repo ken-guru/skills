@@ -71,6 +71,7 @@ test('Diagram Specs style through Diagram Roles, checked before Media Spec appro
   assert.ok(roleCheck !== -1, 'Generate Slides runs the Media Spec role check');
   assert.ok(roleCheck < slides.indexOf('ask the user to review or approve'), 'the role check precedes approval');
   assert.doesNotMatch(slides, /Palette and line guidance/);
+  assert.match(context, /\*\*Effective Text Size\*\*[^\n]*20 px/);
   for (const role of ['base', 'emphasis', 'muted', 'risk', 'boundary', 'flow', 'optional-flow', 'risk-flow']) {
     assert.match(slides, new RegExp(`\`${role}\``));
     assert.match(context, new RegExp(`\\*\\*Diagram Role\\*\\*[^\\n]*\`${role}\``));

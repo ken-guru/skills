@@ -110,7 +110,10 @@ editing them.
 | `risk-flow` | Connection that carries risk |
 
 Keep colors, `font-size`, and `classes` definitions out of D2 Source; layout
-keywords such as `direction` and `shape` stay available.
+keywords such as `direction` and `shape` stay available. Diagram slots are wide
+and short, and every label must reach 20 px Effective Text Size there: start
+with `direction: right`, keep labels short, and split a diagram with more than
+about five nodes in a row.
 
 External Font Override state never enters either Media Spec. Skip `[Visual: None]`. Do not create an empty spec.
 

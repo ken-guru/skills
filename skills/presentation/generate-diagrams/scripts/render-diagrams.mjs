@@ -212,6 +212,34 @@ function d2Message(output, input, preamble) {
     .replace(/(^|\s)(\d+):(\d+):/gm, (_, lead, line, column) => `${lead}D2 Source line ${Math.max(1, Number(line) - offset)}, column ${column}:`);
 }
 
+// Effective Text Size: the smallest <text> font-size times the contain scale
+// into the diagram media box. presentation-validation's media.svg-legibility
+// keeps an identical copy; the two must reach the same verdict.
+const MINIMUM_EFFECTIVE_TEXT_SIZE = 20;
+
+function effectiveTextSize(svg, box) {
+  const viewBox = svgRootTag(svg)?.match(/\sviewBox=["']([^"']+)["']/i)?.[1].trim().split(/[\s,]+/).map(Number);
+  const [width, height] = viewBox?.slice(2) ?? [];
+  if (!(width > 0 && height > 0)) return null;
+  const sizes = [...svg.matchAll(/<text\b[^>]*>/gi)]
+    .map(([tag]) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)/i)?.[1]))
+    .filter((size) => size > 0);
+  if (!sizes.length) return null;
+  const smallest = Math.min(...sizes);
+  const scale = Math.min(box.width / width, box.height / height);
+  const effective = smallest * scale;
+  return { smallest, scale, effective, svgAspect: width / height, slotAspect: box.width / box.height, pass: effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
+}
+
+function legibilityMessage(result, box, roleMinimum) {
+  const fixes = result.svgAspect > result.slotAspect
+    ? ['shorten labels', 'use `direction: down`', 'split it into two diagrams']
+    : ['use `direction: right`', 'reduce the number of rows', 'split it into two diagrams'];
+  if (result.smallest < roleMinimum) fixes.unshift('give every shape and connection a role class');
+  fixes.push('or ask for a larger role font size in the Theme Package');
+  return `Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram slot (SVG ${result.svgAspect.toFixed(2)}:1, slot ${result.slotAspect.toFixed(2)}:1). The diagram is ${result.svgAspect > result.slotAspect ? 'wider' : 'taller'} than the slot; ${fixes.join(', ')}.`;
+}
+
 function label(entry) {
   return `Slide ${entry.slide} — ${entry.title} (${entry.filename ?? 'no filename'})`;
 }
@@ -232,6 +260,11 @@ async function main(argv) {
   if (stylingProblem) {
     throw new UsageError(`The locked Theme Manifest for "${manifest.id}" ${stylingProblem}, so diagrams cannot use the Presentation Theme. Refresh the theme in generate-slides, then rerun.`);
   }
+  const box = manifest.archetypes.diagram.mediaBox;
+  if (!(box?.width > 0 && box?.height > 0)) {
+    throw new UsageError(`The locked Theme Manifest for "${manifest.id}" has no diagram media box, so diagram legibility cannot be checked. Refresh the theme in generate-slides, then rerun.`);
+  }
+  const roleMinimum = Math.min(...DIAGRAM_ROLES.map((role) => manifest.diagramRoles[role].fontSize));
   const preamble = rolePreamble(manifest, tone);
 
   let entries = parseDiagramSpec(await readFile(options.specPath, 'utf8'));
@@ -302,8 +335,11 @@ async function main(argv) {
       temporaryPaths.add(temporary);
       const result = await run('d2', ['--layout=elk', `--theme=${d2Theme}`, item.input, temporary]);
       if (result.code !== 0) throw new Error(`d2 failed: ${d2Message(result.output, item.input, preamble)}`);
-      const problem = svgProblem(await readFile(temporary, 'utf8'));
+      const svg = await readFile(temporary, 'utf8');
+      const problem = svgProblem(svg);
       if (problem) throw new Error(problem);
+      const legibility = effectiveTextSize(svg, box);
+      if (legibility && !legibility.pass) throw new Error(legibilityMessage(legibility, box, roleMinimum));
       await rename(temporary, item.target);
       temporaryPaths.delete(temporary);
       rendered += 1;

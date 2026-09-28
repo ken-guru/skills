@@ -77,7 +77,10 @@
         "text-only": {"$ref": "#/$defs/archetype"},
         "text-plus-image": {"$ref": "#/$defs/archetype"},
         "data": {"$ref": "#/$defs/archetype"},
-        "diagram": {"$ref": "#/$defs/archetype"},
+        "diagram": {
+          "allOf": [{"$ref": "#/$defs/archetype"}],
+          "required": ["mediaBox"]
+        },
         "quotation": {"$ref": "#/$defs/archetype"}
       },
       "additionalProperties": false
@@ -161,6 +164,16 @@
           "type": "array",
           "minItems": 1,
           "items": {"$ref": "#/$defs/variation"}
+        },
+        "mediaBox": {
+          "description": "Conservative media box on the 1280x720 reference, measured with worst-case heading and caption; used for diagram Effective Text Size.",
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": {"type": "integer", "minimum": 1, "maximum": 1280},
+            "height": {"type": "integer", "minimum": 1, "maximum": 720}
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

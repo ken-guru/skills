@@ -213,6 +213,41 @@ test('a locked snapshot without Diagram Roles blocks with a refresh instruction'
   assert.ok(calls.every((args) => args[0] === '--version'), 'D2 never validates or renders');
 });
 
+test('a diagram below 20 px Effective Text Size fails and is never promoted', async () => {
+  const bin = await stubBin();
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'render-diagrams-tmpdir-'));
+  const directory = await project({
+    entries: [entry({ slide: 1 }), entry({ slide: 4, d2: 'a -> b {class: flow} # stub-size-1800x200 stub-font-16' })],
+  });
+
+  const result = await render(directory, [], { bin, env: { TMPDIR: tmp } });
+
+  assert.equal(result.code, 1);
+  assert.deepEqual(await svgFiles(directory), ['diagram-1.svg']);
+  assert.deepEqual(await readdir(tmp), []);
+  const message = result.output.split('\n').find((line) => /Slide 4\b/.test(line) && /Effective Text Size/.test(line));
+  assert.ok(message, result.output);
+  assert.match(message, /16 px/);
+  assert.match(message, /scale 0\.63/);
+  assert.match(message, /10\.0 px/);
+  assert.match(message, /1126×252/);
+  assert.match(message, /9\.00:1/);
+  assert.match(message, /4\.47:1/);
+  assert.match(message, /direction: down/);
+});
+
+test('a locked snapshot without a diagram media box blocks with a refresh instruction', async () => {
+  const bin = await stubBin();
+  const directory = await project({ manifest: (value) => { delete value.archetypes.diagram.mediaBox; return value; } });
+
+  const result = await render(directory, [], { bin });
+
+  assert.equal(result.code, 2);
+  assert.match(result.output, /media box/);
+  assert.match(result.output, /refresh the theme in generate-slides/i);
+  assert.deepEqual(await svgFiles(directory), []);
+});
+
 test('off-theme D2 is refused before anything is written', async () => {
   const bin = await stubBin();
   const directory = await project({

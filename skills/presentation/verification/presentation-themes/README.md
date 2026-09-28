@@ -17,7 +17,7 @@ The fast tier checks catalog resolution, package integrity, legacy and invalid s
 npm run test:full
 ```
 
-The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, checks accessibility/geometry/type-size/safe-margins/collisions/PDF page count/exported text parity, and renders the 32-image public gallery. Set `PRESENTATION_THEME_MARP` to a Marp CLI executable when the local CLI cannot launch the installed browser, and `PRESENTATION_THEME_BROWSER` to a Chromium-family browser executable when Edge or Chrome is not in its standard macOS location.
+The full tier needs a Chromium-family browser and Ghostscript. It generates the identical eight-slide capacity deck for Editorial, Signal, Compact Signal, and Field Notes, exports HTML and PDF, checks accessibility/geometry/type-size/safe-margins/collisions/PDF page count/exported text parity and that each theme's declared diagram media box matches its rendered worst-case diagram slot, and renders the 32-image public gallery. Set `PRESENTATION_THEME_MARP` to a Marp CLI executable when the local CLI cannot launch the installed browser, and `PRESENTATION_THEME_BROWSER` to a Chromium-family browser executable when Edge or Chrome is not in its standard macOS location.
 
 This tier is **not** run in CI: browser and font rendering differ enough machine to machine that pixel- and layout-level checks produced persistent false positives. Whether a theme actually looks right is a judgment call for a human, not a pass/fail gate. Instead:
 

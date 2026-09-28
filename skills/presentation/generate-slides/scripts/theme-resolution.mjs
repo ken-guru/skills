@@ -143,6 +143,17 @@ function validateDiagramRoles(manifest, { required }) {
   if (unknown.length) invalidPackage(`Theme "${manifest.id}" declares unknown Diagram Roles: ${unknown.join(', ')}.`);
 }
 
+// The diagram archetype's media box is the conservative space a diagram gets on
+// the 1280×720 reference; Effective Text Size is measured against it.
+function validateDiagramMediaBox(manifest, { required }) {
+  const box = manifest.archetypes?.diagram?.mediaBox;
+  if (box === undefined && !required) return;
+  const valid = (value, limit) => Number.isInteger(value) && value > 0 && value <= limit;
+  if (!box || !valid(box.width, 1280) || !valid(box.height, 720)) {
+    invalidPackage(`Theme "${manifest.id}" needs a diagram media box of whole pixels within the 1280×720 slide.`);
+  }
+}
+
 async function validatePackage({ catalog, entry, packageDirectory, installed = false }) {
   let manifest;
   try {
@@ -211,6 +222,7 @@ async function validatePackage({ catalog, entry, packageDirectory, installed = f
     invalidPackage(`Theme "${entry.id}" has incomplete media treatments.`);
   }
   validateDiagramRoles(manifest, { required: installed });
+  validateDiagramMediaBox(manifest, { required: installed });
   if (!Array.isArray(manifest.assets)) {
     invalidPackage(`Theme "${entry.id}" assets must be an array.`);
   }

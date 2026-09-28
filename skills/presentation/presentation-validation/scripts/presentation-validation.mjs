@@ -360,6 +360,75 @@ async function checkMediaSpec(inputs, report) {
   if (entries.length) report.finding('media.diagram-roles', 'info', `Checked Diagram Role usage in ${entries.length} Diagram Spec entries.`);
 }
 
+// Effective Text Size: the smallest <text> font-size times the contain scale
+// into the diagram media box must reach 20 px.
+const MINIMUM_EFFECTIVE_TEXT_SIZE = 20;
+
+function effectiveTextSize(svg, box) {
+  const viewBox = svgRootTag(svg)?.match(/\sviewBox=["']([^"']+)["']/i)?.[1].trim().split(/[\s,]+/).map(Number);
+  const [width, height] = viewBox?.slice(2) ?? [];
+  if (!(width > 0 && height > 0)) return null;
+  const sizes = [...svg.matchAll(/<text\b[^>]*>/gi)]
+    .map(([tag]) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)/i)?.[1]))
+    .filter((size) => size > 0);
+  if (!sizes.length) return null;
+  const smallest = Math.min(...sizes);
+  const scale = Math.min(box.width / width, box.height / height);
+  const effective = smallest * scale;
+  return { smallest, scale, effective, svgAspect: width / height, slotAspect: box.width / box.height, pass: effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
+}
+
+async function lockedThemeManifest(inputs) {
+  try {
+    const lock = await readJson(path.join(inputs.themes, 'theme-lock.json'));
+    return await readJson(path.join(inputs.themes, lock.id, 'theme.json'));
+  } catch {
+    return null;
+  }
+}
+
+async function checkDiagramLegibility(inputs, report) {
+  if (!(await exists(inputs.diagramSpec))) return;
+  const diagrams = [];
+  for (const entry of diagramSpecEntries(await readText(inputs.diagramSpec))) {
+    if (!entry.filename || !/\.svg$/i.test(entry.filename)) continue;
+    const file = path.resolve(inputs.projectDirectory, entry.filename);
+    if (await exists(file)) diagrams.push({ ...entry, file });
+  }
+  if (!diagrams.length) return;
+  const manifest = await lockedThemeManifest(inputs);
+  const box = manifest?.archetypes?.diagram?.mediaBox;
+  if (!(box?.width > 0 && box?.height > 0)) {
+    report.finding('media.svg-legibility', 'blocking', 'Diagram legibility cannot be checked: the locked Theme Manifest has no diagram media box.', {
+      path: rel(report.projectDirectory, inputs.themes),
+      remediation: 'Refresh the theme in generate-slides, then re-render the diagrams.',
+    });
+    return;
+  }
+  const roleSizes = Object.values(manifest.diagramRoles ?? {}).map((role) => role.fontSize).filter((size) => size > 0);
+  for (const diagram of diagrams) {
+    const result = effectiveTextSize(await readText(diagram.file), box);
+    if (!result) continue;
+    const details = { path: rel(report.projectDirectory, diagram.file), slide: diagram.slide, value: Number(result.effective.toFixed(2)) };
+    if (result.pass) {
+      report.finding('media.svg-legibility', 'info', `Slide ${diagram.slide} diagram text reaches ${result.effective.toFixed(1)} px Effective Text Size.`, details);
+      continue;
+    }
+    const wider = result.svgAspect > result.slotAspect;
+    const fixes = wider
+      ? ['shorten labels', 'use `direction: down`', 'split it into two diagrams']
+      : ['use `direction: right`', 'reduce the number of rows', 'split it into two diagrams'];
+    if (roleSizes.length && result.smallest < Math.min(...roleSizes)) fixes.unshift('give every shape and connection a role class');
+    fixes.push('or ask for a larger role font size in the Theme Package');
+    const evidence = `smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram slot (SVG ${result.svgAspect.toFixed(2)}:1, slot ${result.slotAspect.toFixed(2)}:1)`;
+    report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: ${evidence}.`, {
+      ...details,
+      evidence,
+      remediation: `The diagram is ${wider ? 'wider' : 'taller'} than the slot: ${fixes.join(', ')}; then re-render it with generate-diagrams.`,
+    });
+  }
+}
+
 async function checkTheme(inputs, report) {
   const lockPath = path.join(inputs.themes, 'theme-lock.json');
   if (!(await exists(lockPath))) {
@@ -516,6 +585,7 @@ async function validate({ projectDirectory, profile, checks }) {
   }
   if (checks.includes('structure')) await checkStructure(inputs, report);
   if (checks.includes('media')) await checkMedia(inputs, report);
+  if (checks.includes('media')) await checkDiagramLegibility(inputs, report);
   if (checks.includes('media-spec')) await checkMediaSpec(inputs, report);
   if (checks.includes('theme')) await checkTheme(inputs, report);
   if (checks.includes('exports')) await checkExports(inputs, report);
