@@ -318,11 +318,13 @@ function diagramSpecEntries(text) {
     if (!heading) continue;
     const open = lines.findIndex((line) => /^\s*(`{3,}|~{3,})\s*d2\s*$/.test(line));
     const fence = open === -1 ? null : lines[open].trim().match(/^(`{3,}|~{3,})/)[1];
-    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && line.trim() === fence);
+    // A closing fence repeats the opening character at least as many times.
+    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && new RegExp(`^${fence[0]}{${fence.length},}$`).test(line.trim()));
     entries.push({
       slide: Number(heading[1]),
       filename: section.match(/\*\*Filename:\*\*\s*`([^`]+)`/)?.[1] ?? null,
       source: close === -1 ? '' : lines.slice(open + 1, close).join('\n'),
+      unclosed: open !== -1 && close === -1,
     });
   }
   return entries;
@@ -348,7 +350,7 @@ async function checkMediaSpec(inputs, report) {
   if (!(await exists(inputs.diagramSpec))) return;
   const entries = diagramSpecEntries(await readText(inputs.diagramSpec));
   for (const entry of entries) {
-    const problems = diagramRoleProblems(entry.source);
+    const problems = entry.unclosed ? ['its D2 block has no closing fence, so its styling cannot be checked'] : diagramRoleProblems(entry.source);
     if (!problems.length) continue;
     report.finding('media.diagram-roles', 'blocking', `Slide ${entry.slide} diagram styles D2 outside the Diagram Roles.`, {
       path: rel(report.projectDirectory, inputs.diagramSpec),
@@ -357,7 +359,7 @@ async function checkMediaSpec(inputs, report) {
       remediation: `Replace colors, font sizes, and custom classes with class: <role> (${DIAGRAM_ROLES.join(', ')}).`,
     });
   }
-  if (entries.length) report.finding('media.diagram-roles', 'info', `Checked Diagram Role usage in ${entries.length} Diagram Spec entries.`);
+  if (entries.length) report.finding('media.diagram-roles', 'info', `Checked Diagram Role usage in ${entries.length} DIAGRAM_SPEC.md entries.`);
 }
 
 // Effective Text Size: the smallest <text> font-size times the contain scale
@@ -368,38 +370,48 @@ function effectiveTextSize(svg, box) {
   const viewBox = svgRootTag(svg)?.match(/\sviewBox=["']([^"']+)["']/i)?.[1].trim().split(/[\s,]+/).map(Number);
   const [width, height] = viewBox?.slice(2) ?? [];
   if (!(width > 0 && height > 0)) return null;
-  const sizes = [...svg.matchAll(/<text\b[^>]*>/gi)]
-    .map(([tag]) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)/i)?.[1]))
-    .filter((size) => size > 0);
-  if (!sizes.length) return null;
-  const smallest = Math.min(...sizes);
+  const tags = [...svg.matchAll(/<text\b[^>]*>/gi)].map(([tag]) => tag);
+  if (!tags.length) return null;
+  // Only px (or unitless) sizes are measurable; any other <text> fails closed.
+  const sizes = tags.map((tag) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)(?:px)?(?![\w%.])/i)?.[1]));
+  const unmeasured = sizes.filter((size) => !(size > 0)).length;
+  const measured = sizes.filter((size) => size > 0);
+  const smallest = measured.length ? Math.min(...measured) : 0;
   const scale = Math.min(box.width / width, box.height / height);
   const effective = smallest * scale;
-  return { smallest, scale, effective, svgAspect: width / height, slotAspect: box.width / box.height, pass: effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
+  return { smallest, scale, effective, unmeasured, svgAspect: width / height, boxAspect: box.width / box.height, pass: !unmeasured && effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
 }
 
+// The locked Theme Manifest, or the reason it cannot be read.
 async function lockedThemeManifest(inputs) {
+  let lock;
   try {
-    const lock = await readJson(path.join(inputs.themes, 'theme-lock.json'));
-    return await readJson(path.join(inputs.themes, lock.id, 'theme.json'));
+    lock = await readJson(path.join(inputs.themes, 'theme-lock.json'));
   } catch {
-    return null;
+    return { problem: 'the project has no readable theme-lock.json' };
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(lock.id ?? '')) return { problem: 'theme-lock.json names an invalid theme identifier' };
+  try {
+    return { manifest: await readJson(path.join(inputs.themes, lock.id, 'theme.json')) };
+  } catch {
+    return { problem: `the locked Theme Manifest for "${lock.id}" is missing or unreadable` };
   }
 }
 
 async function checkDiagramLegibility(inputs, report) {
   if (!(await exists(inputs.diagramSpec))) return;
   const diagrams = [];
+  const boundary = `${path.resolve(inputs.projectDirectory)}${path.sep}`;
   for (const entry of diagramSpecEntries(await readText(inputs.diagramSpec))) {
     if (!entry.filename || !/\.svg$/i.test(entry.filename)) continue;
     const file = path.resolve(inputs.projectDirectory, entry.filename);
-    if (await exists(file)) diagrams.push({ ...entry, file });
+    if (file.startsWith(boundary) && (await exists(file))) diagrams.push({ ...entry, file });
   }
   if (!diagrams.length) return;
-  const manifest = await lockedThemeManifest(inputs);
+  const { manifest, problem } = await lockedThemeManifest(inputs);
   const box = manifest?.archetypes?.diagram?.mediaBox;
   if (!(box?.width > 0 && box?.height > 0)) {
-    report.finding('media.svg-legibility', 'blocking', 'Diagram legibility cannot be checked: the locked Theme Manifest has no diagram media box.', {
+    report.finding('media.svg-legibility', 'blocking', `Diagram legibility cannot be checked: ${problem ?? 'the locked Theme Manifest has no diagram media box'}.`, {
       path: rel(report.projectDirectory, inputs.themes),
       remediation: 'Refresh the theme in generate-slides, then re-render the diagrams.',
     });
@@ -414,17 +426,24 @@ async function checkDiagramLegibility(inputs, report) {
       report.finding('media.svg-legibility', 'info', `Slide ${diagram.slide} diagram text reaches ${result.effective.toFixed(1)} px Effective Text Size.`, details);
       continue;
     }
-    const wider = result.svgAspect > result.slotAspect;
+    if (result.unmeasured) {
+      report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size cannot be measured; ${result.unmeasured} <text> element(s) have no px font-size.`, {
+        ...details,
+        remediation: 'Re-render the diagram from DIAGRAM_SPEC.md with generate-diagrams so D2 sets every size.',
+      });
+      continue;
+    }
+    const wider = result.svgAspect > result.boxAspect;
     const fixes = wider
       ? ['shorten labels', 'use `direction: down`', 'split it into two diagrams']
       : ['use `direction: right`', 'reduce the number of rows', 'split it into two diagrams'];
     if (roleSizes.length && result.smallest < Math.min(...roleSizes)) fixes.unshift('give every shape and connection a role class');
     fixes.push('or ask for a larger role font size in the Theme Package');
-    const evidence = `smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram slot (SVG ${result.svgAspect.toFixed(2)}:1, slot ${result.slotAspect.toFixed(2)}:1)`;
+    const evidence = `smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram media box (SVG ${result.svgAspect.toFixed(2)}:1, box ${result.boxAspect.toFixed(2)}:1)`;
     report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: ${evidence}.`, {
       ...details,
       evidence,
-      remediation: `The diagram is ${wider ? 'wider' : 'taller'} than the slot: ${fixes.join(', ')}; then re-render it with generate-diagrams.`,
+      remediation: `The diagram is ${wider ? 'wider' : 'taller'} than the media box: ${fixes.join(', ')}; then re-render it with generate-diagrams.`,
     });
   }
 }
@@ -584,8 +603,10 @@ async function validate({ projectDirectory, profile, checks }) {
     return report;
   }
   if (checks.includes('structure')) await checkStructure(inputs, report);
-  if (checks.includes('media')) await checkMedia(inputs, report);
-  if (checks.includes('media')) await checkDiagramLegibility(inputs, report);
+  if (checks.includes('media')) {
+    await checkMedia(inputs, report);
+    await checkDiagramLegibility(inputs, report);
+  }
   if (checks.includes('media-spec')) await checkMediaSpec(inputs, report);
   if (checks.includes('theme')) await checkTheme(inputs, report);
   if (checks.includes('exports')) await checkExports(inputs, report);

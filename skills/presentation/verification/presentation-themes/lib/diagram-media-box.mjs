@@ -21,11 +21,12 @@ export function diagramMediaBoxIssues({ declared, measured }) {
   return issues;
 }
 
-// Layout size of the diagram slot's media element, in slide px (offset sizes
-// ignore Marp's viewport scaling and decorative transforms).
+// Layout size of the diagram slot's <img>, in slide px. Semantic Slide Markup
+// embeds diagrams as <img>; its offset sizes ignore Marp's viewport scaling and
+// decorative transforms such as Field Notes' tilted panel.
 export async function measureDiagramSlot(page) {
   return page.evaluate(() => {
-    const media = document.querySelector('section.archetype-diagram .slot-media img, section.archetype-diagram .slot-media svg');
-    return media ? { width: media.offsetWidth ?? media.getBoundingClientRect().width, height: media.offsetHeight ?? media.getBoundingClientRect().height } : null;
+    const media = document.querySelector('section.archetype-diagram .slot-media img');
+    return media ? { width: media.offsetWidth, height: media.offsetHeight } : null;
   });
 }

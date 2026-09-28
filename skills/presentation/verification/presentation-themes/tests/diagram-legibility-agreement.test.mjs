@@ -24,6 +24,9 @@ const expected = {
   'exact-threshold.svg': 'pass', // 20 × 1 = 20.0
   'just-under.svg': 'fail', // 19.9 × 1 = 19.9
   'attribute-font-size.svg': 'pass', // 12 × min(1126/600, 252/100) = 22.5
+  'relative-font-size.svg': 'fail', // 1.2em cannot be measured: fail closed
+  'unsized-text.svg': 'fail', // <text> without a font-size: fail closed
+  'no-text.svg': 'pass', // no text to read
 };
 
 function exitCode(command, args, env = process.env) {

@@ -66,8 +66,28 @@ test('media.svg-legibility blocks a wide 16 px diagram with the numbers and a fi
   assert.equal(findings[0].slide, 4);
   assert.equal(findings[0].path, 'images/diagram-4.svg');
   assert.match(findings[0].message, /Effective Text Size 10\.0 px is below 20 px/);
-  assert.match(findings[0].evidence, /smallest text 16 px × scale 0\.63 into the 1126×252 diagram slot \(SVG 9\.00:1, slot 4\.47:1\)/);
+  assert.match(findings[0].evidence, /smallest text 16 px × scale 0\.63 into the 1126×252 diagram media box \(SVG 9\.00:1, box 4\.47:1\)/);
   assert.match(findings[0].remediation, /direction: down/);
+});
+
+test('media.svg-legibility names a missing theme lock as the reason it cannot check', async () => {
+  const project = await specProject([{ slide: 4, d2: 'a -> b {class: flow}' }]);
+  await mkdir(path.join(project, 'images'));
+  await writeFile(path.join(project, 'images', 'diagram-4.svg'), d2Svg(900, 240, 24));
+  const report = await jsonReport('check', 'media', '--project-dir', project, '--profile', 'proofread');
+  const findings = report.findings.filter((finding) => finding.check === 'media.svg-legibility');
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].message, /no readable theme-lock\.json/);
+});
+
+test('media.diagram-roles blocks an unclosed D2 block', async () => {
+  const project = await specProject([]);
+  await writeFile(path.join(project, 'DIAGRAM_SPEC.md'), '## Slide 6 — Open\n- **Filename:** `images/open.svg`\n- **D2 Source:**\n  ```d2\n  a: A {style.fill: red}\n');
+  const report = await jsonReport('check', 'media-spec', '--project-dir', project, '--profile', 'generation');
+  const findings = report.findings.filter((finding) => finding.check === 'media.diagram-roles' && finding.severity === 'blocking');
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].slide, 6);
+  assert.match(findings[0].evidence, /closing fence/);
 });
 
 test('media.svg-legibility blocks when the locked theme has no diagram media box', async () => {

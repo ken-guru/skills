@@ -185,12 +185,38 @@ test('an interrupted run removes its temporary files', async () => {
   assert.deepEqual(await readdir(tmp), []);
 });
 
+test('entries sharing a slide number each render their own D2 Source', async () => {
+  const bin = await stubBin();
+  const directory = await project({
+    entries: [
+      entry({ slide: 2, filename: 'images/left.svg', d2: 'a -> b {class: flow} # stub-size-500x200' }),
+      entry({ slide: 2, filename: 'images/right.svg', d2: 'a -> b {class: flow} # stub-size-700x200' }),
+    ],
+  });
+
+  assert.equal((await render(directory, [], { bin })).code, 0);
+  assert.match(await readFile(path.join(directory, 'images', 'left.svg'), 'utf8'), /viewBox="0 0 500 200"/);
+  assert.match(await readFile(path.join(directory, 'images', 'right.svg'), 'utf8'), /viewBox="0 0 700 200"/);
+});
+
+test('a closing fence longer than the opening fence closes the D2 block', async () => {
+  const bin = await stubBin();
+  const directory = await project({ entries: [] });
+  await writeFile(path.join(directory, 'DIAGRAM_SPEC.md'), '## Slide 1 — Long fence\n- **Filename:** `images/long.svg`\n- **D2 Source:**\n  ```d2\n  a -> b {class: flow}\n  `````\n');
+
+  const result = await render(directory, [], { bin });
+
+  assert.equal(result.code, 0, result.output);
+  assert.deepEqual(await svgFiles(directory), ['long.svg']);
+});
+
 test('usage and prerequisite errors exit 2 without writing', async () => {
   const bin = await stubBin();
   const directory = await project();
   const noD2 = await mkdtemp(path.join(os.tmpdir(), 'no-d2-'));
 
   assert.equal((await render(directory, ['--slide=9'], { bin })).code, 2);
+  assert.equal((await render(directory, ['--slide=1,2'], { bin })).code, 2);
   assert.equal((await render(directory, ['--bogus'], { bin })).code, 2);
   const missing = await render(directory, [], { env: { PATH: noD2 } });
   assert.equal(missing.code, 2);

@@ -4,9 +4,10 @@
 //
 // Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]
 // Exit codes: 0 every selected entry rendered (or already present)
-//             1 at least one entry failed; nothing is written when the spec is
-//               malformed or any selected entry fails `d2 validate`
-//             2 usage or prerequisite error
+//             1 at least one entry failed; nothing is written when an entry is
+//               malformed, styles D2 outside the Diagram Roles, or fails
+//               `d2 validate`
+//             2 usage or prerequisite error, or an unexpected internal error
 //             130 interrupted
 
 import { spawn } from 'node:child_process';
@@ -52,7 +53,10 @@ function parseArguments(argv) {
   for (const argument of argv) {
     if (argument === '--force') options.force = true;
     else if (argument.startsWith('--slides=')) options.slides = slideList(argument.slice(9), '--slides');
-    else if (argument.startsWith('--slide=')) options.slides = slideList(argument.slice(8), '--slide').slice(0, 1);
+    else if (argument.startsWith('--slide=')) {
+      options.slides = slideList(argument.slice(8), '--slide');
+      if (options.slides.length !== 1) throw new UsageError('--slide takes one slide number; use --slides=N,M for several.');
+    }
     else if (argument.startsWith('--')) throw new UsageError(`Unknown option ${argument}.`);
     else if (options.specPath) throw new UsageError(`Unexpected argument ${argument}.`);
     else options.specPath = path.resolve(argument);
@@ -92,7 +96,8 @@ function parseDiagramSpec(text) {
     if (!entry.filename) entry.problems.push('missing **Filename:**');
     const open = lines.findIndex((line) => /^\s*(`{3,}|~{3,})\s*d2\s*$/.test(line));
     const [, indent = '', fence] = open === -1 ? [] : lines[open].match(/^(\s*)(`{3,}|~{3,})/);
-    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && line.trim() === fence);
+    // A closing fence repeats the opening character at least as many times.
+    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && new RegExp(`^${fence[0]}{${fence.length},}$`).test(line.trim()));
     if (open !== -1 && close === -1) {
       entry.problems.push('its D2 block has no closing fence');
     } else {
@@ -122,6 +127,9 @@ async function lockedManifest(projectDirectory) {
     lock = await readJson(path.join(themesDirectory, 'theme-lock.json'));
   } catch {
     throw new UsageError(`No locked Presentation Theme at ${path.join(themesDirectory, 'theme-lock.json')}. Run generate-slides to lock the theme, then rerun.`);
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(lock.id ?? '')) {
+    throw new UsageError(`theme-lock.json names an invalid theme identifier. Refresh the theme in generate-slides, then rerun.`);
   }
   try {
     return await readJson(path.join(themesDirectory, lock.id, 'theme.json'));
@@ -155,6 +163,9 @@ function rolePreamble(manifest, tone) {
   const roles = manifest.diagramRoles;
   const color = (key) => manifest.palette[key];
   const canvas = color(CANVAS_BY_TONE[tone]) ?? color('background') ?? color(roles.base.fill);
+  // D2 theme color codes: N1 text, N2–N6 secondary text and neutral lines, N7
+  // canvas; B1–B6 default shape strokes (B1) through fills (B6), with B4/B5
+  // container fills; AA*/AB* accent fills for special shapes.
   const overrides = {
     N1: roles.base.fontColor, N2: roles.muted.fontColor, N3: roles.muted.stroke, N4: roles.muted.stroke,
     N5: roles.boundary.fill, N6: roles.boundary.fill, B1: roles.base.stroke, B2: roles.flow.stroke,
@@ -221,23 +232,29 @@ function effectiveTextSize(svg, box) {
   const viewBox = svgRootTag(svg)?.match(/\sviewBox=["']([^"']+)["']/i)?.[1].trim().split(/[\s,]+/).map(Number);
   const [width, height] = viewBox?.slice(2) ?? [];
   if (!(width > 0 && height > 0)) return null;
-  const sizes = [...svg.matchAll(/<text\b[^>]*>/gi)]
-    .map(([tag]) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)/i)?.[1]))
-    .filter((size) => size > 0);
-  if (!sizes.length) return null;
-  const smallest = Math.min(...sizes);
+  const tags = [...svg.matchAll(/<text\b[^>]*>/gi)].map(([tag]) => tag);
+  if (!tags.length) return null;
+  // Only px (or unitless) sizes are measurable; any other <text> fails closed.
+  const sizes = tags.map((tag) => Number(tag.match(/font-size\s*[:=]\s*["']?\s*([\d.]+)(?:px)?(?![\w%.])/i)?.[1]));
+  const unmeasured = sizes.filter((size) => !(size > 0)).length;
+  const measured = sizes.filter((size) => size > 0);
+  const smallest = measured.length ? Math.min(...measured) : 0;
   const scale = Math.min(box.width / width, box.height / height);
   const effective = smallest * scale;
-  return { smallest, scale, effective, svgAspect: width / height, slotAspect: box.width / box.height, pass: effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
+  return { smallest, scale, effective, unmeasured, svgAspect: width / height, boxAspect: box.width / box.height, pass: !unmeasured && effective >= MINIMUM_EFFECTIVE_TEXT_SIZE };
 }
 
 function legibilityMessage(result, box, roleMinimum) {
-  const fixes = result.svgAspect > result.slotAspect
+  if (result.unmeasured) {
+    return `Effective Text Size cannot be measured: ${result.unmeasured} <text> element(s) have no px font-size. Re-render from DIAGRAM_SPEC.md so D2 sets every size.`;
+  }
+  const wider = result.svgAspect > result.boxAspect;
+  const fixes = wider
     ? ['shorten labels', 'use `direction: down`', 'split it into two diagrams']
     : ['use `direction: right`', 'reduce the number of rows', 'split it into two diagrams'];
   if (result.smallest < roleMinimum) fixes.unshift('give every shape and connection a role class');
   fixes.push('or ask for a larger role font size in the Theme Package');
-  return `Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram slot (SVG ${result.svgAspect.toFixed(2)}:1, slot ${result.slotAspect.toFixed(2)}:1). The diagram is ${result.svgAspect > result.slotAspect ? 'wider' : 'taller'} than the slot; ${fixes.join(', ')}.`;
+  return `Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram media box (SVG ${result.svgAspect.toFixed(2)}:1, box ${result.boxAspect.toFixed(2)}:1). The diagram is ${wider ? 'wider' : 'taller'} than the media box; ${fixes.join(', ')}.`;
 }
 
 function label(entry) {
@@ -310,7 +327,7 @@ async function main(argv) {
   const workDirectory = mkdtempSync(path.join(os.tmpdir(), 'render-diagrams-'));
   temporaryPaths.add(workDirectory);
   for (const item of selected) {
-    item.input = path.join(workDirectory, `slide-${item.slide}.d2`);
+    item.input = path.join(workDirectory, `entry-${selected.indexOf(item) + 1}-slide-${item.slide}.d2`);
     await writeFile(item.input, `${preamble}${item.source}`);
   }
 
