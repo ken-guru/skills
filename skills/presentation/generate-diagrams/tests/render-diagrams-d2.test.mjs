@@ -52,7 +52,7 @@ const roleClassedSpec = [
 
 for (const theme of ['editorial', 'signal', 'compact-signal', 'field-notes']) {
   test(`real D2 renders a role-classed spec in ${theme}'s role colors`, { skip }, async () => {
-    assert.match(d2Version.stdout, /^0\.7\.1/, 'the render contract is pinned to D2 0.7.1');
+    assert.match(d2Version.stdout.trim(), /^v?0\.7\.1$/, 'the render contract is pinned to D2 0.7.1');
     const { directory, manifest } = await project(theme, [{ slide: 1, d2: roleClassedSpec }]);
 
     const result = await render(directory);

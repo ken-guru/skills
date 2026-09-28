@@ -102,7 +102,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Check D2 version
-        run: d2 --version | grep -Fx 0.7.1
+        run: d2 --version | grep -Ex 'v?0\.7\.1'
         working-directory: ${{ github.workspace }}
 
       # Skill-owned tests resolve paths from the repository root.
