@@ -15,7 +15,7 @@ export const REPORT_SCHEMA_VERSION = 1;
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIRECTORY = path.resolve(SCRIPT_DIRECTORY, '../../generate-slides/themes');
 const PROFILES = new Set(['generation', 'proofread']);
-const CHECKS = ['env', 'structure', 'media', 'theme', 'exports', 'sources'];
+const CHECKS = ['env', 'structure', 'media', 'media-spec', 'theme', 'exports', 'sources'];
 
 const exists = async (file) => {
   try {
@@ -302,6 +302,64 @@ async function checkMedia(inputs, report) {
   }
 }
 
+// --- Diagram checks -------------------------------------------------------
+// Generate Diagrams' render command applies the same role rule and Effective
+// Text Size; each owner keeps its own copy so installed Skills stay
+// self-contained.
+
+const DIAGRAM_NODE_ROLES = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
+const DIAGRAM_ROLES = [...DIAGRAM_NODE_ROLES, 'flow', 'optional-flow', 'risk-flow'];
+
+function diagramSpecEntries(text) {
+  const entries = [];
+  for (const section of text.split(/^## /m).slice(1)) {
+    const lines = section.split('\n');
+    const heading = lines[0].match(/^Slide (\d+)\s+[—–-]\s+(.+?)\s*$/);
+    if (!heading) continue;
+    const open = lines.findIndex((line) => /^\s*(`{3,}|~{3,})\s*d2\s*$/.test(line));
+    const fence = open === -1 ? null : lines[open].trim().match(/^(`{3,}|~{3,})/)[1];
+    const close = open === -1 ? -1 : lines.findIndex((line, index) => index > open && line.trim() === fence);
+    entries.push({
+      slide: Number(heading[1]),
+      filename: section.match(/\*\*Filename:\*\*\s*`([^`]+)`/)?.[1] ?? null,
+      source: close === -1 ? '' : lines.slice(open + 1, close).join('\n'),
+    });
+  }
+  return entries;
+}
+
+function diagramRoleProblems(source) {
+  const problems = [];
+  source.split('\n').forEach((line, index) => {
+    const where = `line ${index + 1}`;
+    for (const match of line.matchAll(/(?<![\w-])(fill|stroke|font-color)\s*:/g)) problems.push(`${where}: sets ${match[1]} directly (color literal)`);
+    for (const match of line.matchAll(/["']#[0-9a-fA-F]{3,8}["']|\b(?:rgba?|hsla?)\(/g)) problems.push(`${where}: color literal ${match[0]}`);
+    if (/(?<![\w-])font-size\s*:/.test(line)) problems.push(`${where}: font-size literal`);
+    if (/(?<![\w-])classes\s*:/.test(line)) problems.push(`${where}: defines its own classes`);
+    for (const match of line.matchAll(/(?<![\w-])class\s*:\s*(\[[^\]]*\]|"[^"]*"|'[^']*'|[^\s;{}]+)/g)) {
+      const names = match[1].replace(/^\[|\]$/g, '').split(/[;,]/).map((name) => name.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      for (const name of names.filter((item) => !DIAGRAM_ROLES.includes(item))) problems.push(`${where}: unknown role class "${name}"`);
+    }
+  });
+  return problems;
+}
+
+async function checkMediaSpec(inputs, report) {
+  if (!(await exists(inputs.diagramSpec))) return;
+  const entries = diagramSpecEntries(await readText(inputs.diagramSpec));
+  for (const entry of entries) {
+    const problems = diagramRoleProblems(entry.source);
+    if (!problems.length) continue;
+    report.finding('media.diagram-roles', 'blocking', `Slide ${entry.slide} diagram styles D2 outside the Diagram Roles.`, {
+      path: rel(report.projectDirectory, inputs.diagramSpec),
+      slide: entry.slide,
+      evidence: problems.join('; '),
+      remediation: `Replace colors, font sizes, and custom classes with class: <role> (${DIAGRAM_ROLES.join(', ')}).`,
+    });
+  }
+  if (entries.length) report.finding('media.diagram-roles', 'info', `Checked Diagram Role usage in ${entries.length} Diagram Spec entries.`);
+}
+
 async function checkTheme(inputs, report) {
   const lockPath = path.join(inputs.themes, 'theme-lock.json');
   if (!(await exists(lockPath))) {
@@ -458,6 +516,7 @@ async function validate({ projectDirectory, profile, checks }) {
   }
   if (checks.includes('structure')) await checkStructure(inputs, report);
   if (checks.includes('media')) await checkMedia(inputs, report);
+  if (checks.includes('media-spec')) await checkMediaSpec(inputs, report);
   if (checks.includes('theme')) await checkTheme(inputs, report);
   if (checks.includes('exports')) await checkExports(inputs, report);
   if (checks.includes('sources')) await checkSources(inputs, report);

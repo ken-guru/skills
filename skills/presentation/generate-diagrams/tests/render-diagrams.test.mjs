@@ -198,6 +198,42 @@ test('usage and prerequisite errors exit 2 without writing', async () => {
   assert.deepEqual(await svgFiles(directory), []);
 });
 
+test('a locked snapshot without Diagram Roles blocks with a refresh instruction', async () => {
+  const bin = await stubBin();
+  const log = path.join(bin, 'calls.jsonl');
+  const directory = await project({ manifest: (value) => { delete value.diagramRoles; return value; } });
+
+  const result = await render(directory, [], { bin, env: { STUB_D2_LOG: log } });
+
+  assert.equal(result.code, 2);
+  assert.match(result.output, /Diagram Roles/);
+  assert.match(result.output, /refresh the theme in generate-slides/i);
+  assert.deepEqual(await svgFiles(directory), []);
+  const calls = (await readFile(log, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+  assert.ok(calls.every((args) => args[0] === '--version'), 'D2 never validates or renders');
+});
+
+test('off-theme D2 is refused before anything is written', async () => {
+  const bin = await stubBin();
+  const directory = await project({
+    entries: [
+      entry({ slide: 1 }),
+      entry({ slide: 3, d2: 'a: A {class: base}\na.style.fill: "#ff0000"' }),
+      entry({ slide: 5, d2: 'a: A {class: base; style.font-size: 12}' }),
+      entry({ slide: 7, d2: 'a: A {class: sparkly}' }),
+    ],
+  });
+
+  const result = await render(directory, [], { bin });
+
+  assert.equal(result.code, 1);
+  assert.match(result.output, /Slide 3\b[^\n]*color/i);
+  assert.match(result.output, /Slide 5\b[^\n]*font-size/);
+  assert.match(result.output, /Slide 7\b[^\n]*sparkly/);
+  assert.doesNotMatch(result.output, /Slide 1\b[^\n]*(color|font-size|class)/);
+  assert.deepEqual(await svgFiles(directory), []);
+});
+
 test('the D2 theme follows the locked manifest diagram tone', async () => {
   for (const [theme, expected] of [['editorial', '--theme=0'], ['signal', '--theme=200']]) {
     const bin = await stubBin();

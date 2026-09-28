@@ -41,16 +41,29 @@ async function render(directory) {
     .catch((error) => ({ code: error.code, output: `${error.stdout}${error.stderr}` }));
 }
 
-test('real D2 renders a clean spec to SVGs with a root viewBox', { skip }, async () => {
-  assert.match(d2Version.stdout, /^0\.7\.1/, 'the render contract is pinned to D2 0.7.1');
-  const { directory } = await project('editorial', [
-    { slide: 1, d2: 'explore: Explore\nalign: Align\nexplore -> align: next' },
-  ]);
+const roleClassedSpec = [
+  'explore: Explore {class: emphasis}',
+  'align: Align {class: base}',
+  'risk: Drift {class: risk}',
+  'explore -> align: next {class: flow}',
+  'align -> risk: unchecked {class: risk-flow}',
+].join('\n');
 
-  const result = await render(directory);
+for (const theme of ['editorial', 'signal', 'compact-signal', 'field-notes']) {
+  test(`real D2 renders a role-classed spec in ${theme}'s role colors`, { skip }, async () => {
+    assert.match(d2Version.stdout, /^0\.7\.1/, 'the render contract is pinned to D2 0.7.1');
+    const { directory, manifest } = await project(theme, [{ slide: 1, d2: roleClassedSpec }]);
 
-  assert.equal(result.code, 0, result.output);
-  assert.deepEqual(await readdir(path.join(directory, 'images')), ['diagram-1.svg']);
-  const svg = await readFile(path.join(directory, 'images', 'diagram-1.svg'), 'utf8');
-  assert.match(svg, /^<\?xml[^>]*\?><svg\b[^>]*\sviewBox="0 0 \d+ \d+"/);
-});
+    const result = await render(directory);
+
+    assert.equal(result.code, 0, result.output);
+    assert.deepEqual(await readdir(path.join(directory, 'images')), ['diagram-1.svg']);
+    const svg = (await readFile(path.join(directory, 'images', 'diagram-1.svg'), 'utf8')).toLowerCase();
+    assert.match(svg, /^<\?xml[^>]*\?><svg\b[^>]*\sviewbox="0 0 \d+ \d+"/);
+    const roles = manifest.diagramRoles;
+    for (const key of [roles.emphasis.fill, roles.base.stroke, roles.risk.fill, roles.flow.stroke, roles['risk-flow'].stroke]) {
+      assert.ok(svg.includes(manifest.palette[key].toLowerCase()), `${theme}: ${key} ${manifest.palette[key]}`);
+    }
+    assert.ok(!svg.includes('#0d32b2'), `${theme}: D2's default blue leaked into the diagram`);
+  });
+}

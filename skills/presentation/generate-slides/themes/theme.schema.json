@@ -14,6 +14,7 @@
     "fonts",
     "palette",
     "media",
+    "diagramRoles",
     "archetypes",
     "assets"
   ],
@@ -51,6 +52,22 @@
       },
       "additionalProperties": false
     },
+    "diagramRoles": {
+      "description": "Diagram styling by semantic role. Colors name palette keys; the diagram renderer turns them into D2 at render time.",
+      "type": "object",
+      "required": ["base", "emphasis", "muted", "risk", "boundary", "flow", "optional-flow", "risk-flow"],
+      "properties": {
+        "base": {"$ref": "#/$defs/diagramNodeRole"},
+        "emphasis": {"$ref": "#/$defs/diagramNodeRole"},
+        "muted": {"$ref": "#/$defs/diagramNodeRole"},
+        "risk": {"$ref": "#/$defs/diagramNodeRole"},
+        "boundary": {"$ref": "#/$defs/diagramNodeRole"},
+        "flow": {"$ref": "#/$defs/diagramEdgeRole"},
+        "optional-flow": {"$ref": "#/$defs/diagramEdgeRole"},
+        "risk-flow": {"$ref": "#/$defs/diagramEdgeRole"}
+      },
+      "additionalProperties": false
+    },
     "archetypes": {
       "type": "object",
       "required": ["title", "section", "text-only", "text-plus-image", "data", "diagram", "quotation"],
@@ -84,6 +101,30 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "paletteKey": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "diagramNodeRole": {
+      "type": "object",
+      "required": ["fill", "stroke", "fontColor", "strokeDash", "fontSize"],
+      "properties": {
+        "fill": {"$ref": "#/$defs/paletteKey"},
+        "stroke": {"$ref": "#/$defs/paletteKey"},
+        "fontColor": {"$ref": "#/$defs/paletteKey"},
+        "strokeDash": {"type": "number", "minimum": 0, "maximum": 10},
+        "fontSize": {"type": "integer", "minimum": 8, "maximum": 100}
+      },
+      "additionalProperties": false
+    },
+    "diagramEdgeRole": {
+      "type": "object",
+      "required": ["stroke", "fontColor", "strokeDash", "fontSize"],
+      "properties": {
+        "stroke": {"$ref": "#/$defs/paletteKey"},
+        "fontColor": {"$ref": "#/$defs/paletteKey"},
+        "strokeDash": {"type": "number", "minimum": 0, "maximum": 10},
+        "fontSize": {"type": "integer", "minimum": 8, "maximum": 100}
+      },
+      "additionalProperties": false
+    },
     "fontStack": {
       "type": "array",
       "minItems": 1,

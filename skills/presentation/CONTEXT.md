@@ -139,6 +139,9 @@ _Avoid_: theme files, CSS theme, theme assets
 **Theme Manifest** — The declarative interface of a Theme Package, defining its identity, compatibility, composition rules, Content Capacity, typography, media treatment, and required semantic slide classes. Generation and validation consume the manifest rather than inferring behavior from CSS.
 _Avoid_: theme config, style metadata
 
+**Diagram Role** — A semantic styling class a diagram shape or connection declares in Media Spec D2 (`class: <role>`). The fixed set is `base`, `emphasis`, `muted`, `risk`, and `boundary` for nodes and `flow`, `optional-flow`, and `risk-flow` for connections. Every Theme Manifest maps each role to palette keys and a default font size; the Diagram Media Renderer turns them into D2 styling at render time, so Media Specs never carry colors or font sizes.
+_Avoid_: diagram style, D2 class, diagram palette
+
 **Theme Catalog** — The installed registry of bundled Presentation Themes, defining their stable order, default, package locations, and supported Semantic Slide Markup version. Theme-specific behavior remains in each Theme Manifest.
 _Avoid_: theme list, theme registry
 

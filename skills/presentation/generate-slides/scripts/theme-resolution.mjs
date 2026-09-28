@@ -35,6 +35,8 @@ const REQUIRED_CAPACITY = {
   quotation: { quoteLines: 4, attributionLines: 2, contextLines: 1 },
 };
 const SUPPORTED_PACKAGE_MAJOR = 1;
+const DIAGRAM_NODE_ROLES = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
+const DIAGRAM_EDGE_ROLES = ['flow', 'optional-flow', 'risk-flow'];
 
 function invalidPackage(message, details = {}) {
   const error = new Error(message);
@@ -109,7 +111,39 @@ function validateCatalog(catalog) {
   }
 }
 
-async function validatePackage({ catalog, entry, packageDirectory }) {
+// Diagram Roles map the fixed role set to palette keys and a font size. A locked
+// snapshot that predates them still resolves, so Generate Slides can refresh it;
+// the diagram render command blocks on it instead.
+function validateDiagramRoles(manifest, { required }) {
+  const roles = manifest.diagramRoles;
+  if (roles === undefined) {
+    if (required) invalidPackage(`Theme "${manifest.id}" has no Diagram Roles.`);
+    return;
+  }
+  if (!roles || typeof roles !== 'object') invalidPackage(`Theme "${manifest.id}" has invalid Diagram Roles.`);
+  for (const role of [...DIAGRAM_NODE_ROLES, ...DIAGRAM_EDGE_ROLES]) {
+    const definition = roles[role];
+    if (!definition || typeof definition !== 'object') {
+      invalidPackage(`Theme "${manifest.id}" is missing Diagram Role "${role}".`);
+    }
+    const colorFields = DIAGRAM_NODE_ROLES.includes(role) ? ['fill', 'stroke', 'fontColor'] : ['stroke', 'fontColor'];
+    for (const field of colorFields) {
+      if (!Object.hasOwn(manifest.palette, definition[field] ?? '')) {
+        invalidPackage(`Theme "${manifest.id}" Diagram Role "${role}" ${field} must name a palette key.`);
+      }
+    }
+    if (typeof definition.strokeDash !== 'number' || definition.strokeDash < 0 || definition.strokeDash > 10) {
+      invalidPackage(`Theme "${manifest.id}" Diagram Role "${role}" strokeDash must be a number from 0 to 10.`);
+    }
+    if (!Number.isInteger(definition.fontSize) || definition.fontSize < 8 || definition.fontSize > 100) {
+      invalidPackage(`Theme "${manifest.id}" Diagram Role "${role}" fontSize must be an integer from 8 to 100.`);
+    }
+  }
+  const unknown = Object.keys(roles).filter((role) => ![...DIAGRAM_NODE_ROLES, ...DIAGRAM_EDGE_ROLES].includes(role));
+  if (unknown.length) invalidPackage(`Theme "${manifest.id}" declares unknown Diagram Roles: ${unknown.join(', ')}.`);
+}
+
+async function validatePackage({ catalog, entry, packageDirectory, installed = false }) {
   let manifest;
   try {
     manifest = await readJson(path.join(packageDirectory, 'theme.json'));
@@ -176,6 +210,7 @@ async function validatePackage({ catalog, entry, packageDirectory }) {
   ) {
     invalidPackage(`Theme "${entry.id}" has incomplete media treatments.`);
   }
+  validateDiagramRoles(manifest, { required: installed });
   if (!Array.isArray(manifest.assets)) {
     invalidPackage(`Theme "${entry.id}" assets must be an array.`);
   }
@@ -328,6 +363,7 @@ export async function resolveTheme({
     catalog,
     entry,
     packageDirectory: installedPackageDirectory,
+    installed: true,
   });
 
   if (projectThemesDirectory) {

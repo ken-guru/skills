@@ -3,7 +3,7 @@
   "id": "signal",
   "name": "Signal",
   "description": "Bold, high-contrast, and structured for energy, systems, and data.",
-  "packageVersion": "1.0.0",
+  "packageVersion": "1.1.0",
   "markupVersion": 1,
   "marpTheme": "signal",
   "css": "theme.css",
@@ -26,6 +26,16 @@
   "media": {
     "pictureTreatment": "High-energy documentary imagery with controlled contrast, cool cyan shadows, restrained magenta highlights, clear subjects, and uncluttered edges for modular framing.",
     "diagramTreatment": "High-contrast cyan, acid-yellow, and white linework on a dark protected grid; stable semantic colors, exact labels, and uncropped relationships."
+  },
+  "diagramRoles": {
+    "base": {"fill": "dark", "stroke": "secondary", "fontColor": "foreground", "strokeDash": 0, "fontSize": 28},
+    "emphasis": {"fill": "accent", "stroke": "accent", "fontColor": "dark", "strokeDash": 0, "fontSize": 28},
+    "muted": {"fill": "dark", "stroke": "muted", "fontColor": "muted", "strokeDash": 0, "fontSize": 28},
+    "risk": {"fill": "highlight", "stroke": "highlight", "fontColor": "dark", "strokeDash": 0, "fontSize": 28},
+    "boundary": {"fill": "dark", "stroke": "muted", "fontColor": "foreground", "strokeDash": 4, "fontSize": 28},
+    "flow": {"stroke": "secondary", "fontColor": "foreground", "strokeDash": 0, "fontSize": 24},
+    "optional-flow": {"stroke": "muted", "fontColor": "muted", "strokeDash": 5, "fontSize": 24},
+    "risk-flow": {"stroke": "highlight", "fontColor": "highlight", "strokeDash": 0, "fontSize": 24}
   },
   "archetypes": {
     "title": {

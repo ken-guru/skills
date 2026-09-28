@@ -17,6 +17,10 @@ import path from 'node:path';
 
 const USAGE = 'Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]';
 const D2_THEME_BY_TONE = { 'tone-light': 0, 'tone-dark': 200 };
+const CANVAS_BY_TONE = { 'tone-light': 'light', 'tone-dark': 'dark' };
+const NODE_ROLES = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
+const EDGE_ROLES = ['flow', 'optional-flow', 'risk-flow'];
+const DIAGRAM_ROLES = [...NODE_ROLES, ...EDGE_ROLES];
 
 class UsageError extends Error {}
 
@@ -126,6 +130,64 @@ async function lockedManifest(projectDirectory) {
   }
 }
 
+// Styling comes only from Diagram Roles: no color or font-size literals, no
+// class definitions, and only role classes. presentation-validation's
+// media.diagram-roles finding applies the same rule.
+function roleProblems(source) {
+  const problems = [];
+  source.split('\n').forEach((line, index) => {
+    const where = `line ${index + 1}`;
+    for (const match of line.matchAll(/(?<![\w-])(fill|stroke|font-color)\s*:/g)) problems.push(`${where}: sets ${match[1]} directly (color literal)`);
+    for (const match of line.matchAll(/["']#[0-9a-fA-F]{3,8}["']|\b(?:rgba?|hsla?)\(/g)) problems.push(`${where}: color literal ${match[0]}`);
+    if (/(?<![\w-])font-size\s*:/.test(line)) problems.push(`${where}: font-size literal`);
+    if (/(?<![\w-])classes\s*:/.test(line)) problems.push(`${where}: defines its own classes`);
+    for (const match of line.matchAll(/(?<![\w-])class\s*:\s*(\[[^\]]*\]|"[^"]*"|'[^']*'|[^\s;{}]+)/g)) {
+      const names = match[1].replace(/^\[|\]$/g, '').split(/[;,]/).map((name) => name.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      for (const name of names.filter((item) => !DIAGRAM_ROLES.includes(item))) problems.push(`${where}: unknown role class "${name}"`);
+    }
+  });
+  return problems;
+}
+
+// D2 source that applies the locked theme: theme-overrides recolor anything
+// unclassed, and one class per Diagram Role carries the role's styling.
+function rolePreamble(manifest, tone) {
+  const roles = manifest.diagramRoles;
+  const color = (key) => manifest.palette[key];
+  const canvas = color(CANVAS_BY_TONE[tone]) ?? color('background') ?? color(roles.base.fill);
+  const overrides = {
+    N1: roles.base.fontColor, N2: roles.muted.fontColor, N3: roles.muted.stroke, N4: roles.muted.stroke,
+    N5: roles.boundary.fill, N6: roles.boundary.fill, B1: roles.base.stroke, B2: roles.flow.stroke,
+    B3: roles.base.stroke, B4: roles.boundary.fill, B5: roles.boundary.fill, B6: roles.base.fill,
+    AA2: roles.emphasis.fill, AA4: roles.boundary.fill, AA5: roles.base.fill, AB4: roles.boundary.fill, AB5: roles.base.fill,
+  };
+  const lines = ['vars: {', '  d2-config: {', '    theme-overrides: {', `      N7: "${canvas}"`];
+  for (const [code, key] of Object.entries(overrides)) lines.push(`      ${code}: "${color(key)}"`);
+  lines.push('    }', '  }', '}', 'classes: {');
+  for (const role of DIAGRAM_ROLES) {
+    const definition = roles[role];
+    const style = [];
+    if (NODE_ROLES.includes(role)) style.push(`fill: "${color(definition.fill)}"`);
+    style.push(`stroke: "${color(definition.stroke)}"`, `font-color: "${color(definition.fontColor)}"`, `stroke-dash: ${definition.strokeDash}`, `font-size: ${definition.fontSize}`);
+    lines.push(`  ${role}: {style: {${style.join('; ')}}}`);
+  }
+  lines.push('}', '');
+  return lines.join('\n');
+}
+
+function missingRoleStyling(manifest) {
+  const roles = manifest.diagramRoles;
+  if (!roles) return 'has no Diagram Roles';
+  for (const role of DIAGRAM_ROLES) {
+    const definition = roles[role];
+    const keys = [...(NODE_ROLES.includes(role) ? ['fill'] : []), 'stroke', 'fontColor'].map((field) => definition?.[field]);
+    if (!definition || keys.some((key) => !manifest.palette?.[key]) || typeof definition.fontSize !== 'number' || typeof definition.strokeDash !== 'number') {
+      return `has an incomplete Diagram Role "${role}"`;
+    }
+  }
+  return null;
+}
+
 // Valid SVG may open with a BOM, XML declaration, comments, or DOCTYPE.
 function svgRootTag(svg) {
   const body = svg.replace(/^﻿?(?:\s+|<\?xml\b[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\b[^>[]*(?:\[[\s\S]*?\])?\s*>)*/i, '');
@@ -137,6 +199,17 @@ function svgProblem(svg) {
   if (!root) return 'the rendered file\'s root element is not <svg>';
   if (!/\sviewBox=["'][^"']+["']/i.test(root)) return 'the rendered root <svg> has no viewBox';
   return null;
+}
+
+// Points D2's messages at the entry's own D2 Source lines, not the temp file
+// with the injected role preamble.
+function d2Message(output, input, preamble) {
+  const offset = preamble.split('\n').length - 1;
+  return output
+    .split(`${input}:`).join('')
+    .split(input).join('D2 Source')
+    .replace(/\S*d2cli\.\w+: /g, '')
+    .replace(/(^|\s)(\d+):(\d+):/gm, (_, lead, line, column) => `${lead}D2 Source line ${Math.max(1, Number(line) - offset)}, column ${column}:`);
 }
 
 function label(entry) {
@@ -155,6 +228,11 @@ async function main(argv) {
   const tone = manifest.archetypes?.diagram?.tone;
   const d2Theme = D2_THEME_BY_TONE[tone];
   if (d2Theme === undefined) throw new UsageError(`The locked Theme Manifest's diagram tone "${tone}" is not tone-light or tone-dark. Refresh the theme in generate-slides.`);
+  const stylingProblem = missingRoleStyling(manifest);
+  if (stylingProblem) {
+    throw new UsageError(`The locked Theme Manifest for "${manifest.id}" ${stylingProblem}, so diagrams cannot use the Presentation Theme. Refresh the theme in generate-slides, then rerun.`);
+  }
+  const preamble = rolePreamble(manifest, tone);
 
   let entries = parseDiagramSpec(await readFile(options.specPath, 'utf8'));
   if (options.slides) {
@@ -178,6 +256,14 @@ async function main(argv) {
     return 1;
   }
 
+  const offTheme = entries.map((item) => ({ item, problems: roleProblems(item.source) })).filter(({ problems }) => problems.length);
+  if (offTheme.length) {
+    console.log(`❌ ${offTheme.length} diagram${offTheme.length === 1 ? '' : 's'} style D2 outside the Diagram Roles; nothing was written:`);
+    for (const { item, problems } of offTheme) console.log(`   • ${label(item)}: ${problems.join('; ')}`);
+    console.log(`   Replace colors, font sizes, and custom classes with class: <role> (${DIAGRAM_ROLES.join(', ')}), then rerun.`);
+    return 1;
+  }
+
   const selected = [];
   for (const item of entries) {
     if (!options.force && existsSync(item.target)) console.log(`⏭️  ${label(item)}: exists — pass --force to re-render`);
@@ -192,13 +278,13 @@ async function main(argv) {
   temporaryPaths.add(workDirectory);
   for (const item of selected) {
     item.input = path.join(workDirectory, `slide-${item.slide}.d2`);
-    await writeFile(item.input, item.source);
+    await writeFile(item.input, `${preamble}${item.source}`);
   }
 
   const invalid = [];
   for (const item of selected) {
     const result = await run('d2', ['validate', item.input]);
-    if (result.code !== 0) invalid.push({ item, message: result.output.split(item.input).join('D2 Source') });
+    if (result.code !== 0) invalid.push({ item, message: d2Message(result.output, item.input, preamble) });
   }
   if (invalid.length) {
     console.log(`❌ ${invalid.length} diagram${invalid.length === 1 ? '' : 's'} failed d2 validate; nothing was written:`);
@@ -215,7 +301,7 @@ async function main(argv) {
       await mkdir(path.dirname(item.target), { recursive: true });
       temporaryPaths.add(temporary);
       const result = await run('d2', ['--layout=elk', `--theme=${d2Theme}`, item.input, temporary]);
-      if (result.code !== 0) throw new Error(`d2 failed: ${result.output.split(item.input).join('D2 Source')}`);
+      if (result.code !== 0) throw new Error(`d2 failed: ${d2Message(result.output, item.input, preamble)}`);
       const problem = svgProblem(await readFile(temporary, 'utf8'));
       if (problem) throw new Error(problem);
       await rename(temporary, item.target);

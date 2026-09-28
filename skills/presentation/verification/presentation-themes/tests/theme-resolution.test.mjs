@@ -68,6 +68,68 @@ test('all bundled identifiers resolve complete compatible Theme Packages', async
   }
 });
 
+const nodeRoles = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
+const edgeRoles = ['flow', 'optional-flow', 'risk-flow'];
+
+test('every bundled theme declares the fixed Diagram Role set by palette key', async () => {
+  for (const id of ['editorial', 'signal', 'compact-signal', 'field-notes']) {
+    const { manifest } = await resolveTheme({ discovery: { theme: { id } }, themesDirectory });
+    assert.deepEqual(Object.keys(manifest.diagramRoles).sort(), [...nodeRoles, ...edgeRoles].sort(), id);
+    for (const [role, definition] of Object.entries(manifest.diagramRoles)) {
+      const colorFields = nodeRoles.includes(role) ? ['fill', 'stroke', 'fontColor'] : ['stroke', 'fontColor'];
+      for (const field of colorFields) assert.ok(definition[field] in manifest.palette, `${id} ${role}.${field}`);
+      assert.ok(Number.isInteger(definition.fontSize) && definition.fontSize >= 20, `${id} ${role}.fontSize`);
+      assert.equal(typeof definition.strokeDash, 'number', `${id} ${role}.strokeDash`);
+    }
+  }
+});
+
+async function resolveWithEditedManifest(edit) {
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'theme-diagram-roles-'));
+  const copiedThemes = path.join(temporaryRoot, 'themes');
+  await cp(themesDirectory, copiedThemes, { recursive: true });
+  const manifestPath = path.join(copiedThemes, 'editorial', 'theme.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  edit(manifest);
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return resolveTheme({ discovery: { theme: { id: 'editorial' } }, themesDirectory: copiedThemes });
+}
+
+for (const [name, edit, message] of [
+  ['a missing Diagram Role', (manifest) => { delete manifest.diagramRoles['risk-flow']; }, /Diagram Role "risk-flow"/],
+  ['missing Diagram Roles', (manifest) => { delete manifest.diagramRoles; }, /Diagram Roles/],
+  ['a role naming an unknown palette key', (manifest) => { manifest.diagramRoles.base.fill = 'chartreuse'; }, /"base".*fill/],
+  ['a role without a font size', (manifest) => { delete manifest.diagramRoles.flow.fontSize; }, /"flow".*fontSize/],
+  ['a role written in D2 syntax', (manifest) => { manifest.diagramRoles.base.fill = '#ffffff'; }, /"base".*fill/],
+]) {
+  test(`an installed Theme Package with ${name} blocks resolution`, async () => {
+    await assert.rejects(resolveWithEditedManifest(edit), (error) => {
+      assert.equal(error.code, 'INVALID_THEME_PACKAGE');
+      assert.match(error.message, message);
+      return true;
+    });
+  });
+}
+
+test('a locked snapshot that predates Diagram Roles still resolves so it can be refreshed', async () => {
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'theme-pre-roles-'));
+  const projectThemes = path.join(temporaryRoot, 'project-themes');
+  const initial = await resolveTheme({ discovery: { theme: { id: 'editorial' } }, themesDirectory });
+  const legacy = structuredClone(initial.manifest);
+  delete legacy.diagramRoles;
+  legacy.packageVersion = '1.0.0';
+  const legacyPackage = path.join(temporaryRoot, 'legacy-editorial');
+  await cp(initial.packageDirectory, legacyPackage, { recursive: true });
+  await writeFile(path.join(legacyPackage, 'theme.json'), `${JSON.stringify(legacy, null, 2)}\n`);
+  await snapshotTheme({ resolution: { ...initial, manifest: legacy, packageDirectory: legacyPackage }, projectThemesDirectory: projectThemes });
+
+  const locked = await resolveTheme({ discovery: { theme: { id: 'editorial' } }, themesDirectory, projectThemesDirectory: projectThemes });
+
+  assert.equal(locked.source, 'project-snapshot');
+  assert.equal(locked.manifest.diagramRoles, undefined);
+  assert.equal(locked.updateAvailable, true);
+});
+
 test('a catalog and manifest identifier mismatch blocks before resolution', async () => {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'theme-resolution-'));
   const copiedThemes = path.join(temporaryRoot, 'themes');
@@ -195,7 +257,7 @@ test('a matching locked project snapshot wins over a newer installed package', a
 
   const installedManifestPath = path.join(installedThemes, 'editorial', 'theme.json');
   const installedManifest = JSON.parse(await readFile(installedManifestPath, 'utf8'));
-  installedManifest.packageVersion = '1.1.0';
+  installedManifest.packageVersion = '1.9.0';
   await writeFile(installedManifestPath, `${JSON.stringify(installedManifest, null, 2)}\n`);
 
   const locked = await resolveTheme({
@@ -205,7 +267,7 @@ test('a matching locked project snapshot wins over a newer installed package', a
   });
 
   assert.equal(locked.source, 'project-snapshot');
-  assert.equal(locked.manifest.packageVersion, '1.0.0');
+  assert.equal(locked.manifest.packageVersion, '1.1.0');
   assert.equal(locked.updateAvailable, true);
 });
 

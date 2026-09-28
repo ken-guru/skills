@@ -86,7 +86,6 @@ For every Diagram, write a `DIAGRAM_SPEC.md` entry:
 - **Show:** [copied from Diagram brief]
 - **Takeaway:** [copied from Diagram brief]
 - **Theme Treatment:** [resolved diagram treatment from the locked Theme Manifest]
-- **Palette and line guidance:** [manifest palette with semantic-color preservation]
 - **Filename:** `[exact Agenda filename]`
 - **D2 Source:**
   ```d2
@@ -94,9 +93,36 @@ For every Diagram, write a `DIAGRAM_SPEC.md` entry:
   ```
 ```
 
+Style D2 only through Diagram Roles: give every shape and connection
+`class: <role>`. The render command supplies each role's colors and font size
+from the locked Theme Manifest, so a theme change restyles diagrams without
+editing them.
+
+| Role | Use for |
+|------|---------|
+| `base` | Ordinary node |
+| `emphasis` | The node the Takeaway turns on |
+| `muted` | Context or out-of-scope node |
+| `risk` | Failure, threat, or cost |
+| `boundary` | Container grouping nodes |
+| `flow` | Ordinary connection |
+| `optional-flow` | Conditional or optional connection |
+| `risk-flow` | Connection that carries risk |
+
+Keep colors, `font-size`, and `classes` definitions out of D2 Source; layout
+keywords such as `direction` and `shape` stay available.
+
 External Font Override state never enters either Media Spec. Skip `[Visual: None]`. Do not create an empty spec.
 
 Validate filename alignment with the Agenda. For existing media, also validate actual dimensions against Intended Media Orientation; an orientation mismatch blocks slide generation rather than silently changing variation.
+
+When `DIAGRAM_SPEC.md` exists, run the Media Spec role check before approval:
+
+```text
+presentation-validation check media-spec --project-dir <project> --profile generation
+```
+
+Exit `1` blocks: fix every reported slide's D2 Source and rerun until it exits `0`.
 
 Run the [Media Spec diff procedure](MEDIA_SPEC_DIFF.md) for both specs. Show all
 added, removed, and modified entries, then ask the user to review or approve the

@@ -3,7 +3,7 @@
   "id": "editorial",
   "name": "Editorial",
   "description": "Warm, typographic, and composed like a modern magazine.",
-  "packageVersion": "1.0.0",
+  "packageVersion": "1.1.0",
   "markupVersion": 1,
   "marpTheme": "editorial",
   "css": "theme.css",
@@ -25,6 +25,16 @@
   "media": {
     "pictureTreatment": "Editorial documentary photography with warm paper tones, restrained saturation, natural light, deliberate framing, and uncluttered protected focal regions.",
     "diagramTreatment": "Restrained aubergine and coral linework on a light paper panel; precise labels and semantic encodings remain ungraded and uncropped."
+  },
+  "diagramRoles": {
+    "base": {"fill": "light", "stroke": "foreground", "fontColor": "foreground", "strokeDash": 0, "fontSize": 28},
+    "emphasis": {"fill": "foreground", "stroke": "foreground", "fontColor": "light", "strokeDash": 0, "fontSize": 28},
+    "muted": {"fill": "background", "stroke": "muted", "fontColor": "muted", "strokeDash": 0, "fontSize": 28},
+    "risk": {"fill": "accent", "stroke": "accent", "fontColor": "light", "strokeDash": 0, "fontSize": 28},
+    "boundary": {"fill": "background", "stroke": "muted", "fontColor": "foreground", "strokeDash": 4, "fontSize": 28},
+    "flow": {"stroke": "foreground", "fontColor": "foreground", "strokeDash": 0, "fontSize": 24},
+    "optional-flow": {"stroke": "muted", "fontColor": "muted", "strokeDash": 5, "fontSize": 24},
+    "risk-flow": {"stroke": "accent", "fontColor": "accent", "strokeDash": 0, "fontSize": 24}
   },
   "archetypes": {
     "title": {

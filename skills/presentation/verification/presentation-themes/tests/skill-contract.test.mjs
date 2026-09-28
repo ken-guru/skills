@@ -63,6 +63,20 @@ test('Protocol, glossary, and Generate Diagrams agree on Batch by default', asyn
   assert.ok(diagramEvals.some((item) => /Media Scope prompt/.test(item.expected)));
 });
 
+test('Diagram Specs style through Diagram Roles, checked before Media Spec approval', async () => {
+  const slides = await read('skills/presentation/generate-slides/SKILL.md');
+  const context = await read('skills/presentation/CONTEXT.md');
+
+  const roleCheck = slides.indexOf('check media-spec');
+  assert.ok(roleCheck !== -1, 'Generate Slides runs the Media Spec role check');
+  assert.ok(roleCheck < slides.indexOf('ask the user to review or approve'), 'the role check precedes approval');
+  assert.doesNotMatch(slides, /Palette and line guidance/);
+  for (const role of ['base', 'emphasis', 'muted', 'risk', 'boundary', 'flow', 'optional-flow', 'risk-flow']) {
+    assert.match(slides, new RegExp(`\`${role}\``));
+    assert.match(context, new RegExp(`\\*\\*Diagram Role\\*\\*[^\\n]*\`${role}\``));
+  }
+});
+
 test('Media Renderer evals cover trigger ambiguity and incomplete outcomes', async () => {
   const imageEvals = JSON.parse(await read('skills/presentation/generate-images/evals/generate-images.json'));
   const diagramEvals = JSON.parse(await read('skills/presentation/generate-diagrams/evals/generate-diagrams.json'));
