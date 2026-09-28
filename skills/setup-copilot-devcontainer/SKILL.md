@@ -142,8 +142,11 @@ On a re-run against an existing container, also tell them: an older
 authenticates from `GH_TOKEN` on its own — that's outdated (this skill never
 rewrites a block it already wrote), and the `.env.example` block is correct.
 If they previously answered "yes" to Copilot's "Store token in plain text
-config file?" prompt, they should run `/logout` in `copilot` to remove that
-stored token; `COPILOT_GITHUB_TOKEN` replaces it.
+config file?" prompt, that token is still stored in plain text under
+`authTokens` in `~/.copilot/config.json`; they should delete that entry by
+hand, since `COPILOT_GITHUB_TOKEN` replaces it. `/logout` won't remove it:
+it only clears a `/login` session while that session is the active
+credential, and `COPILOT_GITHUB_TOKEN` takes precedence.
 
 If YOLO guidance was accepted, `copilot-yolo`
 prints the current unattended-run flags and their vendor caveat rather than
