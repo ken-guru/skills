@@ -126,7 +126,7 @@ citations, accessibility text, commands, or machine-readable metadata.
 
 **Glossary** (Begreper og definisjoner) — Canonical definitions of all domain-specific terms used in the presentation
 
-**Agenda-time diagram briefing** — The collaborative discussion of a slide's diagram intent and content while its agenda entry is being drafted, before any diagram specification or D2 source is generated.
+**Agenda-time diagram briefing** — The collaborative capture of each Diagram slide's intent and content once the draft outline is presented, in one round covering every Diagram slide, before any diagram specification or D2 source is generated.
 
 **Diagram brief** — The named block on a Diagram agenda entry that records its Message, Show, and Takeaway. It is the single source of truth for a diagram's intent and content.
 

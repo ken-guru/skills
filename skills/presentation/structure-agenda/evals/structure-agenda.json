@@ -1,0 +1,51 @@
+[
+  {
+    "skill": "structure-agenda",
+    "type": "positive",
+    "query": "let's structure the content for my presentation",
+    "precondition": "DISCOVERY.json exists",
+    "expected": "skill loads"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "negative",
+    "query": "render the presentation diagrams",
+    "precondition": "DIAGRAM_SPEC.md exists",
+    "expected": "skill does NOT load — generate-diagrams should handle this"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "Go with B",
+    "precondition": "Agenda alternatives have been proposed and structure B yields three Diagram slides",
+    "expected": "skill presents the draft outline and, in the same message, one Diagram brief form with a blank Message / Show / Takeaway block for each of the three Diagram slides; it asks no per-slide brief question"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "Slide 4 — Message: auth hops add latency; Show: client, gateway, IdP, API; Takeaway: cache tokens at the gateway. Slide 7 — Message: STRIDE maps to components; Show: the six categories on the data flow; Takeaway: every box gets a threat. Slide 11 — Message: rollout is staged; Show: three waves over six weeks; Takeaway: start with read-only services.",
+    "precondition": "The Diagram brief form for slides 4, 7, and 11 has been presented",
+    "expected": "skill accepts all three complete briefs from one reply, adds each Diagram brief block to the in-memory draft, and asks for no further brief input"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "Slide 4 — Message: auth hops add latency; Show: client, gateway, IdP, API; Takeaway: cache tokens at the gateway. Slide 7 — Message: STRIDE maps to components. Slide 11 — Show: three waves over six weeks.",
+    "precondition": "The Diagram brief form for slides 4, 7, and 11 has been presented",
+    "expected": "skill keeps slide 4's complete brief and re-asks only the missing fields in one message: Show and Takeaway for slide 7, Message and Takeaway for slide 11"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "Slide 4 — Message: auth hops add latency; Show: client, gateway, IdP, API; Takeaway: cache tokens at the gateway. Make slide 7 a Picture instead, and slide 11 None.",
+    "precondition": "The Diagram brief form for slides 4, 7, and 11 has been presented",
+    "expected": "skill records slide 4's brief, switches slide 7 to Picture with an Intended Media Orientation and slide 11 to None in the same pass, and asks for nothing more on those slides"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "draft for all three",
+    "precondition": "The Diagram brief form for slides 4, 7, and 11 has been presented",
+    "expected": "skill proposes a brief for each of the three slides for the presenter to edit, and does not write AGENDA.md before explicit approval"
+  }
+]

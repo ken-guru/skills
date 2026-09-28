@@ -39,8 +39,36 @@
     "skill": "discover-presentation",
     "type": "boundary",
     "query": "Use Signal for this new presentation",
-    "precondition": "Discovery interview is active and Visual preference has been confirmed",
-    "expected": "skill records theme.id=signal and does not ask about external fonts"
+    "precondition": "Discovery Round 3 has been asked and the reply answers only the theme choice",
+    "expected": "skill records theme.id=signal, fills the other Round 3 answers from defaults, and does not ask about external fonts"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "I'm giving a talk and need slides",
+    "precondition": "No DISCOVERY.json exists",
+    "expected": "skill opens Round 1 by asking topic and audience together in one message, without persona, logistics, or theme questions"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "It's an intro to threat modelling for our backend developers",
+    "precondition": "Discovery Round 1 has been asked",
+    "expected": "skill records topic and audience, then asks Round 2 in one message: experience level, goal, skepticism, concrete problem, and the top 3 takeaways"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "Mid-level devs who will implement it, they worry it slows delivery; takeaways: STRIDE basics, a 30-minute workshop format, where it fits in sprints",
+    "precondition": "Discovery Round 2 has been asked",
+    "expected": "skill asks Round 3 in one message: duration, occasion, language, visual preference, and editorial preferences, ending with the theme choice and its comparison link"
+  },
+  {
+    "skill": "discover-presentation",
+    "type": "boundary",
+    "query": "30 min conference talk on OAuth for senior architects who will implement it; they fear token leakage",
+    "precondition": "No DISCOVERY.json exists",
+    "expected": "skill skips answered questions: Round 1 is dropped, its Round 2 asks for the top 3 takeaways without re-asking experience level, goal, or skepticism, and Round 3 omits duration and occasion"
   },
   {
     "skill": "discover-presentation",

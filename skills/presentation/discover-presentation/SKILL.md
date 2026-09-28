@@ -34,7 +34,7 @@ If `DISCOVERY.json` already exists, read and retain it for change comparison. Do
 
 ### Step 1: Interview
 
-Ask the questions in [QUESTIONS.md](QUESTIONS.md) conversationally. Extract structured data from free-form answers. Accept partial answers and fill the rest with defaults from [DEFAULTS.md](DEFAULTS.md).
+Ask the questions in [QUESTIONS.md](QUESTIONS.md) in its three rounds, one message per round. Extract structured data from free-form answers. Accept partial answers and fill the rest with defaults from [DEFAULTS.md](DEFAULTS.md).
 
 **Language detection:** Infer the presentation language from how the user writes. If they write in Norwegian, default to Norwegian bokmål. If they write in English or another language, use that. The detected language is recorded in `DISCOVERY.json` and must be respected throughout all subsequent phases — all generated content (slides, presenter notes, glossary) must be in that language.
 

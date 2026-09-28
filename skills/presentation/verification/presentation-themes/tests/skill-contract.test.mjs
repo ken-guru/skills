@@ -95,3 +95,68 @@ test('Compact Signal pagination shows only the current slide number', async () =
   assert.match(compactSignal, /content:\s*attr\(data-marpit-pagination\);/);
   assert.doesNotMatch(compactSignal, /counter\(marpit-slide/);
 });
+
+test('Discovery asks its questions in three rounds', async () => {
+  const skill = await read('skills/presentation/discover-presentation/SKILL.md');
+  const questions = await read('skills/presentation/discover-presentation/QUESTIONS.md');
+  const evals = JSON.parse(await read('skills/presentation/discover-presentation/evals/discover-presentation.json'));
+
+  for (const document of [skill, questions]) {
+    assert.doesNotMatch(document, /one at a time/i);
+  }
+  for (const round of ['Round 1', 'Round 2', 'Round 3']) {
+    assert.match(questions, new RegExp(`\\b${round}\\b`));
+  }
+  assert.match(questions, /one message/);
+  assert.match(questions, /structured question tool/);
+  assert.ok(evals.filter((item) => /\bround\b/i.test(item.expected)).length >= 3);
+});
+
+test('Structure Agenda collects every Diagram brief in one form', async () => {
+  const context = await read('skills/presentation/CONTEXT.md');
+  const draft = await read('skills/presentation/structure-agenda/DRAFT_AGENDA.md');
+  const evals = JSON.parse(await read('skills/presentation/structure-agenda/evals/structure-agenda.json'));
+
+  assert.match(context, /\*\*Agenda-time diagram briefing\*\*[^\n]*once the draft outline is presented, in one round covering every Diagram slide/);
+  assert.doesNotMatch(draft, /one at a time/i);
+  assert.match(draft, /Diagram brief form/);
+  assert.match(draft, /every Diagram slide/);
+  assert.match(draft, /re-ask only the missing fields/i);
+  assert.match(draft, /\bdraft\b[^\n]*propose/);
+  assert.match(draft, /structured question tool/);
+
+  for (const behaviour of [/one reply/i, /only the missing/i, /to Picture\b.*\bto None\b/]) {
+    assert.ok(evals.some((item) => behaviour.test(item.expected)), `missing eval for ${behaviour}`);
+  }
+  assert.ok(evals.every((item) => item.skill === 'structure-agenda'));
+});
+
+test('Generation Mode is Batch by default across the glossary, protocol, and Media Renderers', async () => {
+  const context = await read('skills/presentation/CONTEXT.md');
+  const mediaProtocol = await read('skills/presentation/MEDIA_RENDERING.md');
+  const images = await read('skills/presentation/generate-images/SKILL.md');
+  const diagrams = await read('skills/presentation/generate-diagrams/SKILL.md');
+
+  assert.match(context, /\*\*Generation Mode\*\*[^\n]*Batch by default; Interactive on request\./);
+  assert.match(mediaProtocol, /Use Batch Generation Mode by default; use Interactive only when the user asks\./);
+  for (const renderer of [images, diagrams]) {
+    assert.match(renderer, /Protocol: resolve Media Scope, Batch by default \(Interactive on request\)/);
+    assert.doesNotMatch(renderer, /choose Generation Mode/);
+  }
+});
+
+test('Generate Images confirms once before paid generation', async () => {
+  const images = await read('skills/presentation/generate-images/SKILL.md');
+  const evals = JSON.parse(await read('skills/presentation/generate-images/evals/generate-images.json'));
+
+  assert.match(images, /Generate N images with <provider>\/<model>\? \(yes \/ one at a time \/ cancel\)/);
+  assert.doesNotMatch(images, /All at once/);
+  assert.match(images, /existing files detected/);
+
+  for (const answer of [/\byes\b/, /one at a time/, /\bcancel\b/]) {
+    assert.ok(
+      evals.some((item) => answer.test(item.query) && /confirm/i.test(item.precondition)),
+      `missing eval answering the confirmation with ${answer}`,
+    );
+  }
+});
