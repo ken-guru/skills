@@ -16,9 +16,49 @@ Classify each slide once with this ordered table:
 6. Explicit quotation → `quotation`.
 7. Everything else → `text-only`.
 
-The installed `scripts/slide-composition.mjs` exports the same classification, variation, orientation, capacity, directive, and Theme Treatment planning contract for deterministic preflight and verification. `scripts/semantic-markup.mjs` consumes the normalized in-memory Agenda and Media Spec content and renders the Markdown through that contract. Its `split` result is binding; never compensate by shrinking type, and do not persist the normalized objects as a duplicate slide-plan artifact.
+The slide-markup command applies this table to each slide object through `role`, `visual.type`, and `quantitative` (see [Slide object fields](#slide-object-fields)). A `SLIDE_SPLIT_REQUIRED` error is binding: split the slide and keep type at the accepted size.
 
 The Theme Manifest selects the first applicable variation. Text-plus-image uses the approved Intended Media Orientation: `portrait` or `landscape`. Do not choose randomly and do not vary a composition merely for visual novelty.
+
+## Slide object fields
+
+`scripts/slide-markup.mjs` reads a JSON array of slide objects, one per slide in presentation order. A text field is a string or a line array: each array item is one rendered line, joined with `<br>` and counted against Content Capacity. `label` and `context` are single-line strings. `body` is always an array of bullets, and each bullet is itself a string or a line array. Text is escaped, so write plain text rather than HTML.
+
+Fields on every slide:
+
+- `notes` (optional): array of presenter-note strings, rendered as a bulleted HTML comment.
+- `archetype` (optional): the archetype you expect; the command blocks when classification disagrees.
+
+| Archetype | Select with | Required | Optional |
+|---|---|---|---|
+| `title` | `"role": "opener"` | `title`, `label`, `subtitle`, `visual` | |
+| `section` | `"role": "section-boundary"` | `title`, `context`, `orientation` | |
+| `diagram` | `visual.type: "diagram"` | `heading`, `takeaway`, `caption`, `visual` | |
+| `data` | `visual.type: "chart"` or `"quantitative": true` | `heading`, `takeaway`, and either `metrics` with `metricsAlt` or a chart `visual` | |
+| `text-plus-image` | `visual.type: "picture"` | `heading`, `body`, `caption`, `visual` with `intendedOrientation` | `visual.actualOrientation` |
+| `quotation` | `"role": "quotation"` | `context`, `quote`, `attribution` | |
+| `text-only` | none of the above | `heading`, `body` | `label` |
+
+Classification follows the table order, so an opener with a picture is `title`, not `text-plus-image`. A glossary or sources slide is `text-only`; a quoted source's credit goes in a quotation's `attribution`. `caption` and `body` may be empty arrays when the Agenda gives no text for them.
+
+Slot meanings:
+
+- `title`: the title or section name. `heading`: a content slide's headline.
+- `subtitle`: the opener's supporting line. `label`: a short kicker above the heading or title.
+- `context`: a one-line section number or context label. `orientation`: one or two lines telling the audience where the section goes next.
+- `body`: the bullets. `takeaway`: the one message a data or diagram slide must leave. `caption`: supporting text under the media.
+- `quote` and `attribution`: the quoted words and their speaker or source.
+
+`visual` fields:
+
+- `type`: `picture`, `diagram`, or `chart`. Omit `visual` for `[Visual: None]`.
+- `filename`: the exact Agenda or Media Spec filename, relative to the presentation file.
+- `alt`: purpose-based alternative text; required.
+- `themeTreatment`: the Theme Treatment from the approved Media Spec entry. Required for pictures and diagrams; it must equal the locked manifest's treatment.
+- `intendedOrientation`: pictures only, `portrait`, `landscape`, or `full-image`, copied from the Agenda.
+- `actualOrientation`: pictures only, the orientation of existing media; a mismatch blocks.
+
+`metrics` is an array of `{ "value": "40%", "label": "Explore widely" }`; `metricsAlt` summarises them for screen readers.
 
 ## Semantic Slide Markup
 

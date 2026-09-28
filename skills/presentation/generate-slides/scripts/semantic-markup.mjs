@@ -52,14 +52,50 @@ function slideMarkup(slide, plan) {
   }
 }
 
+const slideError = (index, error) => ({
+  slide: index + 1,
+  code: error.code ?? 'INVALID_SLIDE',
+  message: error.message,
+  error,
+});
+
+function splitRequired(index) {
+  const error = new Error(`Slide ${index + 1} exceeds Content Capacity and must be split.`);
+  error.code = 'SLIDE_SPLIT_REQUIRED';
+  return error;
+}
+
+// Collects every blocking slide error instead of stopping at the first. Errors
+// are ordered planning, then capacity, then markup, each by slide number: the
+// order in which renderPresentationMarkdown has always thrown them.
+export function checkPresentationSlides({ slides, manifest }) {
+  const planning = [];
+  const capacity = [];
+  const markup = [];
+  const plans = slides.map((slide, index) => {
+    try {
+      return planSlide({ slide, manifest });
+    } catch (error) {
+      planning.push(slideError(index, error));
+      return undefined;
+    }
+  });
+  const markups = plans.map((plan, index) => {
+    if (!plan) return undefined;
+    if (plan.action === 'split') capacity.push(slideError(index, splitRequired(index)));
+    try {
+      return slideMarkup(slides[index], plan);
+    } catch (error) {
+      markup.push(slideError(index, error));
+      return undefined;
+    }
+  });
+  return { plans, markups, errors: [...planning, ...capacity, ...markup] };
+}
+
 export function renderPresentationMarkdown({ frontMatter, slides, manifest }) {
-  const plans = slides.map((slide) => planSlide({ slide, manifest }));
-  const split = plans.findIndex((plan) => plan.action === 'split');
-  if (split !== -1) {
-    const error = new Error(`Slide ${split + 1} exceeds Content Capacity and must be split.`);
-    error.code = 'SLIDE_SPLIT_REQUIRED';
-    throw error;
-  }
+  const { markups, errors } = checkPresentationSlides({ slides, manifest });
+  if (errors.length) throw errors[0].error;
   const yaml = Object.entries(frontMatter)
     .map(([key, value]) =>
       typeof value === 'string' && value.includes('\n')
@@ -69,7 +105,7 @@ export function renderPresentationMarkdown({ frontMatter, slides, manifest }) {
     .join('\n');
   return `---\n${yaml}\n---\n\n${slides
     .map((slide, index) => {
-      const markup = slideMarkup(slide, plans[index]);
+      const markup = markups[index];
       return slide.notes?.length
         ? `${markup}\n\n<!--\n${slide.notes.map((note) => `- ${escapeHtml(note)}`).join('\n')}\n-->`
         : markup;

@@ -34,7 +34,7 @@ Exactly one selected Theme Package exists in a Project Folder. Never create `cus
 
 ## Front matter
 
-Use the exact object returned by `prepare-theme.mjs`. Without an External Font Override it serializes to:
+`slide-markup.mjs` writes the same front matter object `prepare-theme.mjs` returns. Without an External Font Override it serializes to:
 
 ```yaml
 ---

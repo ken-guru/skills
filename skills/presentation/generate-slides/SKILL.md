@@ -15,9 +15,8 @@ concise, specific, accessible, and within Content Capacity. Keep Markdown, HTML,
 commands, semantic classes, and project state exact. Before writing the final
 `PRESENTASJON.md`, invoke the standalone `unslop` Skill as a required full
 editorial pass over slide copy, presenter notes, and glossary text, using
-`DISCOVERY.json.editorialPreferences`. Then rerun capacity and semantic-markup
-validation; the pass is incomplete if either the preference scan or validation
-has not succeeded.
+`DISCOVERY.json.editorialPreferences`. Then rerun `slide-markup.mjs --check`;
+the pass is incomplete until both the preference scan and the check succeed.
 
 ## Gotchas
 
@@ -133,7 +132,23 @@ complete specs. Wait for explicit approval.
 
 ### Step 4: Generate the presentation
 
-Only after Media Specs are approved, follow [SLIDE_GENERATION.md](SLIDE_GENERATION.md) and [STYLING.md](STYLING.md). Build the normalized in-memory slide objects from the approved Agenda and complete Media Specs without creating another project artifact, then pass those objects, the exact front matter returned by `prepare-theme.mjs`, and the locked manifest to `scripts/semantic-markup.mjs`. Its classification, media-handoff, orientation, capacity, and directive errors are blocking. Write its deterministic Markdown result to the configured presentation path.
+Only after Media Specs are approved, follow [SLIDE_GENERATION.md](SLIDE_GENERATION.md) and [STYLING.md](STYLING.md). Decide every slide's content from the approved Agenda and Media Specs, then express it as slide objects using the [slide-object field reference](SLIDE_GENERATION.md#slide-object-fields). Pipe the JSON array to the installed slide-markup command; it loads the locked Theme Manifest, front matter, and presentation path itself:
+
+```bash
+node <generate-slides>/scripts/slide-markup.mjs <project> --check <<'JSON'
+[{ "heading": "…", "body": ["…"], "notes": ["…"] }]
+JSON
+```
+
+Keep the slide objects in the command's stdin only; the Project Folder holds no slide plan. `--check` writes nothing and prints each slide's archetype, variation, and Content Capacity use, then every `error:` and `warning:` with its slide number. Fix all errors in one pass and rerun `--check` until it exits `0`, then run `--write`, which repeats the checks and writes the presentation only when none block.
+
+| Exit | Meaning |
+|---|---|
+| `0` | No blocking errors; `--write` wrote the presentation. |
+| `1` | Content errors listed on stdout; nothing written. |
+| `2` | Usage, prerequisite, or unexpected error on stderr (bad arguments or JSON, unreadable Discovery or Agenda, theme not prepared); nothing written. |
+
+A `MEDIA_NOT_RENDERED` warning is expected here: media rendering follows Generation.
 
 ### Step 5: Validate generated slides
 
@@ -154,7 +169,7 @@ Both commands must succeed. Confirm equal slide count, 16:9 dimensions, content,
 
 ### Step 7: Update state and report
 
-Set `phases.generation.status = "done"` only after Markdown, HTML, and PDF exist and all blocking checks pass. Set its completion timestamp. Report slide count, selected theme and package version, Media Spec counts, generation warnings, failed sources, prompt-injection skips, font substitution if any, and next steps for media rendering, the separate Proofread phase, and `marp -s .`.
+Set `phases.generation.status = "done"` only after Markdown, HTML, and PDF exist and all blocking checks pass. Set its completion timestamp. Report slide count, selected theme and package version, Media Spec counts, generation warnings, media still to render (every `MEDIA_NOT_RENDERED` file), failed sources, prompt-injection skips, font substitution if any, and next steps for media rendering, the separate Proofread phase, and `marp -s .`.
 
 ## Project state
 

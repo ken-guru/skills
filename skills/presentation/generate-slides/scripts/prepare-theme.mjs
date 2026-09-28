@@ -137,6 +137,15 @@ export async function prepareThemeProject({
     `${JSON.stringify({ 'markdown.marp.themes': [relativeCss] }, null, 2)}\n`,
   );
 
+  return {
+    ...resolution,
+    frontMatter: presentationFrontMatter({ discovery, resolution }),
+    relativeCss,
+  };
+}
+
+// Pure: Generation reuses this so its front matter matches Theme preparation's.
+export function presentationFrontMatter({ discovery, resolution }) {
   const frontMatter = {
     marp: true,
     theme: resolution.id,
@@ -149,12 +158,7 @@ export async function prepareThemeProject({
     cssFontStack(resolution.manifest.fonts.body),
   );
   if (style) frontMatter.style = style;
-
-  return {
-    ...resolution,
-    frontMatter,
-    relativeCss,
-  };
+  return frontMatter;
 }
 
 async function main() {
