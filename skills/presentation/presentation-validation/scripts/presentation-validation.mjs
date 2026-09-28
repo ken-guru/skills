@@ -523,6 +523,183 @@ function countPdfPages(searchableText) {
   return (searchableText.match(/\/Type\s*\/Page\b/g) ?? []).length;
 }
 
+// Export parity findings block in the proofread profile and warn in generation.
+const paritySeverity = (report) => (report.profile === 'proofread' ? 'blocking' : 'warning');
+
+// Returns the span of the innermost `<< … >>` dictionary enclosing `index`.
+function enclosingDictionary(text, index) {
+  let start = -1;
+  for (let depth = 0, i = index - 1; i > 0; i -= 1) {
+    const pair = text.slice(i - 1, i + 1);
+    if (pair === '>>') { depth += 1; i -= 1; } else if (pair === '<<') {
+      if (depth === 0) { start = i - 1; break; }
+      depth -= 1; i -= 1;
+    }
+  }
+  if (start === -1) return '';
+  for (let depth = 0, i = index; i < text.length - 1; i += 1) {
+    const pair = text.slice(i, i + 2);
+    if (pair === '<<') { depth += 1; i += 1; } else if (pair === '>>') {
+      if (depth === 0) return text.slice(start, i + 2);
+      depth -= 1; i += 1;
+    }
+  }
+  return '';
+}
+
+const MEDIA_BOX = /\/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]/;
+
+// Page objects in the order they appear in the file (raw objects, then decompressed
+// object streams), which is page order for Marp's Chromium export. A page without
+// its own MediaBox inherits the page tree's.
+function pdfPageSizes(searchableText) {
+  const pageTree = [...searchableText.matchAll(/\/Type\s*\/Pages\b/g)]
+    .map((match) => enclosingDictionary(searchableText, match.index).match(MEDIA_BOX))
+    .find(Boolean);
+  return [...searchableText.matchAll(/\/Type\s*\/Page\b/g)].map((match) => {
+    const box = enclosingDictionary(searchableText, match.index).match(MEDIA_BOX) ?? pageTree;
+    return box ? { width: Math.abs(box[3] - box[1]), height: Math.abs(box[4] - box[2]) } : null;
+  });
+}
+
+function checkPageDimensions(pdfText, report) {
+  const pages = pdfPageSizes(pdfText);
+  if (!pages.some(Boolean)) {
+    report.finding('exports.dimensions', 'warning', 'PDF dimensions could not be read from the export.');
+    return;
+  }
+  pages.forEach((size, index) => {
+    const page = index + 1;
+    if (!size) {
+      report.finding('exports.dimensions', 'warning', `PDF page ${page} dimensions could not be read.`, { page });
+    } else if (Math.abs(size.width / size.height - 16 / 9) > 0.03) {
+      report.finding('exports.dimensions', paritySeverity(report), `PDF page ${page} is not 16:9.`, {
+        page,
+        evidence: `page ${page}: ${size.width} × ${size.height}`,
+        remediation: 'Re-export the PDF from the presentation Markdown with size: 16:9.',
+      });
+    }
+  });
+}
+
+const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+function decodeEntities(text) {
+  return text
+    .replace(/&#x([\da-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(Number(decimal)))
+    .replace(/&([a-z]+);/gi, (entity, name) => NAMED_ENTITIES[name.toLowerCase()] ?? ' ');
+}
+
+// Visible words of a slide, compared as a sequence. Punctuation, markup, and
+// attributes (alt text, URLs) are ignored, so typographic quotes and dashes
+// that Marp renders differently from the source never count as differences.
+function visibleWords(markup) {
+  const text = decodeEntities(stripNonMarkupBlocks(markup).replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' '));
+  return text.normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+function markdownSlideWords(slide) {
+  return visibleWords(slide
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    // Fence lines and their info strings are not rendered as text; code spans
+    // render their content as text, including anything tag-like.
+    .replace(/^[ \t]{0,3}(?:`{3,}|~{3,}).*$/gm, ' ')
+    .replace(/(`+)([\s\S]*?)\1/g, (_, fence, code) => code.replaceAll('<', '&lt;').replaceAll('>', '&gt;'))
+    .replace(/<((?:https?|mailto):[^>\s]+)>/gi, ' $1 ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/gm, ' ')
+    .replace(/(^|\s):[a-z_+-][\w+-]*:(?=\s|$)/gim, '$1'));
+}
+
+// Marp adds header and footer directive text to every rendered slide.
+function renderedSlideWords(content) {
+  return visibleWords(content.replace(/<(header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' '));
+}
+
+// Splits presentation Markdown into slides the way Marp does: on `---` lines
+// outside fenced code blocks, keeping empty slides.
+function markdownSlides(markdown) {
+  const slides = [[]];
+  let fence = null;
+  for (const line of frontMatter(markdown).body.split('\n')) {
+    const marker = line.match(/^\s{0,3}(`{3,}|~{3,})/)?.[1];
+    if (marker && (!fence || (marker[0] === fence[0] && marker.length >= fence.length))) fence = fence ? null : marker;
+    if (!fence && /^---\s*$/.test(line)) slides.push([]);
+    else slides.at(-1).push(line);
+  }
+  return slides.map((lines) => lines.join('\n'));
+}
+
+function slideMedia(markup) {
+  return mediaReferences(markup.replace(/<!--[\s\S]*?-->/g, ' ')).map((reference) => reference.replace(/^\.\//, '')).sort();
+}
+
+function htmlSlideSections(html) {
+  return [...stripNonMarkupBlocks(html).matchAll(/<section\b([^>]*)>([\s\S]*?)<\/section>/gi)]
+    .map((match) => ({ attributes: match[1], content: match[2] }));
+}
+
+function firstDifference(expected, actual) {
+  let index = 0;
+  while (index < expected.length && expected[index] === actual[index]) index += 1;
+  const excerpt = (words) => `“${words.slice(Math.max(0, index - 3), index + 4).join(' ') || '(nothing)'}”`;
+  return `Markdown ${excerpt(expected)}; HTML ${excerpt(actual)}`;
+}
+
+function checkSlideParity(markdown, html, report) {
+  if (!markdown.trim()) return;
+  const sourceSlides = markdownSlides(markdown);
+  const renderedSlides = htmlSlideSections(html);
+  if (sourceSlides.length !== renderedSlides.length) {
+    report.finding('exports.text-parity', paritySeverity(report), 'Presentation Markdown and HTML slide counts do not match.', {
+      evidence: `Markdown ${sourceSlides.length}; HTML ${renderedSlides.length}`,
+      remediation: 'Re-export the HTML from the current presentation Markdown.',
+    });
+    return;
+  }
+  sourceSlides.forEach((slide, index) => {
+    const expected = markdownSlideWords(slide);
+    const actual = renderedSlideWords(renderedSlides[index].content);
+    if (expected.join(' ') !== actual.join(' ')) {
+      report.finding('exports.text-parity', paritySeverity(report), `Slide ${index + 1} text differs between Markdown and HTML.`, {
+        slide: index + 1,
+        evidence: firstDifference(expected, actual),
+        remediation: 'Re-export the HTML and PDF from the current presentation Markdown.',
+      });
+    }
+    const expectedMedia = slideMedia(slide);
+    const actualMedia = slideMedia(renderedSlides[index].content);
+    if (expectedMedia.join('\n') !== actualMedia.join('\n')) {
+      report.finding('exports.media-parity', paritySeverity(report), `Slide ${index + 1} media differs between Markdown and HTML.`, {
+        slide: index + 1,
+        evidence: `Markdown: ${expectedMedia.join(', ') || 'none'}; HTML: ${actualMedia.join(', ') || 'none'}`,
+        remediation: 'Re-export the HTML and PDF from the current presentation Markdown.',
+      });
+    }
+  });
+}
+
+function checkPagination(markdown, html, report) {
+  if (!markdown) return;
+  if (frontMatter(markdown).values.paginate !== 'true') {
+    report.finding('exports.pagination', paritySeverity(report), 'Presentation front matter does not set paginate: true.', {
+      evidence: `paginate: ${frontMatter(markdown).values.paginate ?? 'missing'}`,
+      remediation: 'Set paginate: true in the presentation front matter and re-export.',
+    });
+    return;
+  }
+  htmlSlideSections(html).forEach(({ attributes }, index) => {
+    if (!/\sdata-marpit-pagination=["']\d+["']/i.test(attributes)) {
+      report.finding('exports.pagination', paritySeverity(report), `Slide ${index + 1} has no page number in the HTML.`, {
+        slide: index + 1,
+        remediation: 'Remove any slide-level paginate override and re-export.',
+      });
+    }
+  });
+}
+
 async function checkExports(inputs, report) {
   const required = report.profile === 'proofread' || report.profile === 'generation';
   const htmlExists = await exists(inputs.html);
@@ -542,15 +719,7 @@ async function checkExports(inputs, report) {
   } else {
     report.finding('exports.parity', 'info', `HTML and PDF both contain ${htmlSlides} slides.`, { value: htmlSlides });
   }
-  const mediaBox = pdfText.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);
-  if (mediaBox) {
-    const ratio = Number(mediaBox[1]) / Number(mediaBox[2]);
-    if (Math.abs(ratio - 16 / 9) > 0.03) {
-      report.finding('exports.dimensions', report.profile === 'proofread' ? 'blocking' : 'warning', 'PDF dimensions are not 16:9.', { evidence: `${mediaBox[1]} × ${mediaBox[2]}` });
-    }
-  } else {
-    report.finding('exports.dimensions', 'warning', 'PDF dimensions could not be read from the export.');
-  }
+  checkPageDimensions(pdfText, report);
   const markdownMedia = new Set(mediaReferences(await readTextIfPresent(inputs.presentation)).map((file) => path.basename(file)));
   const htmlMedia = new Set(mediaReferences(html).map((file) => path.basename(file)));
   if (markdownMedia.size !== htmlMedia.size || [...markdownMedia].some((file) => !htmlMedia.has(file))) {
@@ -558,6 +727,9 @@ async function checkExports(inputs, report) {
       evidence: `Markdown: ${[...markdownMedia].join(', ') || 'none'}; HTML: ${[...htmlMedia].join(', ') || 'none'}`,
     });
   }
+  const markdown = await readTextIfPresent(inputs.presentation);
+  checkSlideParity(markdown, html, report);
+  checkPagination(markdown, html, report);
 }
 
 async function checkSources(inputs, report) {
