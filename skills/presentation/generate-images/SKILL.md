@@ -17,7 +17,7 @@ Skill as a required full editorial pass using
 `DISCOVERY.json.editorialPreferences`; preserve prompts and machine-readable
 media metadata where their contract requires exact wording.
 
-Protocol: resolve Media Scope, choose Generation Mode, review and report results,
+Protocol: resolve Media Scope, Batch by default (Interactive on request), review and report results,
 update only the owned media phase, leave it pending on cancellation or failure,
 and preserve unrelated phase records. Provider setup remains local.
 
@@ -60,19 +60,31 @@ If **at least one image already exists**, present:
 
 Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
 
-### Step 2: Select generation mode
+### Step 2: Confirm before spending
+
+Every render is a paid API call, so ask exactly one confirmation that names the
+count in scope and the provider and model the script will use, in plain text in
+one message (a harness's structured question tool may carry it). Take them in
+the script's order: `--provider=`/`--model=` flags the user gave, then a
+flag choice persisted in `PROJECT.json` `phases.images` (`providerSource` or
+`modelSource` is `"flag"`), then the provider whose API
+key is set (Gemini when both are) with that provider's default model from
+[PROVIDERS.md](PROVIDERS.md#models).
 
 ```
-💡 N image(s) will be generated using <provider> (<model>)
+💡 Generate N images with <provider>/<model>? (yes / one at a time / cancel)
    See PROVIDERS.md for pricing details.
-
-  1  All at once   — generate selected images in sequence
-  2  One at a time — pause after each image for your review
 ```
+
+- **yes** → Batch
+- **one at a time** → Interactive
+- **cancel** → stop without calling the script; leave files and `phases.images` unchanged
+
+The scope prompt in Step 1 is a separate question and stays when images exist.
 
 ### Step 3: Generate
 
-**Batch (choice 1)**
+**Batch (yes)**
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
@@ -83,7 +95,7 @@ node "<absolute skill directory>/scripts/generate-images.js" \
 - Scope B → add `--force`
 - Scope C → add `--slides=N,M,...`
 
-**Interactive (choice 2)**
+**Interactive (one at a time)**
 
 For each image in scope, run:
 

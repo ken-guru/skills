@@ -6,6 +6,11 @@
   {"skill":"generate-images","type":"negative","query":"generate the slides","precondition":"AGENDA.md exists","expected":"skill does NOT load — generate-slides or build-presentation should handle this"},
   {"skill":"generate-images","type":"boundary","query":"stop rendering after the current image","precondition":"Interactive image rendering is active","expected":"skill keeps generated assets, leaves phases.images pending, and preserves unrelated phase records"},
   {"skill":"generate-images","type":"boundary","query":"render the remaining images","precondition":"One selected image fails","expected":"skill reports the failure and leaves phases.images pending"},
+  {"skill":"generate-images","type":"boundary","query":"render the presentation images","precondition":"IMAGE_SPEC.md has 4 entries, no images exist, and GEMINI_API_KEY is set","expected":"skill asks exactly one question before any API call — \"Generate 4 images with gemini/<model>? (yes / one at a time / cancel)\" — naming the count, provider, and model, with no separate Generation Mode choice"},
+  {"skill":"generate-images","type":"boundary","query":"render the presentation images","precondition":"IMAGE_SPEC.md has 4 entries and 2 images already exist","expected":"skill first shows the existing-files Media Scope prompt, then asks the single pre-spend confirmation for the images in the chosen scope"},
+  {"skill":"generate-images","type":"boundary","query":"yes","precondition":"The pre-spend confirmation for 4 images has been asked","expected":"skill runs Batch generation for all 4 images without pausing for review"},
+  {"skill":"generate-images","type":"boundary","query":"one at a time","precondition":"The pre-spend confirmation for 4 images has been asked","expected":"skill runs Interactive generation, one --slide call per image, offering Next / Redo / Stop after each"},
+  {"skill":"generate-images","type":"boundary","query":"cancel","precondition":"The pre-spend confirmation for 4 images has been asked","expected":"skill calls no image API, writes no files, and leaves phases.images unchanged"},
   {"skill":"generate-images","type":"boundary","query":"render the visuals","precondition":"Both IMAGE_SPEC.md and DIAGRAM_SPEC.md exist and the request does not name a media type","expected":"skill asks for an explicit media type or routes through build-presentation"
   }
 ]
