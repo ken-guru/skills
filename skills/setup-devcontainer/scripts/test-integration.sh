@@ -53,8 +53,26 @@ lookup_tool_value() {
   done
 }
 
+# tool-dir README bullet marker — the exact whole-line marker each skill's
+# own SKILL.md passes to patch-if-absent.sh when appending its bullet, so the
+# harness tests the marker users actually get, not whatever a template's
+# first line happens to be. Same nameref caveat as TOOLS above.
+# shellcheck disable=SC2034
+README_MARKERS=(
+  "setup-claude-devcontainer:- Claude Code"
+  "setup-codex-devcontainer:- Codex"
+  "setup-antigravity-devcontainer:- Antigravity"
+  "setup-copilot-devcontainer:- Copilot"
+)
+
 marker_for_tool() { lookup_tool_value TOOLS "$1"; }
 cliname_for_tool() { lookup_tool_value CLI_NAMES "$1"; }
+readme_marker_for_tool() { lookup_tool_value README_MARKERS "$1"; }
+
+# An env-block.example's marker is its first non-blank line: like the SSH
+# add-on's own .env.example block, it may open with a blank line so it
+# doesn't butt up against whatever the file ended with.
+env_block_marker() { grep -m1 -v '^$' "$1"; }
 
 # Network Manifest must have exactly the baseline key plus one key per
 # installed CLI Skill in $2.. — no more, no less. Fails (via the global
@@ -84,7 +102,9 @@ assert_manifest_keys() {
 # network-manifest patches, in the given order, to the fixture files in $1.
 # A tool that ships a skills-link-block.sh (Antigravity) also has it appended
 # to post-start.sh under its own marker (the block's first line) — only in
-# fixtures that have a post-start.sh.
+# fixtures that have a post-start.sh. A tool that ships an env-block.example
+# has it appended to .env.example the same way, under its own marker (the
+# block's first non-blank line).
 apply_all_patches() {
   local fixture_dir="$1"
   shift
@@ -95,7 +115,10 @@ apply_all_patches() {
     marker="$(marker_for_tool "$tool_dir")"
     tool_templates="$SKILLS_ROOT/$tool_dir/templates"
     "$PATCH" append "$fixture_dir/post-create.sh" "$marker" "$tool_templates/install-block.sh"
-    "$PATCH" append "$fixture_dir/README.md" "$(head -1 "$tool_templates/readme-bullet.md")" "$tool_templates/readme-bullet.md"
+    "$PATCH" append "$fixture_dir/README.md" "$(readme_marker_for_tool "$tool_dir")" "$tool_templates/readme-bullet.md"
+    if [ -f "$tool_templates/env-block.example" ]; then
+      "$PATCH" append "$fixture_dir/.env.example" "$(env_block_marker "$tool_templates/env-block.example")" "$tool_templates/env-block.example"
+    fi
     if [ -f "$tool_templates/capability-seam-entries.json" ]; then
       "$PATCH_JSON" "$fixture_dir/devcontainer.json" .runArgs "$tool_templates/capability-seam-entries.json"
     fi
@@ -120,6 +143,7 @@ run_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example" "$TMP_DIR/.env.example"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh" --post-start-out "$TMP_DIR/post-start.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
@@ -187,6 +211,7 @@ run_scenario() {
   cp "$TMP_DIR/README.md" "$TMP_DIR/README.md.before-pass2"
   cp "$TMP_DIR/devcontainer.json" "$TMP_DIR/devcontainer.json.before-pass2"
   cp "$TMP_DIR/network-manifest.json" "$TMP_DIR/network-manifest.json.before-pass2"
+  cp "$TMP_DIR/.env.example" "$TMP_DIR/.env.example.before-pass2"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
 
@@ -205,9 +230,42 @@ run_scenario() {
   if ! diff -q "$TMP_DIR/network-manifest.json.before-pass2" "$TMP_DIR/network-manifest.json" >/dev/null; then
     fail "[$order_desc] second pass changed network-manifest.json — not idempotent"
   fi
+  if ! diff -q "$TMP_DIR/.env.example.before-pass2" "$TMP_DIR/.env.example" >/dev/null; then
+    fail "[$order_desc] second pass changed .env.example — not idempotent"
+  fi
+
+  assert_copilot_env_block "$order_desc" "$TMP_DIR/.env.example" "${tool_order[@]}"
 
   rm -rf "$TMP_DIR"
   echo "OK: $order_desc"
+}
+
+# Copilot's own token block (issue #370): present exactly once when
+# setup-copilot-devcontainer is among $3.., absent otherwise (Own-Block
+# Contract). Its variable must stay commented out — sourcing the file the way
+# bash-env.sh sources .env must leave COPILOT_GITHUB_TOKEN unset, so an
+# unfilled placeholder never overrides Copilot's GH_TOKEN fallback.
+assert_copilot_env_block() {
+  local label="$1" env_file="$2"
+  shift 2
+  local tool_dir expected=0 block_count
+  for tool_dir in "$@"; do
+    [ "$tool_dir" = "setup-copilot-devcontainer" ] && expected=1
+  done
+  block_count=$(grep -cxF "# --- Copilot token ---" "$env_file" || true)
+  if [ "$block_count" -ne "$expected" ]; then
+    fail "[$label] expected $expected Copilot token block(s) in .env.example, found $block_count"
+  fi
+  if [ "$expected" -eq 1 ] && ! grep -q '^# COPILOT_GITHUB_TOKEN=github_pat_' "$env_file"; then
+    fail "[$label] Copilot token block has no commented-out COPILOT_GITHUB_TOKEN=github_pat_... line"
+  fi
+  if [ "$expected" -eq 0 ] && grep -qi "copilot" "$env_file"; then
+    fail "[$label] .env.example mentions Copilot although setup-copilot-devcontainer isn't installed"
+  fi
+  # shellcheck disable=SC1090 # the fixture's own .env.example, sourced as bash-env.sh sources .env
+  if (set -a; unset COPILOT_GITHUB_TOKEN; source "$env_file"; [ -n "${COPILOT_GITHUB_TOKEN+set}" ]); then
+    fail "[$label] sourcing .env.example sets COPILOT_GITHUB_TOKEN — the placeholder must stay commented out"
+  fi
 }
 
 # Unconditional capability-drop baseline (issue #293 / ADR-0006): both base
@@ -442,6 +500,158 @@ check_dockerfile_stages() {
 }
 check_dockerfile_stages
 
+# The harness's README and .env.example markers must be the ones each
+# skill's own SKILL.md actually passes to patch-if-absent.sh — otherwise the
+# scenarios below would prove idempotency for a marker users never get
+# (patch-if-absent.sh matches markers as whole lines, so a drifted marker
+# means a duplicate append on every re-run).
+check_skill_markers_match_harness() {
+  local entry tool_dir skill_md marker env_block env_marker ok=1
+  for entry in "${README_MARKERS[@]}"; do
+    tool_dir="${entry%%:*}"
+    skill_md="$SKILLS_ROOT/$tool_dir/SKILL.md"
+    marker="$(readme_marker_for_tool "$tool_dir")"
+    if ! grep -qF -- "append .devcontainer/README.md \"$marker\" templates/readme-bullet.md" "$skill_md"; then
+      fail "[$tool_dir] SKILL.md does not append its README bullet under the harness's marker \"$marker\""
+      ok=0
+    fi
+    if [ "$(head -1 "$SKILLS_ROOT/$tool_dir/templates/readme-bullet.md")" != "$marker" ]; then
+      fail "[$tool_dir] readme-bullet.md's first line is not exactly its marker \"$marker\" — a fresh append would not be found by the next run's whole-line check"
+      ok=0
+    fi
+    env_block="$SKILLS_ROOT/$tool_dir/templates/env-block.example"
+    if [ -f "$env_block" ]; then
+      env_marker="$(env_block_marker "$env_block")"
+      if ! grep -qF -- "append .devcontainer/.env.example \"$env_marker\" templates/env-block.example" "$skill_md"; then
+        fail "[$tool_dir] SKILL.md does not append env-block.example under its first non-blank line \"$env_marker\""
+        ok=0
+      fi
+    fi
+  done
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: every CLI Skill's README/.env.example markers match the harness"
+  fi
+}
+check_skill_markers_match_harness
+
+# Base GH_TOKEN guidance (issue #369): the base .env.example and README must
+# steer users to a fine-grained PAT owned by the repo's owner — never the
+# classic ghp_ format or the classic token list — and, being CLI-agnostic
+# (Own-Block Contract), must not mention any one CLI's own token.
+check_base_token_guidance() {
+  local env_tpl="$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example"
+  local readme_tpl="$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md"
+  local ok=1
+  if ! grep -qxF "GH_TOKEN=github_pat_your_token_here" "$env_tpl"; then
+    fail "[base .env.example] GH_TOKEN placeholder is not the fine-grained github_pat_ format"
+    ok=0
+  fi
+  if ! grep -qF "https://github.com/settings/personal-access-tokens/new" "$env_tpl"; then
+    fail "[base .env.example] does not link the fine-grained token creation page"
+    ok=0
+  fi
+  if ! grep -qi "resource owner" "$env_tpl"; then
+    fail "[base .env.example] does not say who the token's resource owner must be"
+    ok=0
+  fi
+  if ! grep -qi "resource owner" "$readme_tpl"; then
+    fail "[base README] opening steps do not say who the token's resource owner must be"
+    ok=0
+  fi
+  if grep -qi "copilot" "$env_tpl"; then
+    fail "[base .env.example] mentions Copilot — CLI-specific token guidance belongs to that CLI Skill's own block"
+    ok=0
+  fi
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: base .env.example/README point to a fine-grained PAT owned by the repo's owner"
+  fi
+}
+check_base_token_guidance
+
+# Stale token guidance must never come back into any skill's templates: the
+# classic ghp_ placeholder and the classic token list both steer users to
+# tokens some CLIs (Copilot) reject outright.
+check_no_stale_token_guidance() {
+  local pattern hits ok=1
+  for pattern in "ghp_your" "github.com/settings/tokens"; do
+    hits=$(grep -rlF -- "$pattern" "$SKILLS_ROOT"/setup-*/templates || true)
+    if [ -n "$hits" ]; then
+      fail "stale token guidance \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
+      ok=0
+    fi
+  done
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: no stale token guidance in any skill template"
+  fi
+}
+check_no_stale_token_guidance
+
+# Copilot auth claims (issue #370): Copilot CLI can't authorize from an
+# org-owned GH_TOKEN, so no skill template (nor Copilot's SKILL.md) may
+# promise automatic auth via GH_TOKEN, and nothing in the Copilot skill may
+# pre-accept plain-text token storage on the user's behalf (that stays
+# Copilot's own prompt).
+check_copilot_auth_claims() {
+  local copilot_dir="$SKILLS_ROOT/setup-copilot-devcontainer" pattern hits ok=1
+  for pattern in "automatic via" "picks up this container's GH_TOKEN"; do
+    hits=$(grep -rliF -- "$pattern" "$SKILLS_ROOT"/setup-*/templates "$copilot_dir/SKILL.md" || true)
+    if [ -n "$hits" ]; then
+      fail "[copilot] stale auth claim \"$pattern\" found in: $(echo "$hits" | tr '\n' ' ')"
+      ok=0
+    fi
+  done
+  hits=$(grep -rlF -- "storeTokenPlaintext" "$copilot_dir" || true)
+  if [ -n "$hits" ]; then
+    fail "[copilot] storeTokenPlaintext pre-set found in: $(echo "$hits" | tr '\n' ' ')"
+    ok=0
+  fi
+  if grep -rqF -- ".copilot/settings.json" "$copilot_dir/templates"; then
+    fail "[copilot] a template touches ~/.copilot/settings.json — Copilot's own user file is not a CLI Skill block"
+    ok=0
+  fi
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: Copilot templates/SKILL.md make no GH_TOKEN auto-auth claim and don't pre-accept plain-text storage"
+  fi
+}
+check_copilot_auth_claims
+
+# Copilot README bullet (issue #371): explains, in order, the token, the
+# expected "System vault not available" prompt on interactive sign-in, and
+# how to diagnose a rejected token — as nested lines under an exact
+# "- Copilot" marker line, so the top-level bullet count stays one per CLI.
+# A README from an older version (bare "- Copilot" line) must gain nothing
+# on a re-run: this skill never rewrites a block it already wrote.
+check_copilot_readme_bullet() {
+  local bullet="$SKILLS_ROOT/setup-copilot-devcontainer/templates/readme-bullet.md"
+  local tmp ok=1 pos_token pos_vault pos_diag
+  pos_token=$(grep -n "COPILOT_GITHUB_TOKEN" "$bullet" | head -1 | cut -d: -f1 || true)
+  pos_vault=$(grep -n "System vault not available" "$bullet" | head -1 | cut -d: -f1 || true)
+  pos_diag=$(grep -n "copilot -p hi" "$bullet" | head -1 | cut -d: -f1 || true)
+  if [ -z "$pos_token" ] || [ -z "$pos_vault" ] || [ -z "$pos_diag" ] \
+    || [ "$pos_token" -ge "$pos_vault" ] || [ "$pos_vault" -ge "$pos_diag" ]; then
+    fail "[copilot README bullet] expected the token, then the vault prompt, then the \`copilot -p hi\` diagnosis (lines: ${pos_token:-none}, ${pos_vault:-none}, ${pos_diag:-none})"
+    ok=0
+  fi
+  if grep -v '^- Copilot$' "$bullet" | grep -q '^- '; then
+    fail "[copilot README bullet] has a second top-level bullet — details must be nested under \"- Copilot\""
+    ok=0
+  fi
+
+  tmp="$(mktemp)"
+  printf '## Installed CLI Tools\n\n- Copilot\n' > "$tmp"
+  cp "$tmp" "$tmp.before"
+  "$PATCH" append "$tmp" "$(readme_marker_for_tool setup-copilot-devcontainer)" "$bullet"
+  if ! diff -q "$tmp.before" "$tmp" >/dev/null; then
+    fail "[copilot README bullet] re-running against an older README's bare \"- Copilot\" bullet changed it"
+    ok=0
+  fi
+  rm -f "$tmp" "$tmp.before"
+  if [ "$ok" -eq 1 ]; then
+    echo "OK: Copilot README bullet explains token, vault prompt and diagnosis; older READMEs are left alone"
+  fi
+}
+check_copilot_readme_bullet
+
 run_scenario "claude,codex,antigravity,copilot" \
   setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer
 
@@ -463,6 +673,7 @@ run_partial_manifest_scenario() {
   cp "$SKILLS_ROOT/setup-devcontainer/templates/devcontainer.json" "$TMP_DIR/devcontainer.json"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/README.baseline.md" "$TMP_DIR/README.md"
   cp "$SKILLS_ROOT/setup-devcontainer/templates/network-manifest.json" "$TMP_DIR/network-manifest.json"
+  cp "$SKILLS_ROOT/setup-devcontainer/templates/env.baseline.example" "$TMP_DIR/.env.example"
   "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$TMP_DIR/post-create.sh"
 
   apply_all_patches "$TMP_DIR" "${tool_order[@]}"
@@ -470,12 +681,16 @@ run_partial_manifest_scenario() {
   if assert_manifest_keys "$label" "$TMP_DIR/network-manifest.json" "${tool_order[@]}"; then
     echo "OK: [$label] network-manifest.json carries only the installed CLIs' keys plus baseline"
   fi
+  assert_copilot_env_block "$label" "$TMP_DIR/.env.example" "${tool_order[@]}"
 
   rm -rf "$TMP_DIR"
 }
 
 run_partial_manifest_scenario "claude+copilot only" \
   setup-claude-devcontainer setup-copilot-devcontainer
+
+run_partial_manifest_scenario "claude+codex only" \
+  setup-claude-devcontainer setup-codex-devcontainer
 
 # Antigravity's skills-link block (issue #346): run against a scratch HOME,
 # under the same `set -euo pipefail` post-start.sh runs it in, for every
