@@ -45,7 +45,7 @@ Detect the first incomplete state in this order:
 | Structure pending | Discovery is done and Structure is not done | Offer `structure-agenda` |
 | Generation pending | Structure is done and required presentation outputs are incomplete | Offer `generate-slides` |
 | Media pending | A Media Spec exists and its owned media phase is not done or skipped | Offer the matching Media Renderer |
-| Proofread pending | Presentation and required media are complete, Proofread is pending | Offer `proofread-presentation` |
+| Proofread pending | Presentation and required media are complete, Proofread is pending | Run `proofread-presentation` as the fourth phase |
 | Complete | Proofread is done or skipped | Report completion and offer an explicit rerun path |
 
 Use the detailed state-specific dialogue and recovery options in
