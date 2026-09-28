@@ -108,6 +108,11 @@ export function planSlide({ slide, manifest }) {
     directive: `<!-- _class: ${definition.class} ${variation.class} ${definition.tone} -->`,
     action: exceeded.length === 0 ? 'compose' : 'split',
     exceeded: exceeded.map(([measure]) => measure),
+    capacity: Object.fromEntries(
+      Object.entries(capacity)
+        .filter(([measure]) => definition.capacity[measure] !== undefined)
+        .map(([measure, used]) => [measure, { used, limit: definition.capacity[measure] }]),
+    ),
     themeTreatment: expectedThemeTreatment,
   };
 }
