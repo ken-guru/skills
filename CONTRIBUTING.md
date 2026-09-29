@@ -20,6 +20,22 @@ Update the root and suite indexes, relevant behavioral checks, and externally fi
 distribution paths together. Shared tooling requires demonstrated repetition across
 independent owners; do not add a registry, schema, or checker for hypothetical scale.
 
+## Required checks
+
+`main` accepts changes only through pull requests, and its ruleset requires one
+status check: **Presentation theme contracts**. Every other workflow runs without
+blocking a merge. A PR opened with `GITHUB_TOKEN`, such as one from a release bot,
+triggers no workflows, so a required check never reports on it.
+
+Keep this list in step with the ruleset when either changes. To confirm the
+current set:
+
+```bash
+gh api repos/ken-guru/skills/rulesets --jq '.[].id' \
+  | xargs -I{} gh api repos/ken-guru/skills/rulesets/{} \
+      --jq '.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
+```
+
 ## Dependency updates and rendered-gallery fingerprints
 
 The Presentation Theme verification suite fingerprints its source inputs, including

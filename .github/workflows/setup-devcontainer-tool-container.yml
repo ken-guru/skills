@@ -55,9 +55,10 @@ jobs:
     needs: changes
     # Always run on a manual dispatch, regardless of what changed. Otherwise, skip
     # the expensive step below when nothing under any of the five devcontainer
-    # skills changed — but the job itself must still run and report, since main's
-    # ruleset requires this check by name; a workflow-level `paths:` filter would
-    # leave it permanently pending on unrelated PRs instead of skipping cleanly.
+    # skills changed — but the job itself still runs and reports, so it can be a
+    # required check. It is not one today (see CONTRIBUTING's "Required checks");
+    # a workflow-level `paths:` filter would leave a required check permanently
+    # pending on unrelated PRs instead of skipping cleanly.
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.setup_devcontainer == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
