@@ -148,6 +148,10 @@ here first. Fallbacks, in order: the same link at
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Antigravity skill-sync ---" <rendered-block>
 ```
 
+The block ends by logging every Skill in the directory it syncs into, one line each
+(`skill-sync (<CLI>): <name> <metadata.version>`, or `(unversioned)` when a Skill declares
+none), to the post-start output. That is the record of what an unattended sync changed.
+
 A container that already has an older `# --- Antigravity skill-sync ---`
 block keeps it unchanged (the marker check skips it) — that is fine. Its
 `rm -rf /home/vscode/.gemini/antigravity/skills/*` line acts on a directory

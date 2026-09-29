@@ -78,6 +78,9 @@ jobs:
       - name: Run Base Version Marker write/check tests
         run: skills/setup-devcontainer/scripts/test-base-version.sh
 
+      - name: Run skill-sync version log tests
+        run: skills/setup-devcontainer/scripts/test-skill-sync-log.sh
+
       - name: Run network-manifest-domains.sh (Network Manifest) derivation tests
         run: skills/setup-devcontainer/scripts/test-network-manifest-domains.sh
 

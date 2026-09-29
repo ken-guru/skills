@@ -12,3 +12,12 @@
 # unattended, with no per-skill review step — only as trustworthy as the
 # source(s) chosen.
 {{SKILLS_SOURCES_COMMANDS}}
+
+# Log what this sync installed: one line per Skill in ~/.agents/skills, with its
+# metadata.version, or "(unversioned)" for a Skill that declares none. This is
+# the only record of what an unattended sync changed since the last start.
+for skill_md in "$HOME/.agents/skills"/*/SKILL.md; do
+  [ -f "$skill_md" ] || continue
+  skill_version="$(sed -n 's/^  version: "\([^"]*\)".*$/\1/p' "$skill_md" 2>/dev/null | head -n 1)" || true
+  echo "skill-sync (Antigravity): $(basename "$(dirname "$skill_md")") ${skill_version:-(unversioned)}"
+done
