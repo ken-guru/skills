@@ -33,6 +33,9 @@ patch, applied separately — see SKILL.md step 5), only post-start.sh, so
 this is a second, independent output rather than another post-create.sh
 block.
 
+Every render also writes the Base Version Marker (.setup-devcontainer-version,
+this skill's metadata.version) into --out's directory, via write-base-version.sh.
+
 --initialize-out, if given, also writes initialize.sh's content to that path
 (chmod +x'd): initialize-base.sh's skeleton, unconditionally — it never
 varies by --ssh/--firewall, so it's a third, independent output rather than
@@ -102,6 +105,9 @@ fi
 } > "$OUT"
 
 chmod +x "$OUT"
+
+# The Base Version Marker lives beside post-create.sh, rewritten on every render.
+"$SCRIPT_DIR/write-base-version.sh" "$(dirname "$OUT")"
 
 if [ -n "$POST_START_OUT" ]; then
   {

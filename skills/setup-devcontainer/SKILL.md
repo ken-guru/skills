@@ -122,6 +122,19 @@ test -f .devcontainer/devcontainer.json && echo "devcontainer already exists"
   choice, not an oversight — see the skill's own git history for the reasoning). Tell the user
   plainly: to actually get the hardening, delete `.devcontainer/` and regenerate from scratch,
   rerunning any `setup-<tool>-devcontainer` skills and redoing the SSH/firewall answers afterward.
+
+  Last, after any exception above, record the **Base Version Marker** (see
+  [CONTEXT.md](CONTEXT.md)) so the setup-`<tool>`-devcontainer skills can tell this container was
+  brought up to date by this version:
+
+  ```bash
+  scripts/write-base-version.sh .devcontainer
+  ```
+
+  A setup-`<tool>`-devcontainer skill tells the user to re-run this skill when the marker falls
+  outside its declared range, so every major version that changes the generated container must add
+  its upgrade to the exceptions above. Otherwise this marker would claim an upgrade that never
+  happened.
 - **Doesn't exist**: fresh setup, continue to step 3.
 
 Also check for a leftover container from an unrelated prior setup of this same workspace folder —
@@ -275,6 +288,12 @@ later](docs/adding-firewall-later.md)).
 
   Verify with [scripts/verify-devcontainer.sh](scripts/verify-devcontainer.sh), passing the exact
   same flags (minus `--out`/`--initialize-out`, plus `--file`/`--initialize-file`).
+
+  The same command also writes `.devcontainer/.setup-devcontainer-version`, the **Base Version
+  Marker** (see [CONTEXT.md](CONTEXT.md)): this skill's `metadata.version`, which the
+  setup-`<tool>`-devcontainer skills check against their declared compatible range with
+  [scripts/check-base-version.sh](scripts/check-base-version.sh). Commit it with the rest of
+  `.devcontainer/`.
 
   This skeleton is what every CLI skill later appends its own install block to. The SSH block
   never fails the build — an under-scoped or missing `GH_TOKEN` (or unset `DEVCONTAINER_HOST`)

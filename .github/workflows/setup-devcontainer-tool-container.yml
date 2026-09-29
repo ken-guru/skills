@@ -75,6 +75,9 @@ jobs:
       - name: Run patch-json-array-if-absent.sh (Capability Seam) idempotency tests
         run: skills/setup-devcontainer/scripts/test-patch-json-array-if-absent.sh
 
+      - name: Run Base Version Marker write/check tests
+        run: skills/setup-devcontainer/scripts/test-base-version.sh
+
       - name: Run network-manifest-domains.sh (Network Manifest) derivation tests
         run: skills/setup-devcontainer/scripts/test-network-manifest-domains.sh
 
