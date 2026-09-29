@@ -42,6 +42,14 @@ Do not commit the generated `reports/` or `.generated/` files. If the dependency
 update changes the rendered pixels, stop and obtain explicit visual approval before
 replacing the public gallery assets.
 
+## Diagram media boxes
+
+A Theme Package's `archetypes.diagram.mediaBox` must match the diagram slot its
+CSS renders. After changing diagram, heading, or caption layout, run
+`npm run fixtures && node scripts/check-diagram-media-box.mjs` in
+`skills/presentation/verification/presentation-themes`
+and update the declaration; CI's `Diagram media box` job enforces it.
+
 ## Extracting a suite member
 
 When a member becomes independently distributed:
