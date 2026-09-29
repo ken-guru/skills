@@ -71,7 +71,9 @@ check_shared_log_once() {
   : > "$script"
   for tool_dir in "$@"; do
     sed -n "/^$LOG_START/,\$p" "$SKILLS_ROOT/$tool_dir/templates/post-start-block.sh" >> "$script"
-    # Stands in for this block's sync installing a Skill of its own.
+    # Stands in for this block's sync installing a Skill of its own. $HOME is
+    # expanded by the composed script, not here.
+    # shellcheck disable=SC2016
     printf 'mkdir -p "$HOME/.agents/skills/from-%s" && printf -- "---\\nname: x\\n---\\n" > "$HOME/.agents/skills/from-%s/SKILL.md"\n' "$tool_dir" "$tool_dir" >> "$script"
   done
   status=0; output="$(HOME="$home" bash -euo pipefail "$script" 2>&1)" || status=$?
