@@ -36,7 +36,8 @@ Each Standalone Skill, and each Skill Suite as a whole, has its own
 means something you already have (a Project Folder, a generated devcontainer,
 a script flag) needs you to act; its changelog entry says what to do.
 
-**Check what you have.** Claude plugin users:
+**Check what you have.** Claude plugin users: `claude plugin list` shows every
+installed plugin's version, and for one plugin:
 
 ```bash
 claude plugin details presentation-skills
@@ -50,9 +51,13 @@ global install:
 find ~/.agents/skills ~/.claude/skills -maxdepth 2 -name SKILL.md -exec grep -H '^  version:' {} + 2>/dev/null
 ```
 
-For a project install, run it from the project with `.agents/skills
-.claude/skills` in place of the two home paths. Each `SKILL.md` also links to
-its changelog under `metadata.changelog`.
+For a project install, from the project's root:
+
+```bash
+find .agents/skills .claude/skills -maxdepth 2 -name SKILL.md -exec grep -H '^  version:' {} + 2>/dev/null
+```
+
+Each `SKILL.md` also links to its changelog under `metadata.changelog`.
 
 **Pin a version.** Releases are tagged `<skill-or-suite>-v<version>`, and
 `npx skills` installs from a tag. `npx skills update` then stays on it:

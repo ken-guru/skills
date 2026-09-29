@@ -153,7 +153,8 @@ function checkRegistration(root, packages, manifest, errors) {
   }
 }
 
-const NON_RELEASING = /^(docs|test|ci|chore)(\([^)]*\))?!?:/;
+// A `!` makes any type release as a major, so only the plain forms never release.
+const NON_RELEASING = /^(docs|test|ci|chore)(\([^)]*\))?:/;
 const BREAKING = /^\w+(\([^)]*\))?!:/;
 const UNSHIPPED = /(^|\/)(tests|verification|docs)\/|(^|\/)(README|CHANGELOG)\.md$/;
 
@@ -182,11 +183,9 @@ function commitWarnings(root, range, packagePaths) {
   return warnings;
 }
 
-export function checkReleaseUnits(root) {
+function checkReleaseUnits(root, packages) {
   const errors = [];
-  const config = readJson(root, 'release-please-config.json');
   const manifest = readJson(root, '.release-please-manifest.json');
-  const packages = config.packages ?? {};
   checkRegistration(root, packages, manifest, errors);
   const versionsByComponent = new Map(Object.entries(packages).map(([packagePath, settings]) => [settings.component, manifest[packagePath]]));
   for (const [packagePath, settings] of Object.entries(packages)) {
@@ -204,9 +203,9 @@ export function checkReleaseUnits(root) {
 }
 
 const { root, commits } = parseArgs(process.argv.slice(2));
-const { errors } = checkReleaseUnits(root);
-const packagePaths = Object.keys(readJson(root, 'release-please-config.json').packages ?? {});
-const warnings = commits ? commitWarnings(root, commits, packagePaths) : [];
+const packages = readJson(root, 'release-please-config.json').packages ?? {};
+const { errors } = checkReleaseUnits(root, packages);
+const warnings = commits ? commitWarnings(root, commits, Object.keys(packages)) : [];
 for (const warning of warnings) {
   console.log(`warning ${warning}`);
   if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Release units::${warning}`);

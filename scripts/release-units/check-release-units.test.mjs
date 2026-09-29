@@ -257,6 +257,14 @@ test('a breaking commit with a BREAKING CHANGE footer does not warn', async () =
   assert.doesNotMatch(result.output, /warning/);
 });
 
+test('a breaking chore commit is not called non-releasing, because a ! commit releases as a major', async () => {
+  const message = 'chore(unslop)!: rename the evals folder\n\nBREAKING CHANGE: point your eval runner at evals-v2.';
+  const { root, range } = await history([{ message, files: { 'skills/unslop/SKILL.md': `${versioned('unslop', '1.0.0')}Renamed.\n` } }]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.doesNotMatch(result.output, /never released/);
+});
+
 test('warnings never mask a blocking failure', async () => {
   const { root, range } = await history([{ message: 'docs(unslop): bump by hand', files: { 'skills/unslop/SKILL.md': versioned('unslop', '9.9.9') } }]);
   const result = check(root, '--commits', range);
