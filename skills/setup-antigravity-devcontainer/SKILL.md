@@ -148,9 +148,11 @@ here first. Fallbacks, in order: the same link at
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Antigravity skill-sync ---" <rendered-block>
 ```
 
-The block ends by logging every Skill in the directory it syncs into, one line each
-(`skill-sync (<CLI>): <name> <metadata.version>`, or `(unversioned)` when a Skill declares
-none), to the post-start output. That is the record of what an unattended sync changed.
+The block also logs every Skill in the shared `~/.agents/skills`, one line each
+(`skill-sync (shared ~/.agents/skills): <name> <metadata.version>`, or `(unversioned)` when a
+Skill declares none), to the post-start output. Codex, Copilot and Antigravity share that
+directory, so whichever of their blocks runs first logs it once, at the end of `post-start.sh`
+after every block has synced. That is the record of what an unattended sync changed.
 
 A container that already has an older `# --- Antigravity skill-sync ---`
 block keeps it unchanged (the marker check skips it) — that is fine. Its

@@ -14,11 +14,21 @@
 # source(s) chosen.
 {{SKILLS_SOURCES_COMMANDS}}
 
-# Log what this sync installed: one line per Skill in ~/.agents/skills, with its
-# metadata.version, or "(unversioned)" for a Skill that declares none. This is
-# the only record of what an unattended sync changed since the last start.
-for skill_md in "$HOME/.agents/skills"/*/SKILL.md; do
-  [ -f "$skill_md" ] || continue
-  skill_version="$(sed -n 's/^  version: "\([^"]*\)".*$/\1/p' "$skill_md" 2>/dev/null | head -n 1)" || true
-  echo "skill-sync (Copilot): $(basename "$(dirname "$skill_md")") ${skill_version:-(unversioned)}"
-done
+# Log what this sync installed: one line per Skill in ~/.agents/skills, with
+# its metadata.version, or "(unversioned)" for a Skill that declares none. This
+# is the only record of what an unattended sync changed since the last start.
+# Codex, Copilot and Antigravity all sync into that shared directory, so
+# whichever of their blocks runs first registers a single log for the end of
+# post-start.sh, after every block has synced; the others skip it.
+if [ -z "${SHARED_SKILLS_LOG_REGISTERED:-}" ]; then
+  SHARED_SKILLS_LOG_REGISTERED=1
+  log_shared_skills() {
+    local skill_md skill_version
+    for skill_md in "$HOME/.agents/skills"/*/SKILL.md; do
+      [ -f "$skill_md" ] || continue
+      skill_version="$(sed -n 's/^  version: "\([^"]*\)".*$/\1/p' "$skill_md" 2>/dev/null | head -n 1)" || true
+      echo "skill-sync (shared ~/.agents/skills): $(basename "$(dirname "$skill_md")") ${skill_version:-(unversioned)}"
+    done
+  }
+  trap log_shared_skills EXIT
+fi

@@ -121,9 +121,11 @@ Render [templates/post-start-block.sh](templates/post-start-block.sh) with
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Copilot skill-sync ---" <rendered-block>
 ```
 
-The block ends by logging every Skill in the directory it syncs into, one line each
-(`skill-sync (<CLI>): <name> <metadata.version>`, or `(unversioned)` when a Skill declares
-none), to the post-start output. That is the record of what an unattended sync changed.
+The block also logs every Skill in the shared `~/.agents/skills`, one line each
+(`skill-sync (shared ~/.agents/skills): <name> <metadata.version>`, or `(unversioned)` when a
+Skill declares none), to the post-start output. Codex, Copilot and Antigravity share that
+directory, so whichever of their blocks runs first logs it once, at the end of `post-start.sh`
+after every block has synced. That is the record of what an unattended sync changed.
 
 ## 6. Patch `.env.example` — unconditional, every run
 

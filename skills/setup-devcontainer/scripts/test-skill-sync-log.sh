@@ -54,10 +54,37 @@ check_log() {
   if [ "$FAIL_COUNT" -eq "$before" ]; then echo "OK: [$tool_dir] logs versioned and unversioned Skills, skips non-Skills, never fails"; fi
 }
 
+SHARED="shared ~/.agents/skills"
 check_log setup-claude-devcontainer "Claude Code" ".claude/skills"
-check_log setup-codex-devcontainer "Codex" ".agents/skills"
-check_log setup-copilot-devcontainer "Copilot" ".agents/skills"
-check_log setup-antigravity-devcontainer "Antigravity" ".agents/skills"
+check_log setup-codex-devcontainer "$SHARED" ".agents/skills"
+check_log setup-copilot-devcontainer "$SHARED" ".agents/skills"
+check_log setup-antigravity-devcontainer "$SHARED" ".agents/skills"
+
+# Codex, Copilot and Antigravity all sync into the shared ~/.agents/skills.
+# Composed into one post-start.sh in any order, they log that directory once,
+# at the end, so a Skill a later block syncs is still listed.
+check_shared_log_once() {
+  local order="$1"; shift
+  local home="$TMP_DIR/shared-$order-home" script="$TMP_DIR/shared-$order.sh" before=$FAIL_COUNT tool_dir output status count
+  mkdir -p "$home/.agents/skills/alpha"
+  printf -- '---\nname: alpha\nmetadata:\n  version: "1.2.0" # x-release-please-version\n---\n' > "$home/.agents/skills/alpha/SKILL.md"
+  : > "$script"
+  for tool_dir in "$@"; do
+    sed -n "/^$LOG_START/,\$p" "$SKILLS_ROOT/$tool_dir/templates/post-start-block.sh" >> "$script"
+    # Stands in for this block's sync installing a Skill of its own.
+    printf 'mkdir -p "$HOME/.agents/skills/from-%s" && printf -- "---\\nname: x\\n---\\n" > "$HOME/.agents/skills/from-%s/SKILL.md"\n' "$tool_dir" "$tool_dir" >> "$script"
+  done
+  status=0; output="$(HOME="$home" bash -euo pipefail "$script" 2>&1)" || status=$?
+  if [ "$status" -ne 0 ]; then fail "[shared $order] composed blocks exited $status: $output"; fi
+  count="$(grep -c "^skill-sync ($SHARED): alpha 1.2.0$" <<<"$output" || true)"
+  if [ "$count" -ne 1 ]; then fail "[shared $order] expected alpha logged once, got $count: $output"; fi
+  for tool_dir in "$@"; do
+    if ! grep -qxF "skill-sync ($SHARED): from-$tool_dir (unversioned)" <<<"$output"; then fail "[shared $order] missing the Skill synced by $tool_dir: $output"; fi
+  done
+  if [ "$FAIL_COUNT" -eq "$before" ]; then echo "OK: [shared $order] one complete shared-directory log at the end"; fi
+}
+check_shared_log_once codex-first setup-codex-devcontainer setup-copilot-devcontainer setup-antigravity-devcontainer
+check_shared_log_once antigravity-first setup-antigravity-devcontainer setup-codex-devcontainer
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
   echo "$FAIL_COUNT check(s) failed" >&2

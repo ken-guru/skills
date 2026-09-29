@@ -124,9 +124,9 @@ Render [templates/post-start-block.sh](templates/post-start-block.sh) with
 scripts/patch-if-absent.sh append .devcontainer/post-start.sh "# --- Claude Code skill-sync ---" <rendered-block>
 ```
 
-The block ends by logging every Skill in the directory it syncs into, one line each
-(`skill-sync (<CLI>): <name> <metadata.version>`, or `(unversioned)` when a Skill declares
-none), to the post-start output. That is the record of what an unattended sync changed.
+The block ends by logging every Skill in `~/.claude/skills`, one line each
+(`skill-sync (Claude Code): <name> <metadata.version>`, or `(unversioned)` when a Skill
+declares none), to the post-start output. That is the record of what an unattended sync changed.
 
 ## 6. Patch `README.md`
 
