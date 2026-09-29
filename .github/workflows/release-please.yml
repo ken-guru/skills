@@ -1,0 +1,59 @@
+name: Release Please
+
+# Keeps one combined Release PR up to date from Conventional Commits on main.
+# Merging that PR bumps every copy of each Release Unit's version, writes its
+# CHANGELOG.md, tags <unit>-v<version> and publishes a GitHub Release per unit.
+#
+# It authenticates as a repo-scoped GitHub App rather than with GITHUB_TOKEN:
+# PRs and tags created with GITHUB_TOKEN trigger no workflows, so required
+# checks (release-units among them) would never run on the Release PR.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Until bootstrap-sha names the commit that introduced versioning,
+      # release-please would read the whole history as unreleased changes.
+      - name: Require a bootstrap-sha
+        id: bootstrap
+        run: |
+          if jq -e '."bootstrap-sha" | strings | length == 40' release-please-config.json >/dev/null; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Release Please::release-please-config.json has no bootstrap-sha yet; set it to the commit that introduced versioning to start releasing."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create a GitHub App token
+        if: steps.bootstrap.outputs.ready == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Update the Release PR, or release when it merges
+        if: steps.bootstrap.outputs.ready == 'true'
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
