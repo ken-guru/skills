@@ -1,6 +1,9 @@
 ---
 name: setup-devcontainer
 description: Generate a shared devcontainer (Ubuntu base image, Node, GitHub CLI, one persistent config volume) in the current repo — one container every AI CLI installs into, added independently via its four companion setup-<tool>-devcontainer skills — optionally layering on SSH deploy-key/signing-key automation for agent-driven git push and signed commits, and/or an opt-in default-deny network egress firewall (iptables+ipset, allowlist derived from a Network Manifest). Use when the user wants to add a devcontainer to a repo, add SSH key automation to an existing devcontainer, restrict a devcontainer's outbound network, or connect a Local Checkout to a real GitHub repo. Not for adding an AI CLI itself — run the matching setup-<tool>-devcontainer skill for that, after this one.
+metadata:
+  version: "1.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/setup-devcontainer/CHANGELOG.md"
 ---
 
 # Setup Devcontainer

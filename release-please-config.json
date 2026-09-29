@@ -3,6 +3,26 @@
   "release-type": "simple",
   "include-component-in-tag": true,
   "packages": {
+    "skills/setup-antigravity-devcontainer": {
+      "component": "setup-antigravity-devcontainer",
+      "extra-files": ["SKILL.md"]
+    },
+    "skills/setup-claude-devcontainer": {
+      "component": "setup-claude-devcontainer",
+      "extra-files": ["SKILL.md"]
+    },
+    "skills/setup-codex-devcontainer": {
+      "component": "setup-codex-devcontainer",
+      "extra-files": ["SKILL.md"]
+    },
+    "skills/setup-copilot-devcontainer": {
+      "component": "setup-copilot-devcontainer",
+      "extra-files": ["SKILL.md"]
+    },
+    "skills/setup-devcontainer": {
+      "component": "setup-devcontainer",
+      "extra-files": ["SKILL.md"]
+    },
     "skills/unslop": {
       "component": "unslop",
       "extra-files": ["SKILL.md"]
