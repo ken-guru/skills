@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Collection release-unit check. Blocking findings exit 1.
-// Usage: check-release-units.mjs [--root <repo>]
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+// Warnings (--commits <base>..<head>) never change the exit code.
+// Usage: check-release-units.mjs [--root <repo>] [--commits <range>]
+import { spawnSync } from 'node:child_process';
+import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ANNOTATION = 'x-release-please-version';
@@ -11,6 +13,7 @@ function parseArgs(argv) {
   const options = { root: process.cwd() };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--root') options.root = argv[(i += 1)];
+    else if (argv[i] === '--commits') options.commits = argv[(i += 1)];
     else throw new Error(`Unknown argument: ${argv[i]}`);
   }
   return options;
@@ -150,6 +153,35 @@ function checkRegistration(root, packages, manifest, errors) {
   }
 }
 
+const NON_RELEASING = /^(docs|test|ci|chore)(\([^)]*\))?!?:/;
+const BREAKING = /^\w+(\([^)]*\))?!:/;
+const UNSHIPPED = /(^|\/)(tests|verification|docs)\/|(^|\/)(README|CHANGELOG)\.md$/;
+
+// The non-merge commits in <range>, each with its subject, body and files.
+function commitsIn(root, range) {
+  const result = spawnSync('git', ['-C', root, 'log', '--no-merges', '--format=%x1e%h%x1f%s%x1f%b%x1f', '--name-only', range], { encoding: 'utf8' });
+  if (result.status !== 0) throw new Error(`git log ${range} failed: ${result.stderr}`);
+  return result.stdout.split('\x1e').filter(Boolean).map((record) => {
+    const [sha, subject, body, files] = record.split('\x1f');
+    return { sha, subject, body, files: files.split('\n').filter(Boolean) };
+  });
+}
+
+// Non-blocking: fixed in the Release PR, never by rewriting commits.
+function commitWarnings(root, range, packagePaths) {
+  const warnings = [];
+  for (const { sha, subject, body, files } of commitsIn(root, range)) {
+    if (NON_RELEASING.test(subject)) {
+      const shipped = files.filter((file) => packagePaths.some((unit) => file.startsWith(`${unit}/`)) && !UNSHIPPED.test(file));
+      if (shipped.length) warnings.push(`${sha} "${subject}" touches shipped Skill files (${shipped.join(', ')}) but its type is never released; correct it in the Release PR`);
+    }
+    if (BREAKING.test(subject) && !/^BREAKING[ -]CHANGE: \S/m.test(body)) {
+      warnings.push(`${sha} "${subject}" is breaking but has no BREAKING CHANGE: footer saying what consumers must do; add the upgrade note in the Release PR`);
+    }
+  }
+  return warnings;
+}
+
 export function checkReleaseUnits(root) {
   const errors = [];
   const config = readJson(root, 'release-please-config.json');
@@ -171,7 +203,20 @@ export function checkReleaseUnits(root) {
   return { errors };
 }
 
-const { root } = parseArgs(process.argv.slice(2));
+const { root, commits } = parseArgs(process.argv.slice(2));
 const { errors } = checkReleaseUnits(root);
-for (const error of errors) console.log(`error ${error}`);
+const packagePaths = Object.keys(readJson(root, 'release-please-config.json').packages ?? {});
+const warnings = commits ? commitWarnings(root, commits, packagePaths) : [];
+for (const warning of warnings) {
+  console.log(`warning ${warning}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Release units::${warning}`);
+}
+for (const error of errors) {
+  console.log(`error ${error}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=Release units::${error}`);
+}
+if (process.env.GITHUB_STEP_SUMMARY && (warnings.length || errors.length)) {
+  const lines = ['## Release units', '', ...errors.map((e) => `- ❌ ${e}`), ...warnings.map((w) => `- ⚠️ ${w}`), ''];
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'));
+}
 process.exit(errors.length ? 1 : 0);

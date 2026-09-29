@@ -19,8 +19,11 @@ async function repo(files) {
   return root;
 }
 
+// Fixture runs must not write annotations or the job summary of the CI run hosting them.
+const { GITHUB_ACTIONS, GITHUB_STEP_SUMMARY, ...fixtureEnv } = process.env;
+
 function check(root, ...args) {
-  const result = spawnSync(process.execPath, [script, '--root', root, ...args], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [script, '--root', root, ...args], { encoding: 'utf8', env: fixtureEnv });
   return { status: result.status, output: result.stdout + result.stderr };
 }
 
@@ -190,6 +193,88 @@ test('a requirement that is not a quoted string fails', async () => {
   const result = check(await repo(devcontainerFamily({ requires: '^1.0.0' })));
   assert.equal(result.status, 1, result.output);
   assert.match(result.output, /metadata\.requires-setup-devcontainer must be a quoted string/);
+});
+
+function git(root, ...args) {
+  const result = spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });
+  if (result.status !== 0) throw new Error(result.stderr);
+  return result.stdout.trim();
+}
+
+// A consistent unslop repository with a base commit, then one commit per
+// { message, files } on top. Returns the root and the base..head range.
+async function history(commits) {
+  const root = await repo(standalone('unslop'));
+  git(root, 'init', '-q', '-b', 'main');
+  git(root, 'config', 'user.email', 'test@example.com');
+  git(root, 'config', 'user.name', 'Test');
+  git(root, 'config', 'commit.gpgsign', 'false');
+  git(root, 'config', 'core.hooksPath', '/dev/null');
+  git(root, 'add', '-A');
+  git(root, 'commit', '-q', '-m', 'chore: base');
+  const base = git(root, 'rev-parse', 'HEAD');
+  for (const { message, files } of commits) {
+    for (const [file, content] of Object.entries(files)) {
+      await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+      await writeFile(path.join(root, file), content);
+    }
+    git(root, 'add', '-A');
+    git(root, 'commit', '-q', '-m', message);
+  }
+  return { root, range: `${base}..HEAD` };
+}
+
+test('a docs commit that touches a SKILL.md warns without failing', async () => {
+  const { root, range } = await history([{ message: 'docs(unslop): clarify headings', files: { 'skills/unslop/SKILL.md': `${versioned('unslop', '1.0.0')}More.\n` } }]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.match(result.output, /warning .*docs\(unslop\): clarify headings.*skills\/unslop\/SKILL\.md.*never released/);
+});
+
+test('commits that only touch unshipped files do not warn', async () => {
+  const { root, range } = await history([
+    { message: 'docs(unslop): tidy the README', files: { 'skills/unslop/README.md': '# unslop\n' } },
+    { message: 'test(unslop): cover headings', files: { 'skills/unslop/tests/headings.test.mjs': '// test\n' } },
+    { message: 'ci: tweak workflow', files: { '.github/workflows/x.yml': 'name: x\n' } },
+  ]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.doesNotMatch(result.output, /warning/);
+});
+
+test('a breaking commit without a BREAKING CHANGE footer warns without failing', async () => {
+  const { root, range } = await history([{ message: 'feat(unslop)!: drop heading rewrites', files: { 'skills/unslop/SKILL.md': `${versioned('unslop', '1.0.0')}Less.\n` } }]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.match(result.output, /warning .*feat\(unslop\)!: drop heading rewrites.*BREAKING CHANGE: footer/);
+});
+
+test('a breaking commit with a BREAKING CHANGE footer does not warn', async () => {
+  const message = 'feat(unslop)!: drop heading rewrites\n\nBREAKING CHANGE: headings are no longer rewritten; re-run unslop on affected drafts.';
+  const { root, range } = await history([{ message, files: { 'skills/unslop/SKILL.md': `${versioned('unslop', '1.0.0')}Less.\n` } }]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.doesNotMatch(result.output, /warning/);
+});
+
+test('warnings never mask a blocking failure', async () => {
+  const { root, range } = await history([{ message: 'docs(unslop): bump by hand', files: { 'skills/unslop/SKILL.md': versioned('unslop', '9.9.9') } }]);
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /warning /);
+  assert.match(result.output, /error skills\/unslop\/SKILL\.md: version 9\.9\.9/);
+});
+
+test('a merge commit is not flagged on its own', async () => {
+  const { root, range } = await history([]);
+  git(root, 'checkout', '-q', '-b', 'topic');
+  await writeFile(path.join(root, 'skills/unslop/CHANGELOG.md'), '# Changelog\n\nEdited.\n');
+  git(root, 'commit', '-q', '-am', 'chore(unslop): edit changelog');
+  git(root, 'checkout', '-q', 'main');
+  git(root, 'merge', '-q', '--no-ff', '-m', 'Merge branch topic into main', 'topic');
+  const result = check(root, '--commits', range);
+  assert.equal(result.status, 0, result.output);
+  assert.doesNotMatch(result.output, /Merge branch/);
 });
 
 test('an unquoted metadata value fails, because Antigravity drops a Skill whose metadata value is not a string', async () => {
