@@ -1,0 +1,39 @@
+name: Release units
+
+# Collection-level check that every Release Unit's versions, frontmatter and
+# release-please registration agree. Cheap and path-independent, so it runs on
+# every PR and push: a required check must always report.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-units-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-units:
+    name: release-units
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the release-unit check
+        run: node --test scripts/release-units/*.test.mjs
+
+      - name: Check release units
+        run: node scripts/release-units/check-release-units.mjs

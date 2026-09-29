@@ -1,6 +1,9 @@
 ---
 name: unslop
 description: "Load when the user asks to edit prose for a more natural voice while preserving meaning, tone, technical precision, and structured output."
+metadata:
+  version: "1.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/unslop/CHANGELOG.md"
 ---
 
 # Unslop
