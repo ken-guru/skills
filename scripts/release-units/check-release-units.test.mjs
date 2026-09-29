@@ -101,6 +101,37 @@ test('one suite member whose version disagrees fails, naming only that member', 
   assert.doesNotMatch(result.output, /build\/SKILL\.md/);
 });
 
+test('an unregistered Standalone Skill fails, naming it', async () => {
+  const files = { ...standalone('unslop'), 'skills/newcomer/SKILL.md': skill('newcomer', []) };
+  const result = check(await repo(files));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/newcomer: Standalone Skill is not registered in release-please-config\.json/);
+});
+
+test('an unregistered Skill Suite fails, naming the suite rather than its members', async () => {
+  const files = { ...standalone('unslop'), 'skills/decks/README.md': '# Decks\n', 'skills/decks/outline/SKILL.md': skill('outline', []) };
+  const result = check(await repo(files));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/decks: Skill Suite is not registered in release-please-config\.json/);
+  assert.doesNotMatch(result.output, /skills\/decks\/outline:/);
+});
+
+test('a package registered in the config but missing from the manifest fails', async () => {
+  const files = standalone('unslop');
+  files['.release-please-manifest.json'] = {};
+  const result = check(await repo(files));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/unslop: registered in release-please-config\.json but missing from \.release-please-manifest\.json/);
+});
+
+test('a manifest entry with no package in the config fails', async () => {
+  const files = standalone('unslop');
+  files['.release-please-manifest.json']['skills/gone'] = '1.0.0';
+  const result = check(await repo(files));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/gone: listed in \.release-please-manifest\.json but not registered in release-please-config\.json/);
+});
+
 test('an unquoted metadata value fails, because Antigravity drops a Skill whose metadata value is not a string', async () => {
   const skillMd = skill('unslop', ['metadata:', '  version: 1.0.0 # x-release-please-version', `  changelog: "${blob}/skills/unslop/CHANGELOG.md"`]);
   const result = check(await repo(standalone('unslop', { skillMd })));

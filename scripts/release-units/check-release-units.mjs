@@ -97,13 +97,41 @@ function checkAgreement(root, packagePath, expected, extraFiles, errors) {
   }
 }
 
+// Every Release Unit under skills/, by the Collection's placement rules: a
+// Standalone Skill has its own SKILL.md; a Skill Suite has a README.md and none.
+function releaseUnits(root) {
+  return readdirSync(path.join(root, 'skills'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const unitPath = `skills/${entry.name}`;
+      if (existsSync(path.join(root, unitPath, 'SKILL.md'))) return { unitPath, kind: 'Standalone Skill' };
+      if (existsSync(path.join(root, unitPath, 'README.md'))) return { unitPath, kind: 'Skill Suite' };
+      return undefined;
+    })
+    .filter(Boolean);
+}
+
+function checkRegistration(root, packages, manifest, errors) {
+  for (const { unitPath, kind } of releaseUnits(root)) {
+    if (!(unitPath in packages)) errors.push(`${unitPath}: ${kind} is not registered in release-please-config.json`);
+  }
+  for (const packagePath of Object.keys(packages)) {
+    if (!(packagePath in manifest)) errors.push(`${packagePath}: registered in release-please-config.json but missing from .release-please-manifest.json`);
+  }
+  for (const packagePath of Object.keys(manifest)) {
+    if (!(packagePath in packages)) errors.push(`${packagePath}: listed in .release-please-manifest.json but not registered in release-please-config.json`);
+  }
+}
+
 export function checkReleaseUnits(root) {
   const errors = [];
   const config = readJson(root, 'release-please-config.json');
   const manifest = readJson(root, '.release-please-manifest.json');
-  for (const [packagePath, settings] of Object.entries(config.packages ?? {})) {
+  const packages = config.packages ?? {};
+  checkRegistration(root, packages, manifest, errors);
+  for (const [packagePath, settings] of Object.entries(packages)) {
     const extraFiles = settings['extra-files'] ?? [];
-    checkAgreement(root, packagePath, manifest[packagePath], extraFiles, errors);
+    if (packagePath in manifest) checkAgreement(root, packagePath, manifest[packagePath], extraFiles, errors);
     const written = new Set(extraFiles.map((entry) => extraFilePath(packagePath, entry)));
     for (const file of skillFiles(root, packagePath)) {
       if (!written.has(file)) errors.push(`${file}: not listed in extra-files for ${packagePath}`);
