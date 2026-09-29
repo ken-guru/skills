@@ -64,7 +64,10 @@ function quotedValue(raw) {
 
 function checkShape(root, unitPath, file, errors) {
   const { entries, error } = metadataBlock(readFileSync(path.join(root, file), 'utf8'));
-  if (error) return errors.push(`${file}: ${error}`);
+  if (error) {
+    errors.push(`${file}: ${error}`);
+    return undefined;
+  }
   for (const [key, raw] of entries) {
     if (quotedValue(raw) === undefined) errors.push(`${file}: metadata.${key} must be a quoted string`);
   }
@@ -73,6 +76,30 @@ function checkShape(root, unitPath, file, errors) {
   else if (!version.includes(`# ${ANNOTATION}`)) errors.push(`${file}: metadata.version must carry the ${ANNOTATION} annotation`);
   const changelog = `${CHANGELOG_BASE}/${unitPath}/CHANGELOG.md`;
   if (quotedValue(entries.get('changelog') ?? '') !== changelog) errors.push(`${file}: metadata.changelog must be "${changelog}"`);
+  return entries;
+}
+
+// npm caret semantics: the leftmost non-zero component of the floor is fixed.
+function satisfiesCaret(version, range) {
+  const floor = range.match(/^\^(\d+)\.(\d+)\.(\d+)$/)?.slice(1).map(Number);
+  const actual = version.split('.').map(Number);
+  const fixed = floor[0] > 0 ? 1 : floor[1] > 0 ? 2 : 3;
+  for (let i = 0; i < fixed; i += 1) if (actual[i] !== floor[i]) return false;
+  for (let i = fixed; i < 3; i += 1) if (actual[i] !== floor[i]) return actual[i] > floor[i];
+  return true;
+}
+
+// metadata.requires-<unit>: a caret range that must include <unit>'s current version.
+function checkRequirements(file, entries, versionsByComponent, errors) {
+  for (const [key, raw] of entries ?? []) {
+    const unit = key.match(/^requires-(.+)$/)?.[1];
+    const range = quotedValue(raw);
+    if (!unit || range === undefined) continue; // unquoted values are reported by checkShape
+    const current = versionsByComponent.get(unit);
+    if (current === undefined) errors.push(`${file}: metadata.${key} names no Release Unit`);
+    else if (!/^\^\d+\.\d+\.\d+$/.test(range)) errors.push(`${file}: metadata.${key} must be a caret range such as "^1.0.0"`);
+    else if (!satisfiesCaret(current, range)) errors.push(`${file}: metadata.${key} "${range}" excludes ${unit}'s current version ${current}`);
+  }
 }
 
 // extra-files paths are package-relative unless they start with '/'.
@@ -129,13 +156,14 @@ export function checkReleaseUnits(root) {
   const manifest = readJson(root, '.release-please-manifest.json');
   const packages = config.packages ?? {};
   checkRegistration(root, packages, manifest, errors);
+  const versionsByComponent = new Map(Object.entries(packages).map(([packagePath, settings]) => [settings.component, manifest[packagePath]]));
   for (const [packagePath, settings] of Object.entries(packages)) {
     const extraFiles = settings['extra-files'] ?? [];
     if (packagePath in manifest) checkAgreement(root, packagePath, manifest[packagePath], extraFiles, errors);
     const written = new Set(extraFiles.map((entry) => extraFilePath(packagePath, entry)));
     for (const file of skillFiles(root, packagePath)) {
       if (!written.has(file)) errors.push(`${file}: not listed in extra-files for ${packagePath}`);
-      checkShape(root, packagePath, file, errors);
+      checkRequirements(file, checkShape(root, packagePath, file, errors), versionsByComponent, errors);
     }
     const changelog = path.posix.join(packagePath, 'CHANGELOG.md');
     if (!existsSync(path.join(root, changelog))) errors.push(`${changelog}: missing`);

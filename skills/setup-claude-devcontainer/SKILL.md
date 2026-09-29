@@ -4,6 +4,7 @@ description: Install Claude Code into an existing shared devcontainer generated 
 metadata:
   version: "1.0.0" # x-release-please-version
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/setup-claude-devcontainer/CHANGELOG.md"
+  requires-setup-devcontainer: "^1.0.0"
 ---
 
 # Setup Claude Code Devcontainer
@@ -47,6 +48,22 @@ test -f .devcontainer/devcontainer.json && test -f .devcontainer/post-create.sh 
 
 If either file is missing, **refuse** — tell the user to run
 `setup-devcontainer` first, and stop. Do not generate or patch anything.
+
+Then check the **Base Version Marker** (see setup-devcontainer's `CONTEXT.md`) against this
+skill's own `metadata.requires-setup-devcontainer` range, read from this file's frontmatter:
+
+```bash
+scripts/check-base-version.sh "<metadata.requires-setup-devcontainer>"
+```
+
+(`scripts/check-base-version.sh` is the base skill's shared, base-owned check, like
+`patch-if-absent.sh` below — reference it from `setup-devcontainer/scripts/`, don't copy it.)
+
+- **Exit 0**: the container is within range; continue.
+- **Exit 1 or 4** (out of range, or a malformed marker): **refuse** — relay the script's message,
+  tell the user to re-run `setup-devcontainer` first, and stop. Do not generate or patch anything.
+- **Exit 3** (no marker: the container predates setup-devcontainer versioning): **warn** — relay
+  the script's message, suggest re-running `setup-devcontainer` to record one, and continue.
 
 ## 2. Ask this tool's options
 

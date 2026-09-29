@@ -860,6 +860,42 @@ check_skills_link_block() {
 }
 check_skills_link_block
 
+# Each CLI Skill's step 1 gate: its declared metadata.requires-setup-devcontainer
+# range, checked by the base's check-base-version.sh, must accept a container
+# this base just rendered, refuse one from the next major, and treat a
+# container with no Base Version Marker (pre-versioning) as a warning outcome.
+check_base_version_gate() {
+  local before=$FAIL_COUNT tool_dir range tmp status next_major
+  local check="$SCRIPT_DIR/check-base-version.sh"
+  for tool_dir in setup-claude-devcontainer setup-codex-devcontainer setup-antigravity-devcontainer setup-copilot-devcontainer; do
+    range="$(sed -n 's/^  requires-setup-devcontainer: "\(.*\)"$/\1/p' "$SKILLS_ROOT/$tool_dir/SKILL.md")"
+    if [ -z "$range" ]; then
+      fail "[base-version] $tool_dir declares no metadata.requires-setup-devcontainer"
+      continue
+    fi
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/.devcontainer"
+    "$RENDER" --repo-name "acme-widgets" --repo-slug "acme/widgets" --out "$tmp/.devcontainer/post-create.sh"
+
+    status=0; (cd "$tmp" && "$check" "$range" >/dev/null) || status=$?
+    if [ "$status" -ne 0 ]; then fail "[base-version] $tool_dir ($range) refused a freshly rendered container (exit $status)"; fi
+
+    next_major="$(( $(cut -d. -f1 "$tmp/.devcontainer/.setup-devcontainer-version") + 1 )).0.0"
+    echo "$next_major" > "$tmp/.devcontainer/.setup-devcontainer-version"
+    status=0; (cd "$tmp" && "$check" "$range" >/dev/null) || status=$?
+    if [ "$status" -ne 1 ]; then fail "[base-version] $tool_dir ($range) did not refuse a $next_major container (exit $status)"; fi
+
+    rm "$tmp/.devcontainer/.setup-devcontainer-version"
+    status=0; (cd "$tmp" && "$check" "$range" >/dev/null) || status=$?
+    if [ "$status" -ne 3 ]; then fail "[base-version] $tool_dir ($range) did not report a missing marker (exit $status)"; fi
+    rm -rf "$tmp"
+  done
+  if [ "$FAIL_COUNT" -eq "$before" ]; then
+    echo "OK: [base-version] every CLI Skill's declared range accepts a fresh render, refuses the next major, and reports a missing marker"
+  fi
+}
+check_base_version_gate
+
 if [ "$FAIL_COUNT" -gt 0 ]; then
   echo "$FAIL_COUNT check(s) failed" >&2
   exit 1

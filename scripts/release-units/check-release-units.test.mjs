@@ -132,6 +132,66 @@ test('a manifest entry with no package in the config fails', async () => {
   assert.match(result.output, /skills\/gone: listed in \.release-please-manifest\.json but not registered in release-please-config\.json/);
 });
 
+// setup-devcontainer plus one CLI Skill declaring a requires-setup-devcontainer range.
+function devcontainerFamily({ baseVersion = '1.0.0', requires = '"^1.0.0"' } = {}) {
+  const cli = 'setup-claude-devcontainer';
+  return {
+    'release-please-config.json': {
+      packages: {
+        'skills/setup-devcontainer': { component: 'setup-devcontainer', 'extra-files': ['SKILL.md'] },
+        [`skills/${cli}`]: { component: cli, 'extra-files': ['SKILL.md'] },
+      },
+    },
+    '.release-please-manifest.json': { 'skills/setup-devcontainer': baseVersion, [`skills/${cli}`]: '1.0.0' },
+    'skills/setup-devcontainer/SKILL.md': versioned('setup-devcontainer', baseVersion),
+    'skills/setup-devcontainer/CHANGELOG.md': '# Changelog\n',
+    [`skills/${cli}/SKILL.md`]: skill(cli, [
+      'metadata:',
+      '  version: "1.0.0" # x-release-please-version',
+      `  changelog: "${blob}/skills/${cli}/CHANGELOG.md"`,
+      `  requires-setup-devcontainer: ${requires}`,
+    ]),
+    [`skills/${cli}/CHANGELOG.md`]: '# Changelog\n',
+  };
+}
+
+test('a requires-<unit> range that includes the unit\'s current version passes', async () => {
+  const result = check(await repo(devcontainerFamily({ baseVersion: '1.4.0', requires: '"^1.2.0"' })));
+  assert.equal(result.status, 0, result.output);
+});
+
+test('a major bump of the required unit fails every range that excludes it', async () => {
+  const result = check(await repo(devcontainerFamily({ baseVersion: '2.0.0' })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/setup-claude-devcontainer\/SKILL\.md: metadata\.requires-setup-devcontainer "\^1\.0\.0" excludes setup-devcontainer's current version 2\.0\.0/);
+});
+
+test('a range floor above the required unit\'s current version fails', async () => {
+  const result = check(await repo(devcontainerFamily({ baseVersion: '1.0.0', requires: '"^1.1.0"' })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /excludes setup-devcontainer's current version 1\.0\.0/);
+});
+
+test('a requirement on an unknown unit fails', async () => {
+  const files = devcontainerFamily();
+  files['skills/setup-claude-devcontainer/SKILL.md'] = files['skills/setup-claude-devcontainer/SKILL.md'].replace('requires-setup-devcontainer', 'requires-setup-nothing');
+  const result = check(await repo(files));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /metadata\.requires-setup-nothing names no Release Unit/);
+});
+
+test('a requirement that is not a caret range fails', async () => {
+  const result = check(await repo(devcontainerFamily({ requires: '">=1.0.0"' })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /metadata\.requires-setup-devcontainer must be a caret range such as "\^1\.0\.0"/);
+});
+
+test('a requirement that is not a quoted string fails', async () => {
+  const result = check(await repo(devcontainerFamily({ requires: '^1.0.0' })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /metadata\.requires-setup-devcontainer must be a quoted string/);
+});
+
 test('an unquoted metadata value fails, because Antigravity drops a Skill whose metadata value is not a string', async () => {
   const skillMd = skill('unslop', ['metadata:', '  version: 1.0.0 # x-release-please-version', `  changelog: "${blob}/skills/unslop/CHANGELOG.md"`]);
   const result = check(await repo(standalone('unslop', { skillMd })));
