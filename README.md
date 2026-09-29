@@ -29,6 +29,42 @@ npx skills@latest add ken-guru/skills --skill setup-devcontainer
 npx skills@latest add ken-guru/skills --skill setup-claude-devcontainer
 ```
 
+## Versions
+
+Each Standalone Skill, and each Skill Suite as a whole, has its own
+[semantic version](https://semver.org) and `CHANGELOG.md`. A major version
+means something you already have (a Project Folder, a generated devcontainer,
+a script flag) needs you to act; its changelog entry says what to do.
+
+**Check what you have.** Claude plugin users:
+
+```bash
+claude plugin details presentation-skills
+```
+
+`npx skills` users: every installed `SKILL.md` records its version under
+`metadata.version`. `npx skills list` shows where each Skill lives; for a
+global install:
+
+```bash
+find ~/.agents/skills ~/.claude/skills -maxdepth 2 -name SKILL.md -exec grep -H '^  version:' {} + 2>/dev/null
+```
+
+For a project install, run it from the project with `.agents/skills
+.claude/skills` in place of the two home paths. Each `SKILL.md` also links to
+its changelog under `metadata.changelog`.
+
+**Pin a version.** Releases are tagged `<skill-or-suite>-v<version>`, and
+`npx skills` installs from a tag. `npx skills update` then stays on it:
+
+```bash
+npx skills@latest add ken-guru/skills#unslop-v1.0.0 --skill unslop
+```
+
+**See what's new.** [GitHub Releases](https://github.com/ken-guru/skills/releases)
+lists every release of every Skill and Skill Suite, with the same notes as its
+changelog.
+
 ## Repository structure
 
 - `skills/<name>/SKILL.md` is a Standalone Skill.
