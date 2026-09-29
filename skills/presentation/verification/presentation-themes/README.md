@@ -9,9 +9,18 @@ npm install
 npm run test:fast
 ```
 
-The fast tier checks catalog resolution, package integrity, legacy and invalid state, locked snapshots, version behavior, project wiring, external-font fallback behavior, and that `docs/presentation-themes.md`/`README.md` structurally reference the right gallery images with informative alt text. This is the only tier CI runs (`Presentation theme contracts`) — it is pure Node, needs no browser, and doesn't depend on how anything actually renders.
+The fast tier checks catalog resolution, package integrity, legacy and invalid state, locked snapshots, version behavior, project wiring, external-font fallback behavior, and that `docs/presentation-themes.md`/`README.md` structurally reference the right gallery images with informative alt text. CI runs this tier (`Presentation theme contracts`) — it is pure Node, needs no browser, and doesn't depend on how anything actually renders. The one browser check CI also runs is the diagram media box check below.
 
-## Full render tier — local only, not CI-gated
+## Diagram media box check — CI-gated
+
+```sh
+npx playwright-core install chromium-headless-shell   # once; pinned by package-lock.json
+npm run fixtures && node scripts/check-diagram-media-box.mjs
+```
+
+Each Theme Manifest declares `archetypes.diagram.mediaBox`, the space a diagram gets on the 1280×720 slide under the worst-case heading and caption; Effective Text Size is measured against it. This check renders the capacity deck to HTML with Marp CLI (no PDF, no Ghostscript), opens it in Playwright's pinned Chromium, and compares each declared box with the rendered diagram `<img>`. A declared box may never exceed the rendered slot and may sit at most 8 px under it (`MEDIA_BOX_SLACK`), so rounding down is allowed but a stale declaration fails. CI runs it as the `Diagram media box` job. Set `PRESENTATION_THEME_BROWSER` to use another Chromium-family browser locally.
+
+## Full render tier — local only, not CI-gated (except the diagram media box check above)
 
 ```sh
 npm run test:full

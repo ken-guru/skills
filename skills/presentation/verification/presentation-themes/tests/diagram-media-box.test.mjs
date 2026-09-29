@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import { diagramMediaBoxIssues } from '../lib/diagram-media-box.mjs';
 
-// The rendered-slot measurement itself runs in the full render tier
-// (check-renders); this pins the comparison it applies.
+// The rendered-slot measurement runs in CI (scripts/check-diagram-media-box.mjs)
+// and in the full render tier; this pins the comparison both apply.
 test('a declared diagram media box matching the rendered slot passes', () => {
   assert.deepEqual(diagramMediaBoxIssues({ declared: { width: 1126, height: 252 }, measured: { width: 1126, height: 255 } }), []);
 });

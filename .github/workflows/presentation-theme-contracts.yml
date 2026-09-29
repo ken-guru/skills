@@ -109,3 +109,43 @@ jobs:
       - name: Run Skill-owned tests
         run: node --test skills/presentation/*/tests/*.test.mjs
         working-directory: ${{ github.workspace }}
+
+  diagram-media-box:
+    name: Diagram media box
+    needs: changes
+    # Same gating as the contracts job. This is the only render-tier check that
+    # runs in a browser in CI; the rest stays local (see the suite README).
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.presentation == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: skills/presentation/verification/presentation-themes
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: skills/presentation/verification/presentation-themes/package-lock.json
+
+      - name: Install pinned dependencies
+        run: npm ci
+
+      # The Chromium build is pinned by playwright-core in package-lock.json.
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('skills/presentation/verification/presentation-themes/package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright-core install --with-deps chromium-headless-shell
+
+      - name: Check declared diagram media boxes against the rendered slots
+        run: npm run fixtures && node scripts/check-diagram-media-box.mjs
