@@ -50,6 +50,13 @@ Own-Block Contract's "container definition is base-owned" rule. Today only
 `setup-codex-devcontainer` uses it.
 _Avoid_: capability grant, permission exception
 
+**Base Version Marker**:
+The record, inside a generated Shared Container, of which base-skill version
+generated it or last re-ran against it. Base-owned under the Own-Block
+Contract; a CLI Skill reads it to confirm the container is within its declared
+compatible range, and never writes it.
+_Avoid_: scaffold version, container version
+
 **Shared Checkout**:
 The repo content at `/workspace` — VS Code's default devcontainer bind-mount
 of the host's own working directory, not a clone. Every CLI Skill installs
