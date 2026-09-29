@@ -26,6 +26,13 @@ their discovery, distribution, and contribution surfaces. A Collection is not a
 Skill Suite.
 _Avoid_: bundle, package
 
+## Release Unit
+
+A Standalone Skill or a Skill Suite: the scope that carries one version and one
+changelog and is released as a whole. Skill Suite members are not Release Units;
+they share their suite's version.
+_Avoid_: package, distribution unit
+
 ## Output language
 
 **Human-output guidance**:
