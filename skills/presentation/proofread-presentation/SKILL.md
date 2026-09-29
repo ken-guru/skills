@@ -1,6 +1,9 @@
 ---
 name: proofread-presentation
 description: "Proofreader. Load when a generated presentation needs content, accessibility, rendering, or export-parity review, or the user asks to proofread it."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Proofread Presentation

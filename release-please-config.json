@@ -3,6 +3,20 @@
   "release-type": "simple",
   "include-component-in-tag": true,
   "packages": {
+    "skills/presentation": {
+      "component": "presentation",
+      "extra-files": [
+        "build-presentation/SKILL.md",
+        "discover-presentation/SKILL.md",
+        "generate-diagrams/SKILL.md",
+        "generate-images/SKILL.md",
+        "generate-slides/SKILL.md",
+        "presentation-validation/SKILL.md",
+        "proofread-presentation/SKILL.md",
+        "structure-agenda/SKILL.md",
+        { "type": "json", "path": "/.claude-plugin/plugin.json", "jsonpath": "$.version" }
+      ]
+    },
     "skills/setup-antigravity-devcontainer": {
       "component": "setup-antigravity-devcontainer",
       "extra-files": ["SKILL.md"]

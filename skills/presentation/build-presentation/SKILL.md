@@ -1,6 +1,9 @@
 ---
 name: build-presentation
 description: "Orchestrator for the installed presentation skill suite. Use when the user wants a guided end-to-end presentation workflow."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Build Presentation (Orchestrator)

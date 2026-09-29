@@ -1,6 +1,9 @@
 ---
 name: generate-images
 description: "Media Renderer. Load when IMAGE_SPEC.md exists or the user explicitly requests presentation image rendering."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Generate Images (Media Renderer)

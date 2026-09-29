@@ -1,6 +1,9 @@
 ---
 name: structure-agenda
 description: "Drafting. Use when structuring presentation content, or after discover-presentation has completed."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Structure Agenda

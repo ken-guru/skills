@@ -1,6 +1,9 @@
 ---
 name: discover-presentation
 description: "Interview the user. Use when starting a new presentation or updating requirements."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Discover Presentation

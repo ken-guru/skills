@@ -45,6 +45,26 @@ function standalone(name, { manifestVersion = '1.0.0', skillMd } = {}) {
   };
 }
 
+function suite(name, members, { manifestVersion = '2.0.0', pluginVersion = '2.0.0', memberVersions = {} } = {}) {
+  const unit = `skills/${name}`;
+  const files = {
+    'release-please-config.json': {
+      packages: {
+        [unit]: {
+          component: name,
+          'extra-files': [...members.map((member) => `${member}/SKILL.md`), { type: 'json', path: '/.claude-plugin/plugin.json', jsonpath: '$.version' }],
+        },
+      },
+    },
+    '.release-please-manifest.json': { [unit]: manifestVersion },
+    '.claude-plugin/plugin.json': { name: `${name}-skills`, version: pluginVersion },
+    [`${unit}/README.md`]: `# ${name}\n`,
+    [`${unit}/CHANGELOG.md`]: '# Changelog\n',
+  };
+  for (const member of members) files[`${unit}/${member}/SKILL.md`] = versioned(member, memberVersions[member] ?? manifestVersion, unit);
+  return files;
+}
+
 test('this repository passes', () => {
   const result = check(path.resolve('.'));
   assert.equal(result.status, 0, result.output);
@@ -61,6 +81,24 @@ test('a SKILL.md version that disagrees with the manifest fails, naming the file
   assert.match(result.output, /skills\/unslop\/SKILL\.md/);
   assert.match(result.output, /1\.0\.1/);
   assert.match(result.output, /1\.0\.0/);
+});
+
+test('a consistent Skill Suite with a plugin manifest passes', async () => {
+  const result = check(await repo(suite('presentation', ['build', 'proofread'])));
+  assert.equal(result.status, 0, result.output);
+});
+
+test('a plugin manifest version that disagrees with its suite fails, naming the manifest', async () => {
+  const result = check(await repo(suite('presentation', ['build', 'proofread'], { pluginVersion: '1.1.0' })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /\.claude-plugin\/plugin\.json: version 1\.1\.0 does not match the manifest's 2\.0\.0 for skills\/presentation/);
+});
+
+test('one suite member whose version disagrees fails, naming only that member', async () => {
+  const result = check(await repo(suite('presentation', ['build', 'proofread'], { memberVersions: { proofread: '1.9.0' } })));
+  assert.equal(result.status, 1, result.output);
+  assert.match(result.output, /skills\/presentation\/proofread\/SKILL\.md: version 1\.9\.0/);
+  assert.doesNotMatch(result.output, /build\/SKILL\.md/);
 });
 
 test('an unquoted metadata value fails, because Antigravity drops a Skill whose metadata value is not a string', async () => {

@@ -1,6 +1,9 @@
 ---
 name: presentation-validation
 description: "Validate a Presentation Project Folder with deterministic generation and proofread profiles."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Presentation Validation

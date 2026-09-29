@@ -81,10 +81,17 @@ function extraFilePath(packagePath, entry) {
   return relative.startsWith('/') ? relative.slice(1) : path.posix.join(packagePath, relative);
 }
 
+// The version an extra-file carries: a JSON path for `type: json`, otherwise
+// the annotated line the Generic updater rewrites. Only `$.a.b` paths are used.
+function extraFileVersion(text, entry) {
+  if (entry.type !== 'json') return annotatedVersion(text);
+  return entry.jsonpath.replace(/^\$\.?/, '').split('.').filter(Boolean).reduce((value, key) => value?.[key], JSON.parse(text));
+}
+
 function checkAgreement(root, packagePath, expected, extraFiles, errors) {
   for (const entry of extraFiles) {
     const file = extraFilePath(packagePath, entry);
-    const actual = annotatedVersion(readFileSync(path.join(root, file), 'utf8'));
+    const actual = extraFileVersion(readFileSync(path.join(root, file), 'utf8'), entry);
     if (actual === undefined && file.endsWith('SKILL.md')) continue; // reported by checkShape
     if (actual !== expected) errors.push(`${file}: version ${actual} does not match the manifest's ${expected} for ${packagePath}`);
   }

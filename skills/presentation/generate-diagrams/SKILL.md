@@ -1,6 +1,9 @@
 ---
 name: generate-diagrams
 description: "Media Renderer. Load when DIAGRAM_SPEC.md exists or the user explicitly requests presentation diagram rendering."
+metadata:
+  version: "2.0.0" # x-release-please-version
+  changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
 # Generate Diagrams (Media Renderer)

@@ -1,4 +1,5 @@
 {
+  "skills/presentation": "2.0.0",
   "skills/setup-antigravity-devcontainer": "1.0.0",
   "skills/setup-claude-devcontainer": "1.0.0",
   "skills/setup-codex-devcontainer": "1.0.0",
