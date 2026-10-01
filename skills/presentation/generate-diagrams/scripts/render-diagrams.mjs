@@ -3,7 +3,12 @@
 // Dependency-free; never prompts and never writes PROJECT.json.
 //
 // Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]
-// Exit codes: 0 every selected entry rendered (or already present)
+//        render-diagrams.mjs <DIAGRAM_SPEC.md> --check [--slides=N,M,...] [--slide=N --candidate=<file.d2>]
+// --check renders into the OS temp directory, reports each diagram's Effective
+// Text Size, and writes nothing to the Project Folder. --candidate replaces the
+// one selected slide's D2 Source with the file's contents for that check.
+// Exit codes: 0 every selected entry rendered (or already present); with
+//               --check, every selected entry passes
 //             1 at least one entry failed; nothing is written when an entry is
 //               malformed, styles D2 outside the Diagram Roles, or fails
 //               `d2 validate`
@@ -16,7 +21,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const USAGE = 'Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]';
+const USAGE = 'Usage: render-diagrams.mjs <DIAGRAM_SPEC.md> [--force | --check] [--slides=N,M,...] [--slide=N] [--candidate=<file.d2>]';
 const D2_THEME_BY_TONE = { 'tone-light': 0, 'tone-dark': 200 };
 const CANVAS_BY_TONE = { 'tone-light': 'light', 'tone-dark': 'dark' };
 const NODE_ROLES = ['base', 'emphasis', 'muted', 'risk', 'boundary'];
@@ -44,7 +49,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 process.on('exit', cleanupSync);
 
 function parseArguments(argv) {
-  const options = { specPath: null, force: false, slides: null };
+  const options = { specPath: null, force: false, check: false, candidate: null, slides: null };
   const slideList = (value, flag) => {
     const numbers = value.split(',').map((item) => item.trim());
     if (!numbers.length || numbers.some((item) => !/^\d+$/.test(item))) throw new UsageError(`${flag} expects slide numbers, got "${value}".`);
@@ -52,6 +57,8 @@ function parseArguments(argv) {
   };
   for (const argument of argv) {
     if (argument === '--force') options.force = true;
+    else if (argument === '--check') options.check = true;
+    else if (argument.startsWith('--candidate=')) options.candidate = path.resolve(argument.slice(12));
     else if (argument.startsWith('--slides=')) options.slides = slideList(argument.slice(9), '--slides');
     else if (argument.startsWith('--slide=')) {
       options.slides = slideList(argument.slice(8), '--slide');
@@ -62,6 +69,9 @@ function parseArguments(argv) {
     else options.specPath = path.resolve(argument);
   }
   if (!options.specPath) throw new UsageError('Missing the DIAGRAM_SPEC.md path.');
+  if (options.check && options.force) throw new UsageError('--check writes nothing, so --force does not apply.');
+  if (options.candidate && !options.check) throw new UsageError('--candidate only applies with --check.');
+  if (options.candidate && options.slides?.length !== 1) throw new UsageError('--candidate needs exactly one slide: add --slide=N.');
   return options;
 }
 
@@ -257,6 +267,35 @@ function legibilityMessage(result, box, roleMinimum) {
   return `Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: smallest text ${+result.smallest.toFixed(2)} px × scale ${result.scale.toFixed(2)} into the ${box.width}×${box.height} diagram media box (SVG ${result.svgAspect.toFixed(2)}:1, box ${result.boxAspect.toFixed(2)}:1). The diagram is ${wider ? 'wider' : 'taller'} than the media box; ${fixes.join(', ')}.`;
 }
 
+async function checkLegibility(selected, { workDirectory, d2Theme, preamble, box, roleMinimum }) {
+  let failed = 0;
+  for (const item of selected) {
+    const output = path.join(workDirectory, `check-slide-${item.slide}-${selected.indexOf(item) + 1}.svg`);
+    const result = await run('d2', ['--layout=elk', `--theme=${d2Theme}`, item.input, output]);
+    let message;
+    if (result.code !== 0) message = `d2 failed: ${d2Message(result.output, item.input, preamble)}`;
+    else {
+      const svg = await readFile(output, 'utf8');
+      const problem = svgProblem(svg);
+      const legibility = problem ? null : effectiveTextSize(svg, box);
+      if (problem) message = problem;
+      else if (legibility && !legibility.pass) message = legibilityMessage(legibility, box, roleMinimum);
+      else if (!legibility) {
+        console.log(`✅ ${label(item)}: no text to measure; fits the ${box.width}×${box.height} diagram media box`);
+        continue;
+      } else {
+        console.log(`✅ ${label(item)}: Effective Text Size ${legibility.effective.toFixed(1)} px in the ${box.width}×${box.height} diagram media box (SVG ${legibility.svgAspect.toFixed(2)}:1, box ${legibility.boxAspect.toFixed(2)}:1)`);
+        continue;
+      }
+    }
+    failed += 1;
+    console.log(`❌ ${label(item)}: ${message}`);
+  }
+  console.log('─'.repeat(40));
+  console.log(`Checked: ${selected.length}   Passed: ${selected.length - failed}   Failed: ${failed}   (nothing was written)`);
+  return failed ? 1 : 0;
+}
+
 function label(entry) {
   return `Slide ${entry.slide} — ${entry.title} (${entry.filename ?? 'no filename'})`;
 }
@@ -290,6 +329,15 @@ async function main(argv) {
     if (missing.length) throw new UsageError(`No diagram entry for slide ${missing.join(', ')} in ${path.basename(options.specPath)}.`);
     entries = entries.filter((item) => options.slides.includes(item.slide));
   }
+  if (options.candidate) {
+    if (!existsSync(options.candidate)) throw new UsageError(`${options.candidate} not found.`);
+    const source = await readFile(options.candidate, 'utf8');
+    for (const item of entries) {
+      item.source = source.trim() ? `${source.trimEnd()}\n` : null;
+      item.problems = item.problems.filter((problem) => !/D2 block/.test(problem));
+      if (!item.source) item.problems.push('the candidate file is empty');
+    }
+  }
   if (!entries.length) throw new UsageError(`No diagram entries found in ${path.basename(options.specPath)}.`);
 
   const boundary = `${path.resolve(projectDirectory)}${path.sep}`;
@@ -316,7 +364,8 @@ async function main(argv) {
 
   const selected = [];
   for (const item of entries) {
-    if (!options.force && existsSync(item.target)) console.log(`⏭️  ${label(item)}: exists — pass --force to re-render`);
+    if (options.check) selected.push(item);
+    else if (!options.force && existsSync(item.target)) console.log(`⏭️  ${label(item)}: exists — pass --force to re-render`);
     else selected.push(item);
   }
   if (!selected.length) {
@@ -342,6 +391,8 @@ async function main(argv) {
     console.log('   Fix the D2 Source in DIAGRAM_SPEC.md, then rerun.');
     return 1;
   }
+
+  if (options.check) return checkLegibility(selected, { workDirectory, d2Theme, preamble, box, roleMinimum });
 
   const failures = [];
   let rendered = 0;

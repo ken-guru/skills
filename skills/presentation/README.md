@@ -86,9 +86,14 @@ for the persisted shape.
 
 ## External prerequisites
 
+- **A POSIX shell:** macOS, Linux, or WSL on Windows. Each Skill runs its scripts
+  through one bundled `sh` executable named after the Skill.
 - **Marp and Node.js:** required and checked by Generate Slides and Proofread when
   either phase is invoked. Marp's PDF export and Proofread's slide images use a
-  locally installed Chrome, Edge, or Firefox; nothing is downloaded.
+  locally installed Chrome, Edge, or Firefox; nothing is downloaded. When the PDF
+  export fails in the browser Marp picks, Generate Slides tries the installed
+  stable-channel browsers and records the one that works in the project's
+  `.marprc.yml`.
 - **Node.js:** also required and checked by Generate Images.
 - **D2:** required only when Generate Diagrams renders a diagram.
 - **Image Provider credential:** required only when Generate Images runs — either
@@ -97,6 +102,9 @@ for the persisted shape.
   package installation.
 
 Each member checks only the prerequisite it uses.
+
+To approve each Skill's executable once instead of on every run, see
+[Reducing permission prompts](docs/permissions.md).
 
 ## Presentation themes
 

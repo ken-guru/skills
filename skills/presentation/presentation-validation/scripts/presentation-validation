@@ -1,3 +1,10 @@
 #!/bin/sh
+# Skill Executable for presentation-validation. Run it by unquoted absolute path.
+#   presentation-validation check all|media-spec --project-dir <project> --profile generation|proofread
 set -eu
-exec node "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/presentation-validation.mjs" "$@"
+here=$(CDPATH= cd -- "${0%/*}" && pwd)
+if ! command -v node >/dev/null 2>&1; then
+  echo '❌ node not installed — presentation-validation requires Node.js' >&2
+  exit 2
+fi
+exec node "$here/presentation-validation.mjs" "$@"

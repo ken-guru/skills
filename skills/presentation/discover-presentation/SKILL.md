@@ -1,6 +1,7 @@
 ---
 name: discover-presentation
 description: "Interview the user. Use when starting a new presentation or updating requirements."
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/discover-presentation *)
 ---
 
 # Discover Presentation

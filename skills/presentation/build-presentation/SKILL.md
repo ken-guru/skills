@@ -74,3 +74,15 @@ generate-images/diagrams → proofread-presentation
 ```
 
 Media phases may be skipped or run independently when their Media Specs exist.
+
+## Fixes that span phases
+
+When the user asks for a change that needs more than one Phase Skill, propose one
+Repair Plan: a single Decision Prompt listing every edit by file (with the full
+Media Spec diff for changed entries), every rerender with its Media Renderer and
+slide scope, the files overwritten and preserved, the phases reset to `pending`,
+and the Skills that run in order. Name `generate-diagrams` when a diagram's
+layout must change; it offers the checked layout options. A Repair Plan never
+covers deleting media, a Theme Package refresh, or Agenda approval. On approval,
+invoke the named Skills in order; each keeps its own writes, state, and checks.
+The plan lives only in this conversation.

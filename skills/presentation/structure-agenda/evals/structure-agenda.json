@@ -47,5 +47,12 @@
     "query": "draft for all three",
     "precondition": "The Diagram brief form for slides 4, 7, and 11 has been presented",
     "expected": "skill proposes a brief for each of the three slides for the presenter to edit, and does not write AGENDA.md before explicit approval"
+  },
+  {
+    "skill": "structure-agenda",
+    "type": "boundary",
+    "query": "put a diagram of the process on the title slide",
+    "precondition": "The draft agenda is being iterated",
+    "expected": "skill explains that diagrams need their own Diagram slide because only the diagram archetype has a diagram media box, and offers a separate Diagram slide or a Picture or None on the title slide"
   }
 ]

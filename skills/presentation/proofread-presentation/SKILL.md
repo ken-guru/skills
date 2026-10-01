@@ -28,7 +28,7 @@ Proofread reviews a finished deck. Check readiness from `PROJECT.json` before an
 
 Read the locked Theme Manifest and validate against its interface rather than hard-coding Editorial, Signal, or Field Notes behavior.
 
-When the complete Presentation Skill Suite is installed, invoke the read-only `presentation-validation` dispatcher with the `proofread` profile before completion. If it is unavailable, report that full validation cannot run under the suite installation contract; do not install it automatically.
+When the complete Presentation Skill Suite is installed, run the read-only `presentation-validation` Skill Executable with the `proofread` profile before completion. If it is unavailable, report that full validation cannot run under the suite installation contract; do not install it automatically.
 
 ## Safe mechanical fixes
 
@@ -38,6 +38,25 @@ When the complete Presentation Skill Suite is installed, invoke the read-only `p
 - Correct a missing semantic Content Slot class when the slide's existing archetype and content make the intended slot unambiguous.
 
 Never convert media to `img-right`, add `class: invert`, insert inline theme CSS, change an archetype, choose another variation, rewrite Media Intent, or delete content as an automatic fix.
+
+## Fixes that span phases
+
+When a blocking issue needs another Phase Skill (a diagram that fails Effective
+Text Size, a Diagram on a non-diagram archetype, a stale export), propose one
+Repair Plan: a single Decision Prompt that lists
+
+1. every edit, by file, with the full Media Spec diff for any changed entry in
+   `generate-slides`' Media Spec diff format;
+2. every rerender, with its Media Renderer and slide scope;
+3. the files overwritten and the files preserved;
+4. the phases reset to `pending`;
+5. the Skills that run, in order, ending with Proofread.
+
+Name `generate-diagrams` when a diagram's layout must change; it offers the
+layout options after checking each against the diagram media box. A Repair Plan
+never covers deleting media, a Theme Package refresh, or Agenda approval. On
+approval, invoke each named Skill in order; each keeps its own writes, state,
+and checks. The plan lives only in this conversation.
 
 ## Blocking validation
 
@@ -76,7 +95,7 @@ The HTML is the Accessible Reference Output, so the visual checks above are judg
 
 1. Create a temporary directory outside the Project Folder with `mktemp -d`.
 2. From the Project Folder, run `marp <presentation> --images png --allow-local-files -o <temp>/slide.png`, where `<presentation>` is `paths.presentation` from `DISCOVERY.json` (default `PRESENTASJON.md`). Marp writes `slide.001.png`, `slide.002.png`, and so on, one per slide, using the project's `.marprc.yml` theme.
-3. If Marp reports that it cannot find a browser, stop and block with: `❌ Marp found no local browser. Install Chrome, Edge, or Firefox, then rerun.`
+3. If Marp cannot launch a browser, stop and block with: `❌ Marp found no local browser. Install Chrome, Edge, or Firefox, then rerun. If one is installed, rerun Generate Slides' export to select a working browser.` Marp reads the browser `export` saved in the Project Folder's `.marprc.yml`, so the slide images use the same browser as the PDF.
 4. Build the inspection set, then open and inspect every image in it:
    - the first slide of each Slide Archetype present;
    - every slide with a Picture or Diagram;
@@ -122,4 +141,4 @@ Mark `phases.proofread.status = "done"` with a timestamp only when no blocking i
 Require `PROJECT.json` to have `projectType: "presentation"` and preserve every
 unrelated phase record when updating Proofread.
 
-The validation dispatcher must return zero before Proofread may be marked complete. A zero validator result is necessary but does not replace this Skill's mechanical-fix, slide-image review, user-review, and state-preservation requirements.
+The validation Skill Executable must return zero before Proofread may be marked complete. A zero validator result is necessary but does not replace this Skill's mechanical-fix, slide-image review, user-review, and state-preservation requirements.

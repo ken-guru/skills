@@ -5,6 +5,7 @@ Using the chosen structure:
 2. Include a Glossary section (in the presentation language) with all key domain terms defined
 3. For each slide topic: indicate the visual choice and its canonical filename (e.g., `[Visual: Picture — \`images/example.png\`]`, `[Visual: Diagram — \`images/example.svg\`]`, or `[Visual: None]`) based on the presentation default, and `[Source](url)` for source material where relevant. **Explicitly remind the user that they can override this choice to "None" or another type for any individual slide.**
 4. For every Picture, declare `Intended Media Orientation` as exactly `Portrait` or `Landscape`. Infer the orientation from Media Intent and the selected theme's composition needs, show it in the draft, and let the user override it. This declaration selects the matching text-plus-image Archetype Variation and guides image generation.
+5. Give every Diagram its own Diagram slide. Only the diagram archetype has a diagram media box: a wide, short slot (1116–1152 px wide and 252–347 px tall on the 1280×720 slide, depending on the theme), so diagrams read left to right. When the presenter asks for a diagram on a title, section, or other slide, say so in the draft and offer a separate Diagram slide next to it, or a Picture or None on that slide. The final agenda approval settles it; Generation and validation block a Diagram on any other archetype.
 
 Use this Picture form:
 

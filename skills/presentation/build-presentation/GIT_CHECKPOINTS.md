@@ -17,5 +17,6 @@ the user explicitly chooses to continue without persisted checkpoints.
 
 When a Restart Guard sends the project back to an earlier phase, commit the
 confirmed reset before re-invoking that phase. Make the reset evident in the
-commit message. In a non-Git Project Folder, report the persistence limitation
+commit message. An approved Repair Plan in this conversation confirms the
+reset it lists; name the plan in the commit message instead of asking again. In a non-Git Project Folder, report the persistence limitation
 whenever a restart is confirmed.

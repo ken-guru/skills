@@ -1,0 +1,25 @@
+#!/bin/sh
+# Skill Executable for generate-slides. Run it by unquoted absolute path.
+#   generate-slides check-theme   <project>
+#   generate-slides prepare-theme <project> [--refresh --confirm-refresh]
+#   generate-slides markup        <project> --check|--write --input=<slides.json>
+#   generate-slides invalidate    <project> --change=theme|font|refresh
+#   generate-slides export        <project>
+set -eu
+here=$(CDPATH= cd -- "${0%/*}" && pwd)
+usage='Usage: generate-slides check-theme|prepare-theme|markup|invalidate|export <project> [options]'
+if ! command -v node >/dev/null 2>&1; then
+  echo '❌ node not installed — Theme Resolution requires Node.js' >&2
+  exit 2
+fi
+[ $# -ge 1 ] || { echo "$usage" >&2; exit 2; }
+subcommand=$1
+shift
+case $subcommand in
+  check-theme) exec node "$here/check-theme.mjs" "$@" ;;
+  prepare-theme) exec node "$here/prepare-theme.mjs" "$@" ;;
+  markup) exec node "$here/slide-markup.mjs" "$@" ;;
+  invalidate) exec node "$here/presentation-theme-invalidation.mjs" "$@" ;;
+  export) exec node "$here/export-presentation.mjs" "$@" ;;
+  *) echo "$usage" >&2; exit 2 ;;
+esac

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Skill Executable for discover-presentation. Run it by unquoted absolute path.
+#   discover-presentation invalidate <project> --change=theme|font
+set -eu
+here=$(CDPATH= cd -- "${0%/*}" && pwd)
+usage='Usage: discover-presentation invalidate <project> --change=theme|font'
+if ! command -v node >/dev/null 2>&1; then
+  echo '❌ node not installed — discover-presentation requires Node.js for theme and font changes' >&2
+  exit 2
+fi
+[ $# -ge 1 ] || { echo "$usage" >&2; exit 2; }
+subcommand=$1
+shift
+case $subcommand in
+  invalidate) exec node "$here/presentation-theme-invalidation.mjs" "$@" ;;
+  *) echo "$usage" >&2; exit 2 ;;
+esac

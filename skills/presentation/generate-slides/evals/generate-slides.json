@@ -93,5 +93,26 @@
     "query": "generate after the theme CSS was manually edited",
     "precondition": "Locked snapshot fingerprint does not match theme-lock.json",
     "expected": "skill blocks before project writes and reports the modified locked package"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "regenerate the slides",
+    "precondition": "An approved Repair Plan in this conversation lists overwriting PRESENTASJON.md, PRESENTASJON.html, and PRESENTASJON.pdf and keeping media",
+    "expected": "skill regenerates without asking the Restart Guard question"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "regenerate the slides",
+    "precondition": "An approved Repair Plan lists only the Markdown, HTML, and PDF, but a Media Spec would also change",
+    "expected": "skill reports \"Repair Plan exceeded\" and asks for Media Spec approval as usual"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "generate the presentation",
+    "precondition": "Marp's auto-selected browser fails to print the PDF and stable Chrome is installed",
+    "expected": "one generate-slides export call retries stable Chrome, writes it to .marprc.yml, and the report names the browser; no Decision Prompt is asked"
   }
 ]

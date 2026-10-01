@@ -16,13 +16,13 @@ Classify each slide once with this ordered table:
 6. Explicit quotation → `quotation`.
 7. Everything else → `text-only`.
 
-The slide-markup command applies this table to each slide object through `role`, `visual.type`, and `quantitative` (see [Slide object fields](#slide-object-fields)). A `SLIDE_SPLIT_REQUIRED` error is binding: split the slide and keep type at the accepted size.
+`generate-slides markup` applies this table to each slide object through `role`, `visual.type`, and `quantitative` (see [Slide object fields](#slide-object-fields)). A `SLIDE_SPLIT_REQUIRED` error is binding: split the slide and keep type at the accepted size.
 
 The Theme Manifest selects the first applicable variation. Text-plus-image uses the approved Intended Media Orientation: `portrait` or `landscape`. Do not choose randomly and do not vary a composition merely for visual novelty.
 
 ## Slide object fields
 
-`scripts/slide-markup.mjs` reads a JSON array of slide objects, one per slide in presentation order. A text field is a string or a line array: each array item is one rendered line, joined with `<br>` and counted against Content Capacity. `label` and `context` are single-line strings. `body` is always an array of bullets, and each bullet is itself a string or a line array. Text is escaped, so write plain text rather than HTML.
+`generate-slides markup` reads a JSON array of slide objects, one per slide in presentation order. A text field is a string or a line array: each array item is one rendered line, joined with `<br>` and counted against Content Capacity. `label` and `context` are single-line strings. `body` is always an array of bullets, and each bullet is itself a string or a line array. Text is escaped, so write plain text rather than HTML.
 
 Fields on every slide:
 
