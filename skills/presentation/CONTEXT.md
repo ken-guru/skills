@@ -45,6 +45,26 @@ _Avoid_: completion checklist, done criteria
 A protocol invoked at phase startup when re-running that phase would make downstream files stale. Presents the user with an explicit inventory of affected files and a choice before any modifications are made.
 _Avoid_: cleanup prompt, stale file handler
 
+## Decision Prompt
+
+A question a Presentation Skill asks the user and waits on before acting, such as a Media Scope choice, a Restart Guard, or a design choice. A Skill controls when and how it asks.
+_Avoid_: approval, permission, confirmation step
+
+## Permission Prompt
+
+The harness asking the user whether the agent may run a tool or shell command. Harness configuration controls it; a Skill influences it only through the shape of the commands it runs.
+_Avoid_: approval, Decision Prompt
+
+## Repair Plan
+
+One Decision Prompt that proposes a fix spanning phases: the edits, the rerenders and their Media Scope, the files overwritten and preserved, and the phases reset. Approving it answers the matching downstream Decision Prompts in the same conversation until reality diverges from the plan. It never stands in for deleting media, a theme refresh, or Agenda approval.
+_Avoid_: fix plan, batch approval, blanket approval
+
+## Skill Executable
+
+The single command bundled inside a Presentation Skill through which it runs its own scripts, invoked by unquoted absolute path with a subcommand. Named after its Skill, so a user approving it sees which Skill is asking.
+_Avoid_: shim, wrapper, dispatcher, render command
+
 ## Eval
 
 A test case that documents expected skill routing behaviour for a given query. Three types:
@@ -92,7 +112,7 @@ _Avoid_: visual style, image purpose
 **Intended Media Orientation** — The portrait or landscape orientation declared for a Picture before rendering. It selects the matching text-plus-image Archetype Variation and guides media generation; an existing asset's dimensions must agree with it.
 _Avoid_: image shape, layout direction
 
-**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number.
+**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number or filename.
 _Avoid_: image set, generation targets
 
 **Media Renderer** — A Presentation Skill that turns an approved Media Spec into
