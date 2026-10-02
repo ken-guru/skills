@@ -3,7 +3,7 @@
 // archetype rule, and browser selection for exports.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { access, constants, mkdtemp, readFile, readdir } from 'node:fs/promises';
+import { access, constants, mkdtemp, readFile, readdir, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -102,6 +102,35 @@ test('Skill Executables exit 2 with the fix when Node.js is missing', async () =
     });
     assert.equal(code, 2, `${name}: ${output}`);
     assert.match(output, /node not installed/, name);
+  }
+});
+
+test('scripts still run when reached through a symlinked path', async () => {
+  // macOS mktemp paths (/var -> /private/var) and symlinked skill installs both
+  // reach the scripts through a symlink; a script that fails to recognise it is
+  // the main module exits 0 having done nothing.
+  const link = path.join(await mkdtemp(path.join(os.tmpdir(), 'symlinked-suite-')), 'suite');
+  await symlink(suite, link);
+  const missing = path.join(os.tmpdir(), 'no-such-project-for-symlink-test');
+  const cases = [
+    ['generate-slides/scripts/generate-slides', ['export']],
+    ['generate-slides/scripts/generate-slides', ['invalidate']],
+    ['generate-slides/scripts/generate-slides', ['prepare-theme', missing]],
+    ['discover-presentation/scripts/discover-presentation', ['invalidate']],
+    ['presentation-validation/scripts/presentation-validation', ['check', 'structure', '--project-dir', missing, '--profile', 'generation']],
+  ];
+  for (const [executable, args] of cases) {
+    const { code, output } = await new Promise((resolve, reject) => {
+      const child = spawn(path.join(link, executable), args);
+      let text = '';
+      child.stdout.on('data', (chunk) => { text += chunk; });
+      child.stderr.on('data', (chunk) => { text += chunk; });
+      child.on('error', reject);
+      child.on('close', (exit) => resolve({ code: exit, output: text }));
+    });
+    const label = `${executable} ${args[0]}`;
+    assert.notEqual(code, 0, `${label} exited 0: ${output}`);
+    assert.ok(output.trim(), `${label} printed nothing`);
   }
 });
 

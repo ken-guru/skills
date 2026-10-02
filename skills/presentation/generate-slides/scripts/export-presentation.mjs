@@ -15,7 +15,7 @@
 // prerequisite error.
 
 import { spawn } from 'node:child_process';
-import { accessSync, constants } from 'node:fs';
+import { accessSync, constants, realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -153,7 +153,9 @@ async function main(argv) {
   return 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url is the resolved path; argv[1] keeps symlinks (macOS /var,
+// symlinked skill installs), so resolve it before comparing.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main(process.argv.slice(2))
     .then((code) => { process.exitCode = code; })
     .catch((error) => {

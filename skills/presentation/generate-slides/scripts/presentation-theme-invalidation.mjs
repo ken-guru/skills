@@ -7,6 +7,7 @@
 // Prints the plan as JSON. Exit 0: plan printed. Exit 2: usage or prerequisite error.
 
 import { readFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -72,7 +73,9 @@ async function main(argv) {
   process.stdout.write(`${JSON.stringify(presentationThemeInvalidationPlan({ change, discovery }), null, 2)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url is the resolved path; argv[1] keeps symlinks (macOS /var,
+// symlinked skill installs), so resolve it before comparing.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main(process.argv.slice(2)).catch((error) => {
     process.stderr.write(`❌ ${error.message}\n`);
     process.exitCode = 2;
