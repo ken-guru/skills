@@ -1,0 +1,19 @@
+#!/bin/sh
+# Skill Executable for generate-diagrams. Run it by unquoted absolute path.
+#   generate-diagrams render <DIAGRAM_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]
+#   generate-diagrams check  <DIAGRAM_SPEC.md> [--slides=N,M,...] [--slide=N --candidate=<file.d2>]
+set -eu
+here=$(CDPATH= cd -- "${0%/*}" && pwd)
+usage='Usage: generate-diagrams render|check <DIAGRAM_SPEC.md> [options]'
+if ! command -v node >/dev/null 2>&1; then
+  echo '❌ node not installed — the diagram render command requires Node.js' >&2
+  exit 2
+fi
+[ $# -ge 1 ] || { echo "$usage" >&2; exit 2; }
+subcommand=$1
+shift
+case $subcommand in
+  render) exec node "$here/render-diagrams.mjs" "$@" ;;
+  check) exec node "$here/render-diagrams.mjs" --check "$@" ;;
+  *) echo "$usage" >&2; exit 2 ;;
+esac

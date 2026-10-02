@@ -119,3 +119,29 @@ for (const [name, d2, evidence] of [
     assert.match(findings[0].remediation, /class: <role>/);
   });
 }
+
+async function archetypeFindings(slideClass) {
+  const project = await specProject([{ slide: 1, d2: 'a -> b {class: flow}' }]);
+  await writeFile(path.join(project, 'PRESENTASJON.md'), [
+    '---', 'marp: true', 'theme: editorial', 'size: 16:9', 'paginate: true', 'lang: en', '---', '',
+    `<!-- _class: ${slideClass} variation-default tone-dark -->`,
+    '<h1 class="slot-title">Opening</h1><h2 class="slot-heading">Opening</h2>',
+    '<img src="images/diagram-1.svg" alt="How work flows">', '',
+  ].join('\n'));
+  const report = await jsonReport('check', 'structure', '--project-dir', project, '--profile', 'generation');
+  return report.findings.filter((finding) => finding.check === 'structure.diagram-archetype');
+}
+
+test('structure.diagram-archetype blocks a Diagram on a non-diagram archetype', async () => {
+  const findings = await archetypeFindings('archetype-title');
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, 'blocking');
+  assert.equal(findings[0].slide, 1);
+  assert.match(findings[0].message, /title archetype/);
+  assert.match(findings[0].evidence, /images\/diagram-1\.svg/);
+  assert.match(findings[0].remediation, /diagram archetype/);
+});
+
+test('structure.diagram-archetype passes a Diagram on the diagram archetype', async () => {
+  assert.deepEqual(await archetypeFindings('archetype-diagram'), []);
+});

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -177,7 +178,9 @@ async function main() {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url is the resolved path; argv[1] keeps symlinks (macOS /var,
+// symlinked skill installs), so resolve it before comparing.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main().catch((error) => {
     process.stderr.write(`${error.code ? `${error.code}: ` : ''}${error.message}\n`);
     process.exitCode = 1;

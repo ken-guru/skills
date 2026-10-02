@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { access, readFile, readdir, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
@@ -181,6 +182,7 @@ async function checkStructure(inputs, report) {
     return;
   }
   report.finding('structure.slides', 'info', `Found ${slides.length} slides.`, { value: slides.length });
+  const diagramFiles = new Set(specFilenames(await readTextIfPresent(inputs.diagramSpec)));
   slides.forEach((slide, index) => {
     const classes = [...slide.matchAll(/<!--\s*_class:\s*([^>]+?)\s*-->/g)].map((match) => match[1]);
     if (classes.length !== 1) {
@@ -209,6 +211,16 @@ async function checkStructure(inputs, report) {
         diagram: 'slot-heading',
         quotation: 'slot-quote',
       }[archetype];
+      // Only the diagram archetype declares a diagram media box, so a Diagram
+      // anywhere else is measured against space it never gets.
+      const diagrams = mediaReferences(slide).filter((reference) => diagramFiles.has(reference));
+      if (archetype && archetype !== 'diagram' && diagrams.length) {
+        report.finding('structure.diagram-archetype', 'blocking', `Slide ${index + 1} places a Diagram on the ${archetype} archetype.`, {
+          slide: index + 1,
+          evidence: diagrams.join(', '),
+          remediation: 'Diagrams belong on the diagram archetype: move the diagram to its own diagram slide, or remove it from this slide in the Agenda.',
+        });
+      }
       if (requiredSlot && !slide.includes(requiredSlot)) {
         report.finding('structure.content-slots', 'blocking', `Slide ${index + 1} is missing its ${requiredSlot} Content Slot.`, {
           slide: index + 1,
@@ -866,7 +878,9 @@ async function main(argv = process.argv.slice(2)) {
   return exitCode(report);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url is the resolved path; argv[1] keeps symlinks (macOS /var,
+// symlinked skill installs), so resolve it before comparing.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main().then((code) => { process.exitCode = code; }).catch((error) => {
     process.stderr.write(`${error.stack ?? error.message}\n`);
     process.exitCode = 3;

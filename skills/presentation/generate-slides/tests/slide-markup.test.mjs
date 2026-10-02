@@ -274,3 +274,23 @@ test('usage and prerequisite problems exit 2 without writing', async () => {
   }
   await assert.rejects(readFile(path.join(project, 'PRESENTASJON.md')), { code: 'ENOENT' });
 });
+
+test('--input reads the slide objects from a file outside the Project Folder', async () => {
+  const project = await themedProject();
+  const input = path.join(await mkdtemp(path.join(os.tmpdir(), 'slides-input-')), 'slides.json');
+  await writeFile(input, JSON.stringify([diagramSlide]));
+
+  const checked = await runCli([project, '--check', `--input=${input}`]);
+  assert.equal(checked.code, 0, checked.stdout + checked.stderr);
+  await assert.rejects(readFile(path.join(project, 'PRESENTASJON.md')), { code: 'ENOENT' });
+
+  const written = await runCli([project, '--write', `--input=${input}`]);
+  assert.equal(written.code, 0, written.stdout + written.stderr);
+  assert.match(await readFile(path.join(project, 'PRESENTASJON.md'), 'utf8'), /archetype-diagram/);
+  assert.ok(!(await readdir(project)).some((file) => file.endsWith('.json') && file.startsWith('slides')));
+
+  for (const args of [[project, '--check', '--input='], [project, '--check', `--input=${input}.missing`]]) {
+    const result = await runCli(args);
+    assert.equal(result.code, 2, args.join(' '));
+  }
+});

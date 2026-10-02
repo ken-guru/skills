@@ -58,7 +58,7 @@ test('Protocol, glossary, and Generate Diagrams agree on Batch by default', asyn
   assert.doesNotMatch(diagrams, /Select generation mode|One at a time\s+—/i);
   assert.match(diagrams, /Next[\s\S]*Redo[\s\S]*Stop/);
   assert.match(diagrams, /A {2}Generate missing only/);
-  assert.match(diagrams, /scripts\/render-diagrams\.mjs/);
+  assert.match(diagrams, /scripts\/generate-diagrams render /);
   assert.doesNotMatch(diagrams, /DISCOVERY\.json[^\n]*dark mode|Dark mode preference/i);
   assert.ok(diagramEvals.some((item) => /asking the user nothing/.test(item.expected)));
   assert.ok(diagramEvals.some((item) => /Media Scope prompt/.test(item.expected)));
@@ -152,7 +152,7 @@ test('Generate Images confirms once before paid generation', async () => {
 
   assert.match(images, /Generate N images with <provider>\/<model>\? \(yes \/ one at a time \/ cancel\)/);
   assert.doesNotMatch(images, /All at once/);
-  assert.match(images, /existing files detected/);
+  assert.match(images, /images\/: N of M present\. Generate with <provider>\/<model>\?/);
 
   for (const answer of [/\byes\b/, /one at a time/, /\bcancel\b/]) {
     assert.ok(

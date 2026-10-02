@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-// Turns the agent's slide objects (JSON on stdin) into the presentation
-// Markdown for a prepared Project Folder.
+// Turns the agent's slide objects (a JSON file, or JSON on stdin) into the
+// presentation Markdown for a prepared Project Folder.
 //
+//   node slide-markup.mjs <project-folder> --check|--write --input=<slides.json>
 //   node slide-markup.mjs <project-folder> --check|--write < slides.json
 //
 // Exit 0: no blocking errors (and, with --write, the presentation was written).
@@ -18,7 +19,7 @@ import { checkPresentationSlides, renderPresentationMarkdown } from './semantic-
 import { classifySlide } from './slide-composition.mjs';
 import { resolveTheme } from './theme-resolution.mjs';
 
-const USAGE = 'Usage: slide-markup.mjs <project-folder> --check|--write < slides.json';
+const USAGE = 'Usage: slide-markup.mjs <project-folder> --check|--write [--input=<slides.json>]';
 
 const ROLES = ['opener', 'section-boundary', 'quotation'];
 const VISUAL_TYPES = ['picture', 'diagram', 'chart'];
@@ -37,12 +38,15 @@ class PrerequisiteError extends Error {}
 
 function parseArguments(argv) {
   const modes = argv.filter((argument) => argument === '--check' || argument === '--write');
-  const unknownFlags = argv.filter((argument) => argument.startsWith('--') && !modes.includes(argument));
+  const inputs = argv.filter((argument) => argument.startsWith('--input='));
+  const unknownFlags = argv.filter((argument) => argument.startsWith('--') && !modes.includes(argument) && !inputs.includes(argument));
   const positional = argv.filter((argument) => !argument.startsWith('--'));
-  if (modes.length !== 1 || unknownFlags.length || positional.length !== 1) {
+  if (modes.length !== 1 || inputs.length > 1 || unknownFlags.length || positional.length !== 1) {
     throw new PrerequisiteError(USAGE);
   }
-  return { projectDirectory: path.resolve(positional[0]), write: modes[0] === '--write' };
+  const input = inputs[0]?.slice(8);
+  if (inputs.length && !input) throw new PrerequisiteError(USAGE);
+  return { projectDirectory: path.resolve(positional[0]), write: modes[0] === '--write', input: input && path.resolve(input) };
 }
 
 async function readStdin() {
@@ -51,12 +55,20 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+async function readInput(file) {
+  try {
+    return await readFile(file, 'utf8');
+  } catch {
+    throw new PrerequisiteError(`Cannot read --input file ${file}.`);
+  }
+}
+
 function parseSlides(text) {
   let input;
   try {
     input = JSON.parse(text);
   } catch (error) {
-    throw new PrerequisiteError(`stdin is not valid JSON: ${error.message}`);
+    throw new PrerequisiteError(`The slide objects are not valid JSON: ${error.message}`);
   }
   if (!Array.isArray(input) || input.length === 0) {
     throw new PrerequisiteError('stdin must be a non-empty JSON array of slide objects.');
@@ -217,9 +229,9 @@ function describeFinding({ severity, slide, code, message }) {
 }
 
 async function main() {
-  const { projectDirectory, write } = parseArguments(process.argv.slice(2));
+  const { projectDirectory, write, input } = parseArguments(process.argv.slice(2));
   const project = await loadProject(projectDirectory);
-  const slides = parseSlides(await readStdin());
+  const slides = parseSlides(input ? await readInput(input) : await readStdin());
 
   const { plans, errors } = checkPresentationSlides({ slides, manifest: project.manifest });
   const contractErrors = slides.flatMap((slide, index) =>

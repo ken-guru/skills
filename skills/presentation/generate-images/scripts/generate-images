@@ -1,0 +1,18 @@
+#!/bin/sh
+# Skill Executable for generate-images. Run it by unquoted absolute path.
+#   generate-images render <IMAGE_SPEC.md> [--force] [--slides=N,M,...] [--slide=N]
+#                          [--provider=<gemini|openai>] [--model=<id>] [--delay=<seconds>]
+set -eu
+here=$(CDPATH= cd -- "${0%/*}" && pwd)
+usage='Usage: generate-images render <IMAGE_SPEC.md> [options]'
+if ! command -v node >/dev/null 2>&1; then
+  echo '❌ node not installed — generate-images requires Node.js' >&2
+  exit 2
+fi
+[ $# -ge 1 ] || { echo "$usage" >&2; exit 2; }
+subcommand=$1
+shift
+case $subcommand in
+  render) exec node "$here/generate-images.js" "$@" ;;
+  *) echo "$usage" >&2; exit 2 ;;
+esac

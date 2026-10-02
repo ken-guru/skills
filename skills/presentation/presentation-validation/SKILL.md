@@ -1,21 +1,25 @@
 ---
 name: presentation-validation
 description: "Validate a Presentation Project Folder with deterministic generation and proofread profiles."
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/presentation-validation *)
 ---
 
 # Presentation Validation
 
-Run the bundled read-only dispatcher against the explicit Project Folder:
+Resolve the absolute directory containing this invoked `SKILL.md`, then run the
+bundled read-only Skill Executable against the explicit Project Folder. Call it by
+its unquoted absolute path, one command per call; quote the path only when it
+contains whitespace:
 
 ```text
-presentation-validation check all --project-dir <project> --profile generation
-presentation-validation check all --project-dir <project> --profile proofread
+<skill-directory>/scripts/presentation-validation check all --project-dir <project> --profile generation
+<skill-directory>/scripts/presentation-validation check all --project-dir <project> --profile proofread
 ```
 
 To check only the Media Spec role rule (`media.diagram-roles`) before Media
 Specs are approved, run `check media-spec` with the `generation` profile.
 
-The dispatcher never installs tools, acquires credentials, changes project files, or updates `PROJECT.json`. The phase-owning Skill remains responsible for state changes after validation succeeds.
+The Skill Executable never installs tools, acquires credentials, changes project files, or updates `PROJECT.json`. The phase-owning Skill remains responsible for state changes after validation succeeds.
 
 ## Output voice
 
