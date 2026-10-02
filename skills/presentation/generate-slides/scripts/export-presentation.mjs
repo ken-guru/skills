@@ -82,8 +82,21 @@ function marp(args, cwd) {
   });
 }
 
-function lastLines(output) {
-  return output.split('\n').filter(Boolean).slice(-3).map((line) => `   ${line}`).join('\n');
+// Marp's own `[ ERROR ]` message, which wraps onto indented lines. When Marp
+// crashes, a Node stack trace follows it; that trace never reaches the report.
+export function marpError(output) {
+  const lines = output.split('\n');
+  const start = lines.findIndex((line) => /^\[\s*ERROR\s*\]/.test(line));
+  if (start !== -1) {
+    const message = [lines[start].replace(/^\[\s*ERROR\s*\]\s*/, '')];
+    for (const line of lines.slice(start + 1)) {
+      if (!/^ {4,}\S/.test(line) || /^\s+at /.test(line)) break;
+      message.push(line.trim());
+    }
+    return `   ${message.join(' ')}`;
+  }
+  const readable = lines.filter((line) => line.trim() && !/^\s+at |^Node\.js v|^\s*[{}]\s*$|^\s*\^+\s*$/.test(line));
+  return readable.slice(-3).map((line) => `   ${line.trim()}`).join('\n');
 }
 
 // Replaces any existing browser keys; every other line of the Marp config is kept.
@@ -110,7 +123,7 @@ async function main(argv) {
   const htmlResult = await marp([presentation, '-o', html], projectDirectory);
   if (htmlResult.missing) throw new UsageError('marp-cli not installed. Run npm install -g @marp-team/marp-cli');
   if (htmlResult.code !== 0) {
-    console.log(`❌ HTML export failed:\n${lastLines(htmlResult.output)}`);
+    console.log(`❌ HTML export failed:\n${marpError(htmlResult.output)}`);
     return 1;
   }
   console.log(`✅ ${html}`);
@@ -121,7 +134,7 @@ async function main(argv) {
     console.log(`✅ ${pdf}`);
     return 0;
   }
-  console.log(`⚠️  PDF export failed with the configured browser:\n${lastLines(first.output)}`);
+  console.log(`⚠️  PDF export failed with the configured browser:\n${marpError(first.output)}`);
 
   const configPath = path.join(projectDirectory, '.marprc.yml');
   const config = await readFile(configPath, 'utf8').catch(() => '');

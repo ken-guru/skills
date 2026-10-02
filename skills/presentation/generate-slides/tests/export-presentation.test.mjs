@@ -96,6 +96,8 @@ test('no working browser blocks with the install message and leaves the config a
 
   assert.equal(result.code, 1);
   assert.match(result.output, /Marp found no local browser that could export the PDF\. Install Chrome, Edge, or Firefox, then rerun\./);
+  assert.match(result.output, / {3}Failed converting Markdown\. \(No suitable browser found\. Please ensure one of the following browsers is installed: chrome\)\n/);
+  assert.doesNotMatch(result.output, /Node\.js v|errorCode|^\s+at /m);
   assert.equal(await readFile(path.join(directory, '.marprc.yml'), 'utf8'), marprc);
 });
 

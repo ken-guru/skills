@@ -366,6 +366,20 @@ mode. The same Skill invoked by a scripted model through the `Skill` tool did
 invoke the skill"), so treat the model-invoked path as Unconfirmed: it may be
 an artefact of the scripted model.
 
+Re-measured 2026-10-02 on Claude Code 2.1.287 with the shipped
+`generate-diagrams` plugin Skill
+(`allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/generate-diagrams *)`,
+`--plugin-dir`, `-p`, `--permission-mode default`, scripted model):
+
+- No Skill loaded: the executable needed approval.
+- `/presentation-skills:generate-diagrams`: the executable ran with no prompt.
+- The model called the `Skill` tool (allowed through `--allowedTools Skill`),
+  the Skill loaded, and the next call to the same executable still needed
+  approval.
+
+Same result as before. User guidance in `docs/permissions.md` treats the grant
+as applying only to user invocation by name.
+
 Install paths: Claude plugin skills honour it and get `${CLAUDE_SKILL_DIR}`
 expansion (Documented). Claude Code reads personal skills from
 `~/.claude/skills`, not `~/.agents/skills`

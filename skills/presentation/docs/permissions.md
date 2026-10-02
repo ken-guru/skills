@@ -53,9 +53,13 @@ Copilot.
 
 ## Claude Code
 
-Plugin installs pre-approve each Skill's own executable for the turn that
-invokes the Skill, through `allowed-tools`. To approve them in every turn, add
-rules to `~/.claude/settings.json` or your project's `.claude/settings.json`:
+Each Skill's `allowed-tools` pre-approves its own executable for the turn in
+which you invoke the Skill by name, for example
+`/presentation-skills:generate-diagrams` in a plugin install. When Claude loads
+the Skill on its own from your request, the executable still asks for approval
+(measured on Claude Code 2.1.287). To approve the executables in every turn,
+however the Skill was loaded, add rules to `~/.claude/settings.json` or your
+project's `.claude/settings.json`:
 
 ```json
 {

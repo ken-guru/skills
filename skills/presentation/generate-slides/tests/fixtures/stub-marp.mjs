@@ -19,7 +19,24 @@ else if (browserPath) ok = (process.env.STUB_MARP_GOOD ?? '').split(',').include
 else ok = process.env.STUB_MARP_PDF_DEFAULT !== 'fail';
 
 if (!ok) {
-  process.stderr.write('[  ERROR ] Failed converting Markdown. (Error: Failed to launch the browser process!)\n');
+  // Real Marp 4.5 output: a wrapped [ ERROR ] message, then an uncaught crash.
+  process.stderr.write([
+    '[  INFO ] Converting 1 markdown...',
+    '[ ERROR ] Failed converting Markdown. (No suitable browser found. Please ensure',
+    '          one of the following browsers is installed: chrome)',
+    '/opt/marp-cli/lib/manager-BW1Isdga.js:18',
+    'const Z=/\\r?\\n/;function V(){return process.env.CHROME_PATH}',
+    '                ^',
+    '',
+    'Error: No suitable browser found.',
+    '    at gA (/opt/marp-cli/lib/manager-BW1Isdga.js:18:2201)',
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {',
+    '  errorCode: 2',
+    '}',
+    '',
+    'Node.js v24.21.0',
+    '',
+  ].join('\n'));
   process.exit(1);
 }
 writeFileSync(output, args.includes('--pdf') ? '%PDF-1.7 stub' : '<!doctype html><title>stub</title>');
