@@ -88,7 +88,10 @@ for the persisted shape.
 
 - **Marp and Node.js:** required and checked by Generate Slides and Proofread when
   either phase is invoked. Marp's PDF export and Proofread's slide images use a
-  locally installed Chrome, Edge, or Firefox; nothing is downloaded.
+  locally installed Chrome, Edge, or Firefox; nothing is downloaded. When the PDF
+  export fails in the browser Marp picks, Generate Slides tries the installed
+  stable-channel browsers and records the one that works in the project's
+  `.marprc.yml`.
 - **Node.js:** also required and checked by Generate Images.
 - **D2:** required only when Generate Diagrams renders a diagram.
 - **Image Provider credential:** required only when Generate Images runs — either

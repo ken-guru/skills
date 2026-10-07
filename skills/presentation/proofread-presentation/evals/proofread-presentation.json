@@ -54,5 +54,12 @@
     "query": "proofread this presentation",
     "precondition": "The complete suite validator is unavailable",
     "expected": "skill explains that full validation cannot run and does not install anything automatically"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread this presentation",
+    "precondition": "A Diagram sits on the title archetype",
+    "expected": "skill reports the structure.diagram-archetype warning, inspects that slide's image, and recommends moving the diagram to its own diagram slide"
   }
 ]

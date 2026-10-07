@@ -309,3 +309,68 @@ test('the D2 theme follows the locked manifest diagram tone', async () => {
     assert.ok(!renderCall.some((arg) => arg.startsWith('--dark-theme')));
   }
 });
+
+test('--check reports Effective Text Size per slide and writes nothing', async () => {
+  const bin = await stubBin();
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'render-diagrams-tmpdir-'));
+  const directory = await project({
+    entries: [entry({ slide: 1 }), entry({ slide: 4, d2: 'a -> b {class: flow} # stub-size-1800x200 stub-font-16' })],
+  });
+  await mkdir(path.join(directory, 'images'));
+  await writeFile(path.join(directory, 'images', 'diagram-1.svg'), 'kept');
+
+  const result = await render(directory, ['--check'], { bin, env: { TMPDIR: tmp } });
+
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /✅ Slide 1\b.*Effective Text Size \d+\.\d px in the 1126×252 diagram media box/);
+  assert.match(result.output, /❌ Slide 4\b.*Effective Text Size 10\.0 px is below 20 px/);
+  assert.match(result.output, /nothing was written/);
+  assert.deepEqual(await svgFiles(directory), ['diagram-1.svg']);
+  assert.equal(await readFile(path.join(directory, 'images', 'diagram-1.svg'), 'utf8'), 'kept');
+  assert.deepEqual(await readdir(tmp), []);
+});
+
+test('--check exits 0 when every selected diagram passes', async () => {
+  const bin = await stubBin();
+  const directory = await project();
+
+  const result = await render(directory, ['--check', '--slides=1,2'], { bin });
+
+  assert.equal(result.code, 0, result.output);
+  assert.match(result.output, /Checked: 2 {3}Passed: 2 {3}Failed: 0/);
+  assert.deepEqual(await svgFiles(directory), []);
+});
+
+test('--candidate checks proposed D2 for one slide without editing the spec', async () => {
+  const bin = await stubBin();
+  const directory = await project();
+  const spec = await readFile(path.join(directory, 'DIAGRAM_SPEC.md'), 'utf8');
+  const candidate = path.join(await mkdtemp(path.join(os.tmpdir(), 'candidate-')), 'slide-1.d2');
+
+  await writeFile(candidate, 'a: Top {class: base}\nb: Bottom {class: base}\na -> b {class: flow} # stub-size-200x900');
+  const tall = await render(directory, ['--check', '--slide=1', `--candidate=${candidate}`], { bin });
+  assert.equal(tall.code, 1, tall.output);
+  assert.match(tall.output, /❌ Slide 1\b.*taller than the media box/);
+
+  await writeFile(candidate, 'a: Left {class: base}\nb: Right {class: base}\na -> b {class: flow}');
+  const wide = await render(directory, ['--check', '--slide=1', `--candidate=${candidate}`], { bin });
+  assert.equal(wide.code, 0, wide.output);
+  assert.equal(await readFile(path.join(directory, 'DIAGRAM_SPEC.md'), 'utf8'), spec);
+  assert.deepEqual(await svgFiles(directory), []);
+});
+
+test('--candidate refuses off-theme D2 and needs exactly one slide', async () => {
+  const bin = await stubBin();
+  const directory = await project();
+  const candidate = path.join(await mkdtemp(path.join(os.tmpdir(), 'candidate-')), 'slide-1.d2');
+  await writeFile(candidate, 'a: Start {style.fill: "#ff0000"}');
+
+  const offTheme = await render(directory, ['--check', '--slide=1', `--candidate=${candidate}`], { bin });
+  assert.equal(offTheme.code, 1, offTheme.output);
+  assert.match(offTheme.output, /Diagram Roles/);
+
+  for (const args of [['--check', `--candidate=${candidate}`], [`--candidate=${candidate}`, '--slide=1'], ['--check', '--force']]) {
+    const result = await render(directory, args, { bin });
+    assert.equal(result.code, 2, `${args.join(' ')}\n${result.output}`);
+  }
+});

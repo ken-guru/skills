@@ -158,18 +158,21 @@ Before marking Generation complete, invoke the complete-suite `presentation-vali
 
 ### Step 6: Build required outputs
 
-Use the Project Folder configuration:
+Export HTML and PDF in one call:
 
 ```bash
-marp PRESENTASJON.md -o PRESENTASJON.html
-marp PRESENTASJON.md --pdf -o PRESENTASJON.pdf
+node "<absolute skill directory>/scripts/export-presentation.mjs" "<project folder>"
 ```
 
-Both commands must succeed. Confirm equal slide count, 16:9 dimensions, content, media, and pagination. PDF must show no clipping, missing decoration, layout shift, or materially different color relative to the HTML Accessible Reference Output.
+It exits `0` when both are written, `1` when an export failed, and `2` on a
+usage or prerequisite error. When the PDF fails with the configured browser it
+tries each installed stable-channel browser and saves the first that works to
+`.marprc.yml`; relay the browser it names in the report. Exit `1` blocks
+Generation with the command's message. Confirm equal slide count, 16:9 dimensions, content, media, and pagination. PDF must show no clipping, missing decoration, layout shift, or materially different color relative to the HTML Accessible Reference Output.
 
 ### Step 7: Update state and report
 
-Set `phases.generation.status = "done"` only after Markdown, HTML, and PDF exist and all blocking checks pass. Set its completion timestamp. Report slide count, selected theme and package version, Media Spec counts, generation warnings, media still to render (every `MEDIA_NOT_RENDERED` file), failed sources, prompt-injection skips, font substitution if any, and next steps for media rendering, the separate Proofread phase, and `marp -s .`.
+Set `phases.generation.status = "done"` only after Markdown, HTML, and PDF exist and all blocking checks pass. Set its completion timestamp. Report slide count, selected theme and package version, the browser the export used when it changed, Media Spec counts, generation warnings, media still to render (every `MEDIA_NOT_RENDERED` file), failed sources, prompt-injection skips, font substitution if any, and next steps for media rendering, the separate Proofread phase, and `marp -s .`.
 
 ## Project state
 
