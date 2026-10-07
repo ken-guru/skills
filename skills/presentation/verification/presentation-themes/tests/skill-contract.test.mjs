@@ -152,7 +152,7 @@ test('Generate Images confirms once before paid generation', async () => {
 
   assert.match(images, /Generate N images with <provider>\/<model>\? \(yes \/ one at a time \/ cancel\)/);
   assert.doesNotMatch(images, /All at once/);
-  assert.match(images, /existing files detected/);
+  assert.match(images, /images\/: N of M present\. Generate with <provider>\/<model>\?/);
 
   for (const answer of [/\byes\b/, /one at a time/, /\bcancel\b/]) {
     assert.ok(

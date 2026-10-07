@@ -76,7 +76,7 @@ The HTML is the Accessible Reference Output, so the visual checks above are judg
 
 1. Create a temporary directory outside the Project Folder with `mktemp -d`.
 2. From the Project Folder, run `marp <presentation> --images png --allow-local-files -o <temp>/slide.png`, where `<presentation>` is `paths.presentation` from `DISCOVERY.json` (default `PRESENTASJON.md`). Marp writes `slide.001.png`, `slide.002.png`, and so on, one per slide, using the project's `.marprc.yml` theme.
-3. If Marp reports that it cannot find a browser, stop and block with: `❌ Marp found no local browser. Install Chrome, Edge, or Firefox, then rerun.`
+3. If Marp cannot launch a browser, stop and block with: `❌ Marp found no local browser. Install Chrome, Edge, or Firefox, then rerun. If one is installed, rerun Generate Slides' export to select a working browser.` Marp reads the browser `export` saved in the Project Folder's `.marprc.yml`, so the slide images use the same browser as the PDF.
 4. Build the inspection set, then open and inspect every image in it:
    - the first slide of each Slide Archetype present;
    - every slide with a Picture or Diagram;

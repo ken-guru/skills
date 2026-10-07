@@ -7,8 +7,17 @@ installed Skills remain operationally self-contained.
 ## Common interface
 
 1. Resolve the Project Folder and the approved Media Spec.
-2. Determine Media Scope from existing assets: all entries when none exist;
-   missing-only, regenerate-all, selected entries, or cancel when assets exist.
+2. Determine Media Scope:
+   - **Named:** the request or the Decision Prompt the user just answered
+     resolves to entries unambiguously (slide numbers, filenames, "all",
+     "missing", or a description matching exactly one entry). Skip the menu and
+     print one `Overwriting <file> (Slide N)` line per existing asset in scope.
+     A named slide or filename without a Media Spec entry renders nothing:
+     report it and show the menu.
+   - **Unknown, no assets exist:** every entry.
+   - **Unknown, assets exist:** one menu offering missing-only, regenerate-all,
+     selected entries, or cancel. Selected entries take their slide numbers in
+     the same reply (`C 1 3`); ask for them only after a bare `C`.
 3. Use Batch Generation Mode by default; use Interactive only when the user asks.
 4. In interactive mode, offer Next, Redo, and Stop after each selected entry.
 5. Report every success and failure with its slide and output asset.

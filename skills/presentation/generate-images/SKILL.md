@@ -38,62 +38,62 @@ Before proceeding:
 
 ## Procedure
 
-### Step 1: Resolve scope
+### Step 1: Resolve scope and confirm spending in one prompt
 
 Parse all entries from `IMAGE_SPEC.md`. Check which filenames already exist in the project folder.
 
-If **no images exist yet**, scope = all entries — skip to Step 2.
+Every render is a paid API call, so exactly one Decision Prompt names the count
+in scope and the provider and model the script will use, in plain text in one
+message (a harness's structured question tool may carry it). Take them in the
+script's order: `--provider=`/`--model=` flags the user gave, then a flag choice
+persisted in `PROJECT.json` `phases.images` (`providerSource` or `modelSource`
+is `"flag"`), then the provider whose API key is set (Gemini when both are) with
+that provider's default model from [PROVIDERS.md](PROVIDERS.md#models).
 
-If **at least one image already exists**, present:
+- **Named scope:** the request or the Decision Prompt the user just answered
+  resolves unambiguously to entries: slide numbers, filenames, "all",
+  "missing", or a description matching exactly one entry. If a named slide or
+  filename has no entry, say so and treat the scope as unknown. Otherwise list
+  one `Overwriting images/foo.png (Slide N)` line per existing file in scope,
+  then confirm:
 
-```
-⚠️  images/ — existing files detected (N of M images already present)
+  ```
+  💡 Generate N images with <provider>/<model>? (yes / one at a time / cancel)
+     See PROVIDERS.md for pricing details.
+  ```
 
-  Already present:    • images/foo.png  (Slide 1 — Title)  [...]
-  Not yet generated:  • images/bar.png  (Slide 3 — Title)  [...]
+- **Unknown scope, no images exist:** scope is every entry; use the same confirmation.
+- **Unknown scope, at least one image exists:** combine scope and cost:
 
-  A  Generate missing only   — skip the N that already exist
-  B  Regenerate everything   — overwrite all M images
-  C  Choose specific slides  — I'll tell you which slide numbers
-  D  Cancel
-```
+  ```
+  💡 images/: N of M present. Generate with <provider>/<model>?
+     Already present:    • images/foo.png  (Slide 1 — Title)  [...]
+     Not yet generated:  • images/bar.png  (Slide 3 — Title)  [...]
 
-Wait for choice. For **C**, follow up: "Which slide numbers? (e.g. `1 3 5`)"
+     A  Missing only (M−N)     B  Everything (M)
+     C  Slides — e.g. "C 1 3"  D  Cancel
+     Add "one at a time" to review each image. See PROVIDERS.md for pricing.
+  ```
 
-### Step 2: Confirm before spending
+  **C** takes its slide numbers from the same reply; ask "Which slide numbers?
+  (e.g. `1 3 5`)" only after a bare `C`, and then confirm the count once more.
 
-Every render is a paid API call, so ask exactly one confirmation that names the
-count in scope and the provider and model the script will use, in plain text in
-one message (a harness's structured question tool may carry it). Take them in
-the script's order: `--provider=`/`--model=` flags the user gave, then a
-flag choice persisted in `PROJECT.json` `phases.images` (`providerSource` or
-`modelSource` is `"flag"`), then the provider whose API
-key is set (Gemini when both are) with that provider's default model from
-[PROVIDERS.md](PROVIDERS.md#models).
+Answers: **yes**, **A**, **B**, or **C** → Batch; with "one at a time" →
+Interactive; **cancel** or **D** → stop without calling the script; leave files
+and `phases.images` unchanged.
 
-```
-💡 Generate N images with <provider>/<model>? (yes / one at a time / cancel)
-   See PROVIDERS.md for pricing details.
-```
+### Step 2: Generate
 
-- **yes** → Batch
-- **one at a time** → Interactive
-- **cancel** → stop without calling the script; leave files and `phases.images` unchanged
-
-The scope prompt in Step 1 is a separate question and stays when images exist.
-
-### Step 3: Generate
-
-**Batch (yes)**
+**Batch**
 
 ```bash
 node "<absolute skill directory>/scripts/generate-images.js" \
   "<IMAGE_SPEC.md path>" [--force] [--slides=N,M,...] [--provider=<gemini|openai>] [--model=<id>] [--delay=<seconds>]
 ```
 
-- Scope A → no extra flags (script skips existing files by default)
-- Scope B → add `--force`
-- Scope C → add `--slides=N,M,...`
+- Every entry, or missing only → no extra flags (the script skips existing files)
+- Everything → add `--force`
+- Selected slides → add `--slides=N,M,...`, plus `--force` to overwrite any that exist
 
 **Interactive (one at a time)**
 
@@ -119,19 +119,19 @@ Note: to change a prompt before redoing, edit `IMAGE_SPEC.md` first, then choose
 
 **R** re-runs the same script call. **S** exits the loop early.
 
-### Step 4: Report results
+### Step 3: Report results
 
 Present the script's summary output. On failure, suggest editing the prompt in `IMAGE_SPEC.md` and retrying with `--slide=N`.
 
 ## Options
 
-These flags bypass the interactive prompts — useful for scripting or repeat runs.
+Flags of `generate-images.js`. The script itself never prompts.
 
 | Flag | Effect |
 |------|--------|
-| `--force` | Skip scope prompt — regenerate all images in batch |
-| `--slide=N` | Skip all prompts — generate only slide N |
-| `--slides=N,M,...` | Skip scope prompt — generate specific slides in batch |
+| `--force` | Overwrite images that already exist |
+| `--slide=N` | Generate only slide N |
+| `--slides=N,M,...` | Generate only these slides |
 | `--provider=<gemini\|openai>` | Override the auto-detected provider (see [PROVIDERS.md](PROVIDERS.md)) |
 | `--model=<id>` | Override the default model for the resolved provider (see [PROVIDERS.md](PROVIDERS.md#models)) |
 | `--delay=<seconds>` | Pause between requests (default: 1s; increase to avoid rate limits — see [PROVIDERS.md](PROVIDERS.md)) |

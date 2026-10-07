@@ -45,6 +45,11 @@ _Avoid_: completion checklist, done criteria
 A protocol invoked at phase startup when re-running that phase would make downstream files stale. Presents the user with an explicit inventory of affected files and a choice before any modifications are made.
 _Avoid_: cleanup prompt, stale file handler
 
+## Decision Prompt
+
+A question a Presentation Skill asks the user and waits on before acting, such as a Media Scope choice, a Restart Guard, or a design choice. A Skill controls when and how it asks.
+_Avoid_: approval, permission, confirmation step
+
 ## Eval
 
 A test case that documents expected skill routing behaviour for a given query. Three types:
@@ -92,7 +97,7 @@ _Avoid_: visual style, image purpose
 **Intended Media Orientation** — The portrait or landscape orientation declared for a Picture before rendering. It selects the matching text-plus-image Archetype Variation and guides media generation; an existing asset's dimensions must agree with it.
 _Avoid_: image shape, layout direction
 
-**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number.
+**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number or filename.
 _Avoid_: image set, generation targets
 
 **Media Renderer** — A Presentation Skill that turns an approved Media Spec into
