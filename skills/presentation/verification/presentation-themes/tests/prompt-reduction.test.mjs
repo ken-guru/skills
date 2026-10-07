@@ -1,6 +1,6 @@
 // Contracts from the prompt-reduction decisions (Wayfinder map #450): named
-// Media Scope, the diagram archetype rule, checked layouts, and browser
-// selection for exports.
+// Media Scope, the diagram archetype rule, checked layouts, browser selection
+// for exports, and Proofread fixes that answer the Restart Guard.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -43,6 +43,38 @@ test('exports pick a working browser once and Proofread inherits it', async () =
   assert.match(proofread, /\.marprc\.yml/);
 });
 
+test('Proofread proposes a fix that needs another phase in one Decision Prompt', async () => {
+  const proofread = await read('proofread-presentation/SKILL.md');
+  const section = proofread.match(/## Fixes that need another phase\n([\s\S]*?)\n## /)?.[1];
+  assert.ok(section, 'missing the "Fixes that need another phase" section');
+  for (const listed of [/Skills\s+to\s+run,\s+in\s+order/, /slide\s+scope/, /files\s+to\s+overwrite/, /files\s+to\s+keep/]) {
+    assert.match(section, listed);
+  }
+  assert.match(section, /\bone\s+Decision\s+Prompt\b/);
+  assert.match(section, /changes\s+nothing\s+before\s+the\s+answer/i);
+  assert.match(section, /layout\s+choices\s+to\s+`generate-diagrams`/);
+});
+
+test('the Restart Guard takes an earlier fix as its answer only on an exact match', async () => {
+  const guard = await read('generate-slides/RESTART-GUARD.md');
+  const rule = guard.split(/\n\s*\n/).find((paragraph) => /earlier\s+in\s+this\s+conversation/.test(paragraph));
+  assert.ok(rule, 'missing the earlier-answer rule');
+  assert.match(rule, /latest/);
+  assert.match(rule, /exactly\s+the\s+files/);
+  assert.match(rule, /keeping\s+media/);
+  assert.match(rule, /`Overwriting <file>`/);
+  // The rule may answer only the non-destructive option.
+  assert.match(rule, /\*\*Regenerate\s+presentation\s+text\*\*/);
+  assert.doesNotMatch(rule, /Delete\s+generated\s+media|Keep\s+everything/);
+  // A theme refresh always asks for its own confirmation.
+  const refresh = guard.split(/\n\s*\n/).find((paragraph) => /--confirm-refresh/.test(paragraph));
+  assert.match(refresh ?? '', /even\s+after\s+an\s+earlier\s+answer/);
+});
+
+test('a reset commit names the fix the user chose', async () => {
+  assert.match(await read('build-presentation/GIT_CHECKPOINTS.md'), /name\s+the\s+fix\s+the\s+user\s+chose/);
+});
+
 test('each decision has a documented eval', async () => {
   const evals = async (name) => JSON.parse(await read(`${name}/evals/${name}.json`));
   const expect = async (name, pattern) => {
@@ -56,4 +88,7 @@ test('each decision has a documented eval', async () => {
   await expect('generate-slides', /export-presentation\.mjs/);
   await expect('structure-agenda', /own Diagram slide/);
   await expect('proofread-presentation', /structure\.diagram-archetype warning/);
+  await expect('proofread-presentation', /proposes one fix naming generate-diagrams and generate-slides/);
+  await expect('generate-slides', /without asking the Restart Guard question/);
+  await expect('generate-slides', /asks the Restart Guard question because/);
 });

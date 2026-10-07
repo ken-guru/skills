@@ -39,6 +39,16 @@ When the complete Presentation Skill Suite is installed, invoke the read-only `p
 
 Never convert media to `img-right`, add `class: invert`, insert inline theme CSS, change an archetype, choose another variation, rewrite Media Intent, or delete content as an automatic fix.
 
+## Fixes that need another phase
+
+When a blocking issue needs another Phase Skill (a diagram that fails Effective
+Text Size, a stale export), propose the fix in one Decision Prompt that lists the
+Skills to run, in order; each rerender's slide scope; the files to overwrite; and
+the files to keep. Proofread changes nothing before the answer. When a diagram's
+layout must change, name `generate-diagrams` and leave layout choices to
+`generate-diagrams`. When the user chooses the fix, invoke each named Skill in
+order; each keeps its own writes, state changes, and checks.
+
 ## Blocking validation
 
 ### Theme and markup
