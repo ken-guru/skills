@@ -100,5 +100,19 @@
     "query": "generate the presentation",
     "precondition": "Marp's auto-selected browser fails to print the PDF and stable Chrome is installed",
     "expected": "one export-presentation.mjs call retries stable Chrome, writes it to .marprc.yml, and the report names the browser; no Decision Prompt is asked"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "regenerate the slides",
+    "precondition": "Earlier in this conversation the user chose a fix that overwrites PRESENTASJON.md, PRESENTASJON.html, and PRESENTASJON.pdf and keeps media, and those are the files the Restart Guard would overwrite",
+    "expected": "skill prints one Overwriting line per file and regenerates without asking the Restart Guard question"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "regenerate the slides",
+    "precondition": "Earlier in this conversation the user chose a fix that overwrites only PRESENTASJON.md and PRESENTASJON.html, but PRESENTASJON.pdf also exists",
+    "expected": "skill asks the Restart Guard question because the PDF is outside the approved fix"
   }
 ]

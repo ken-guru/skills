@@ -13,6 +13,11 @@ Show only paths that exist and ask the user to choose:
 - **Keep everything:** retain existing files and warn that outputs may be
   inconsistent.
 
+The latest fix the user chose earlier in this conversation answers this prompt
+with **Regenerate presentation text** when that fix listed exactly the files
+that option would overwrite and listed keeping media: print one
+`Overwriting <file>` line per file and continue. Ask in every other case.
+
 After either mutating option, set `phases.generation` and `phases.proofread` to
 `pending` and clear their completion timestamps. If media is deleted, also set the
 corresponding `images` and `diagrams` phases to `pending`.
@@ -28,4 +33,5 @@ node "<absolute skill directory>/scripts/presentation-theme-invalidation.mjs" "<
 Preserve Agenda and generated media; invalidate both Media Specs, presentation
 outputs, Marp configuration, and the locked Theme Package; then set Generation,
 Images, Diagrams, and Proofread to `pending`. Require confirmation before any
-removal or `prepare-theme.mjs --refresh --confirm-refresh` call.
+removal or `prepare-theme.mjs --refresh --confirm-refresh` call, and ask for it
+here even after an earlier answer.
