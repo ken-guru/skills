@@ -22,9 +22,14 @@ downstream phase (`structure`, `generation`, `images`, `diagrams`, `proofread`) 
 
 ## Focused theme or font changes
 
-Resolve this Skill's directory from the invoked `SKILL.md`, then run its local
-`scripts/presentation-theme-invalidation.mjs` implementation to calculate the exact
-preserved paths, stale paths, and pending phases.
+Resolve this Skill's directory from the invoked `SKILL.md`, then calculate the exact
+preserved paths, stale paths, and pending phases:
+
+```bash
+node "<absolute skill directory>/scripts/presentation-theme-invalidation.mjs" "<project folder>" --change=<theme or font>
+```
+
+It prints the plan as JSON and changes nothing.
 
 - **Theme identifier:** preserve Agenda and generated media; invalidate both Media
   Specs, presentation outputs, Marp configuration, and the locked Theme Package.

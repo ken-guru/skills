@@ -18,9 +18,14 @@ After either mutating option, set `phases.generation` and `phases.proofread` to
 corresponding `images` and `diagrams` phases to `pending`.
 
 For an explicit Theme Package refresh, resolve this Skill's directory from the
-invoked `SKILL.md` and use its local
-`scripts/presentation-theme-invalidation.mjs` implementation. Preserve Agenda and
-generated media; invalidate both Media Specs, presentation outputs, Marp
-configuration, and the locked Theme Package; then set Generation, Images, Diagrams,
-and Proofread to `pending`. Require confirmation before any removal or
-`prepare-theme.mjs --refresh --confirm-refresh` call.
+invoked `SKILL.md` and calculate the exact preserved paths, stale paths, and
+pending phases:
+
+```bash
+node "<absolute skill directory>/scripts/presentation-theme-invalidation.mjs" "<project folder>" --change=refresh
+```
+
+Preserve Agenda and generated media; invalidate both Media Specs, presentation
+outputs, Marp configuration, and the locked Theme Package; then set Generation,
+Images, Diagrams, and Proofread to `pending`. Require confirmation before any
+removal or `prepare-theme.mjs --refresh --confirm-refresh` call.
