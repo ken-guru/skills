@@ -44,11 +44,11 @@ Never convert media to `img-right`, add `class: invert`, insert inline theme CSS
 When a blocking issue needs another Phase Skill (a diagram that fails Effective
 Text Size, a stale export), propose the fix in one Decision Prompt that lists the
 Skills to run, in order; each rerender's slide scope; the files to overwrite; and
-the files to keep. Proofread changes nothing before the answer. When a diagram's
-layout must change, name `generate-diagrams` and leave layout choices to
-`generate-diagrams`. When the fix rerenders media, also list `generate-slides`
-export and the HTML and PDF to overwrite: the PDF embeds media as it was when
-exported. When the user chooses the fix, invoke each named Skill in order; each
+the files to keep. Proofread changes nothing before the answer. For a diagram,
+name `generate-diagrams` to rerender the slide from its spec; it asks about
+layout only if that render fails, and makes every layout choice itself. When the
+fix rerenders media, also list `generate-slides` export and the HTML and PDF to
+overwrite: the PDF embeds media as it was when exported. When the user chooses the fix, invoke each named Skill in order; each
 keeps its own writes, state changes, and checks.
 
 ## Blocking validation

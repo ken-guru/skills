@@ -70,6 +70,13 @@ test('media.svg-legibility blocks a wide 16 px diagram with the numbers and a fi
   assert.match(findings[0].remediation, /direction: down/);
 });
 
+test('media.svg-legibility suggests a rerender from the spec before any layout change', async () => {
+  const [finding] = await legibilityFindings(d2Svg(1800, 200, 16));
+  const rerender = finding.remediation.indexOf('Rerender the diagram from DIAGRAM_SPEC.md with generate-diagrams');
+  assert.notEqual(rerender, -1, finding.remediation);
+  assert.ok(rerender < finding.remediation.indexOf('direction: down'), finding.remediation);
+});
+
 test('media.svg-legibility names a missing theme lock as the reason it cannot check', async () => {
   const project = await specProject([{ slide: 4, d2: 'a -> b {class: flow}' }]);
   await mkdir(path.join(project, 'images'));

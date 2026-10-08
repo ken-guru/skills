@@ -60,7 +60,9 @@ Read the `**Filename:**` of every `DIAGRAM_SPEC.md` entry and check which files 
   description matching exactly one entry ("the title diagram"). Ask nothing.
   Print one `Overwriting images/foo.svg (Slide N)` line per existing file in
   scope, then go to Step 2. If a named slide or filename has no entry, render
-  nothing: say so and use the menu below.
+  nothing: say so and use the menu below. A failure reported by Proofread or
+  `presentation-validation` names its slide, so it is a named scope: rerender
+  that slide from its spec entry.
 - **Unknown and none exist:** scope is every entry. Ask nothing; go to Step 2.
 - **Unknown and at least one exists:** present:
 
@@ -118,10 +120,10 @@ structure and 20 px Effective Text Size, and cleans up. Run D2 only through it.
 
 ### Step 3: Offer only layouts that fit
 
-This Skill is the only place diagram layout options are offered. Whenever a
-diagram's layout must change, after an Effective Text Size failure or on request,
-write each candidate's D2 to a file in the OS temp directory and check it
-without editing `DIAGRAM_SPEC.md`:
+This Skill is the only place diagram layout options are offered. A layout must
+change when this Skill's own render of the spec entry fails Effective Text Size,
+or when the user asks for a different layout. Write each candidate's D2 to a
+file in the OS temp directory and check it without editing `DIAGRAM_SPEC.md`:
 
 ```bash
 node "<absolute skill directory>/scripts/render-diagrams.mjs" "<DIAGRAM_SPEC.md path>" --check --slide=N --candidate="<temp file>"
