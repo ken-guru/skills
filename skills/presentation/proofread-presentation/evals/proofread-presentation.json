@@ -74,6 +74,6 @@
     "type": "boundary",
     "query": "proofread this presentation",
     "precondition": "Slide 1's SVG fails Effective Text Size while its DIAGRAM_SPEC.md entry is correct",
-    "expected": "skill proposes one fix that names generate-diagrams for slide 1, then generate-slides export, and lists the SVG, HTML, and PDF to overwrite"
+    "expected": "skill proposes one fix that names generate-diagrams to rerender slide 1 from its spec, asking about layout only if that render fails, then generate-slides export, and lists the SVG, HTML, and PDF to overwrite"
   }
 ]

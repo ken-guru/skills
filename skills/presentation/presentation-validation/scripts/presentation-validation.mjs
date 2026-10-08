@@ -455,7 +455,7 @@ async function checkDiagramLegibility(inputs, report) {
     report.finding('media.svg-legibility', 'blocking', `Slide ${diagram.slide} diagram: Effective Text Size ${result.effective.toFixed(1)} px is below ${MINIMUM_EFFECTIVE_TEXT_SIZE} px: ${evidence}.`, {
       ...details,
       evidence,
-      remediation: `The diagram is ${wider ? 'wider' : 'taller'} than the media box: ${fixes.join(', ')}; then re-render it with generate-diagrams.`,
+      remediation: `Rerender the diagram from DIAGRAM_SPEC.md with generate-diagrams. If its D2 still can't reach ${MINIMUM_EFFECTIVE_TEXT_SIZE} px, the diagram is ${wider ? 'wider' : 'taller'} than the media box: ${fixes.join(', ')}; then rerender it.`,
     });
   }
 }

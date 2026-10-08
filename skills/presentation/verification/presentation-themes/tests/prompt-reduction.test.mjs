@@ -52,7 +52,7 @@ test('Proofread proposes a fix that needs another phase in one Decision Prompt',
   }
   assert.match(section, /\bone\s+Decision\s+Prompt\b/);
   assert.match(section, /changes\s+nothing\s+before\s+the\s+answer/i);
-  assert.match(section, /layout\s+choices\s+to\s+`generate-diagrams`/);
+  assert.match(section, /`generate-diagrams`[\s\S]*?makes\s+every\s+layout\s+choice\s+itself/);
 });
 
 test('the Restart Guard takes an earlier fix as its answer only on an exact match', async () => {
@@ -88,6 +88,21 @@ test('a media fix refreshes only the exports, without regenerating the slides', 
   assert.match(fix, /`generate-slides`\s+export\s+and\s+the\s+HTML\s+and\s+PDF\s+to\s+overwrite/);
 });
 
+test('a reported diagram failure is rerendered from the spec before any layout is offered', async () => {
+  const diagrams = await read('generate-diagrams/SKILL.md');
+  // A failure reported by another Skill arrives as a named scope in Step 1.
+  const scope = diagrams.match(/### Step 1: Resolve Media Scope\n([\s\S]*?)\n### /)[1];
+  assert.match(scope, /failure\s+reported\s+by\s+Proofread\s+or\s+`presentation-validation`[\s\S]*?named\s+scope/);
+  const layouts = diagrams.match(/### Step 3: Offer only layouts that fit\n([\s\S]*?)\n### /)[1];
+  assert.match(layouts, /this\s+Skill's\s+own\s+render/);
+  assert.doesNotMatch(layouts, /after\s+an\s+Effective\s+Text\s+Size\s+failure\s+or\s+on\s+request/);
+
+  const proofread = await read('proofread-presentation/SKILL.md');
+  const fix = proofread.match(/## Fixes that need another phase\n([\s\S]*?)\n## /)[1];
+  assert.match(fix, /`generate-diagrams`\s+to\s+rerender\s+the\s+slide\s+from\s+its\s+spec/);
+  assert.match(fix, /asks\s+about\s+layout\s+only\s+if\s+that\s+render\s+fails/);
+});
+
 test('a reset commit names the fix the user chose', async () => {
   assert.match(await read('build-presentation/GIT_CHECKPOINTS.md'), /name\s+the\s+fix\s+the\s+user\s+chose/);
 });
@@ -110,4 +125,8 @@ test('each decision has a documented eval', async () => {
   await expect('generate-slides', /asks the Restart Guard question because/);
   await expect('generate-slides', /refreshes only the HTML and PDF/);
   await expect('proofread-presentation', /then generate-slides export/);
+  await expect('proofread-presentation', /generate-diagrams to rerender slide 1 from its spec/);
+  // The field failure came from choosing Proofread's fix, not a plain rerender request.
+  assert.ok((await evals('generate-diagrams')).some((item) => /chose Proofread's fix/.test(item.precondition)
+    && /rerenders slide 1 from its spec entry without a layout question/.test(item.expected)), 'generate-diagrams: no eval for a Proofread hand-off');
 });
