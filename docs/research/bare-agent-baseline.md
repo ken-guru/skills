@@ -6,7 +6,7 @@ Run date: 2026-10-08. Eval scenarios: [`bare-agent-baseline-evals.json`](bare-ag
 
 ## Setup
 
-- **Agents:** Claude Code 2.1.294, headless (`claude -p --dangerously-skip-permissions`), with Sonnet and Haiku. Copilot CLI 1.0.85 is pending (see the end of this note).
+- **Agents:** Claude Code 2.1.294, headless (`claude -p --dangerously-skip-permissions`), with Sonnet and Haiku; Copilot CLI 1.0.85 on its default model (see [Copilot CLI](#copilot-cli)).
 - **Bare means:** no skill from this repository installed. The Claude Code agent still had the user's claude.ai-synced `anthropic-skills:*` skills, including `anthropic-skills:pptx`. That is the real-world bare agent for this user, so it was not removed.
 - **Environment:** this dev container, with Node, Python 3 (no `python` alias, no Pillow), LibreOffice, and Poppler, but no Marp, D2, or browser. pptxgenjs was already in `/tmp/node_modules` from earlier runs, so the runs were not fully independent.
 - **Interaction:** one-shot `-p`, so no agent could ask clarifying questions mid-task. Scenario s4 used a second `--continue` turn for the steering feedback.
@@ -55,9 +55,9 @@ All 8 runs finished with a deck. Every one chose **PPTX via pptxgenjs**. None pi
 7. **No PDF unless asked.** A PDF appeared only as a by-product of the visual check or when the prompt asked for one.
 8. **Not tested here.** Source fetching from the web, images, slide-to-slide consistency at 20+ slides, and long iteration over several sessions.
 
-## Implications for the map
+## Implications for the map (Claude Code)
 
-- In Claude Code, generic PPTX building is already covered by `anthropic-skills:pptx`. A new skill set should not rebuild it; it should add what that skill doesn't: the story and discovery work, a human-editable source, a predictable project layout, diagrams that aren't hand-placed, and a look that doesn't depend on which harness the user runs. The Copilot runs show what an agent does without the `pptx` skill.
+- In Claude Code, generic PPTX building is already covered by `anthropic-skills:pptx`. A new skill set should not rebuild it; it should add what that skill doesn't: the story and discovery work, a human-editable source, a predictable project layout, diagrams that aren't hand-placed, and a look that doesn't depend on which harness the user runs. The Copilot runs below show what an agent does without it.
 - Haiku was 10–40× cheaper than Sonnet and produced comparable decks. Instructions written for Haiku are viable.
 - A skill's scripts must work without the user's environment being right: dependency resolution, `python3` vs `python`, and Pillow all broke a mature skill here.
 
@@ -73,4 +73,36 @@ All 8 runs finished with a deck. Every one chose **PPTX via pptxgenjs**. None pi
 
 ## Copilot CLI
 
-Pending: the runs failed authentication because the container's `GH_TOKEN` (for `gh`) overrides the `/login` credentials and lacks Copilot access.
+Copilot CLI 1.0.85 on its default model, `copilot -p --allow-all-tools --allow-all-paths`, with no skills installed. The container's `GH_TOKEN` (for `gh`) overrides `/login` credentials and lacks Copilot access, so the runs unset it.
+
+| Run | Output | Notes | Secs | AI credits |
+|---|---|---|---|---|
+| s1 | Marp `slides.md` (gaia theme) + HTML + tagged PDF, 13 slides | HTML comments | 254 | 65.6 |
+| s2 | One Marp Markdown file with 5 Mermaid blocks and ASCII diagrams; nothing rendered | none | 44 | 11.2 |
+| s3 | Marp `slides.md` + HTML + `speaker-notes.md`; no PDF | HTML comments, about 3 minutes for a 5-minute slot | 104 | 22.3 |
+| s4 turn 1 | Outline only, then asked for feedback | n/a | 12 | 6.3 |
+| s4 turn 2 | **Invalid.** `--continue` resumed the most recent session (s3's, run concurrently), so it rebuilt the boring-technology talk | n/a | 131 | 22.4 |
+
+What Copilot did differently:
+
+- **It chose Marp every time.** The source is Markdown a person can edit, the opposite of the Claude runs' coordinate-placing JavaScript.
+- **The browser problem hit at once.** In s3 it tried `sudo apt-get install chromium` (failed on snapd) and Puppeteer's Chrome (no arm64 build), then gave up on the PDF. A later run got PDF export working with `chrome-headless-shell` via `CHROME_PATH`, exactly the route [Research how a skill gets a working headless browser in each harness's sandbox](https://github.com/ken-guru/skills/issues/492) ranked first.
+- **Diagrams were not real.** s2 put Mermaid inside Marp, which Marp does not render without a plugin, never rendered the deck to find out, and wrote no speaker notes despite a first-week audience.
+- **Look was stock.** Marp's built-in `gaia` and `default` themes: legible, plain, and a cramped table in s1.
+- **Visual check only when it rendered.** s1 checked slides with `marp --images`; s2 and s3 never looked at their output.
+
+Sample: ![Copilot s1, a Marp gaia table slide](bare-agent-baseline/copilot-s1-keep.png)
+
+## Combined gaps
+
+Across both harnesses, the gaps the new skill set should close:
+
+1. **A deck source a person can edit**, which Claude's `pptx` route lacks and Copilot's Marp route has.
+2. **A render environment that works first time**: a browser for HTML stacks, dependency resolution and `python3` for the PPTX route.
+3. **Real diagrams**: rendered, legible, checked, not hand-placed shapes or unrendered Mermaid.
+4. **A designed look independent of the harness**: polished only where Anthropic's `pptx` skill is installed.
+5. **A habit of checking rendered output**: consistent in Claude Code, missing in two of three Copilot decks.
+6. **Speaker notes as a requirement**: dropped in Copilot s2.
+7. **Discovery and a predictable output folder**: missing everywhere.
+
+Already handled by every agent and needing no skill: structuring a talk to time, outline-first when asked, applying steering feedback, citing sources, and not inventing figures.
