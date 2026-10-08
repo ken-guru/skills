@@ -11,12 +11,18 @@
 // `browserPath`, so later Marp calls (including Proofread's slide images)
 // use the same browser.
 //
+// After both exports succeed, `export-lock.json` records a SHA-256 of every
+// file they were built from: the Markdown, each local media file it
+// references, and the theme CSS `.marprc.yml` loads. presentation-validation
+// compares it to tell a stale export from a current one.
+//
 // Exit 0: HTML and PDF written. Exit 1: an export failed. Exit 2: usage or
 // prerequisite error.
 
 import { spawn } from 'node:child_process';
-import { accessSync, constants, realpathSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { accessSync, constants, realpathSync, statSync } from 'node:fs';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -107,6 +113,61 @@ export function withBrowser(config, { kind, path: browserPath }) {
   return `${[...kept, `browser: ${kind}`, `browserPath: ${JSON.stringify(browserPath)}`].join('\n')}\n`;
 }
 
+function isFile(file) {
+  try {
+    return statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
+// Local files the Markdown references as images: Markdown image syntax and
+// src attributes. Remote and data URLs are skipped.
+function mediaReferences(markdown) {
+  const references = [
+    ...[...markdown.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)/g)].map((match) => match[1]),
+    ...[...markdown.matchAll(/\ssrc=["']([^"']+)["']/g)].map((match) => match[1]),
+  ];
+  return references.filter((reference) => !/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)).map((reference) => decodeURI(reference.split(/[?#]/)[0]));
+}
+
+// Theme CSS files from `.marprc.yml`'s themeSet, a file or a directory of CSS.
+async function themeFiles(config, projectDirectory) {
+  const block = config.match(/^themeSet:[ \t]*(.*)\n((?:[ \t]+-.*\n?)*)/m);
+  if (!block) return [];
+  const entries = [block[1], ...block[2].split('\n').map((line) => line.replace(/^\s*-\s*/, ''))]
+    .map((entry) => entry.trim().replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+  const files = [];
+  for (const entry of entries) {
+    const target = path.resolve(projectDirectory, entry);
+    if (isFile(target)) files.push(target);
+    else {
+      const names = await readdir(target).catch(() => []);
+      files.push(...names.filter((name) => name.endsWith('.css')).sort().map((name) => path.join(target, name)));
+    }
+  }
+  return files;
+}
+
+async function recordExport(projectDirectory, presentation, config) {
+  const markdownPath = path.resolve(projectDirectory, presentation);
+  const markdown = await readFile(markdownPath, 'utf8');
+  const sources = [
+    markdownPath,
+    ...mediaReferences(markdown).map((reference) => path.resolve(path.dirname(markdownPath), reference)),
+    ...(await themeFiles(config, projectDirectory)),
+  ];
+  const files = {};
+  for (const file of sources) {
+    if (!isFile(file)) continue;
+    const key = path.relative(projectDirectory, file).split(path.sep).join('/');
+    files[key] = createHash('sha256').update(await readFile(file)).digest('hex');
+  }
+  const sorted = Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
+  await writeFile(path.join(projectDirectory, 'export-lock.json'), `${JSON.stringify({ schemaVersion: 1, files: sorted }, null, 2)}\n`);
+}
+
 async function main(argv) {
   const positional = argv.filter((argument) => !argument.startsWith('--'));
   if (positional.length !== 1 || positional.length !== argv.length) throw new UsageError(USAGE);
@@ -121,6 +182,8 @@ async function main(argv) {
   const presentation = discovery.paths?.presentation ?? 'PRESENTASJON.md';
   const html = discovery.paths?.html ?? 'PRESENTASJON.html';
   const pdf = discovery.paths?.pdf ?? 'PRESENTASJON.pdf';
+  const configPath = path.join(projectDirectory, '.marprc.yml');
+  const config = await readFile(configPath, 'utf8').catch(() => '');
 
   const htmlResult = await marp([presentation, '-o', html], projectDirectory);
   if (htmlResult.missing) throw new UsageError('marp-cli not installed. Run npm install -g @marp-team/marp-cli');
@@ -133,13 +196,12 @@ async function main(argv) {
   const pdfArgs = [presentation, '--pdf', '-o', pdf];
   const first = await marp(pdfArgs, projectDirectory);
   if (first.code === 0) {
+    await recordExport(projectDirectory, presentation, config);
     console.log(`✅ ${pdf}`);
     return 0;
   }
   console.log(`⚠️  PDF export failed with the configured browser:\n${marpError(first.output)}`);
 
-  const configPath = path.join(projectDirectory, '.marprc.yml');
-  const config = await readFile(configPath, 'utf8').catch(() => '');
   const current = config.match(/^browserPath:\s*"?(.*?)"?\s*$/m)?.[1];
   for (const candidate of browserCandidates().filter(({ path: file }) => file !== current)) {
     const retry = await marp([...pdfArgs, '--browser', candidate.kind, '--browser-path', candidate.path], projectDirectory);
@@ -148,6 +210,7 @@ async function main(argv) {
       continue;
     }
     await writeFile(configPath, withBrowser(config, candidate));
+    await recordExport(projectDirectory, presentation, config);
     console.log(`✅ ${pdf} (browser: ${candidate.path}; saved to .marprc.yml${candidate.kind === 'firefox' ? '; Firefox PDF output is the least tested, so check the PDF' : ''})`);
     return 0;
   }

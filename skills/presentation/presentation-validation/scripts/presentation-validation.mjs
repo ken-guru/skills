@@ -742,6 +742,38 @@ async function checkExports(inputs, report) {
   const markdown = await readTextIfPresent(inputs.presentation);
   checkSlideParity(markdown, html, report);
   checkPagination(markdown, html, report);
+  if (report.profile === 'proofread') await checkExportFreshness(report);
+}
+
+const EXPORT_LOCK = 'export-lock.json';
+const REFRESH_EXPORTS = 'Refresh the exports with generate-slides.';
+
+// The export writes export-lock.json with a SHA-256 of every file it read
+// (Markdown, local media, theme CSS); a file that no longer matches means the
+// HTML and PDF were built from an older version of it.
+async function checkExportFreshness(report) {
+  let lock;
+  try {
+    lock = JSON.parse(await readFile(path.join(report.projectDirectory, EXPORT_LOCK), 'utf8'));
+  } catch {
+    report.finding('exports.freshness', 'warning', `Export freshness cannot be verified: ${EXPORT_LOCK} is missing or unreadable.`, {
+      remediation: `${REFRESH_EXPORTS} The export records ${EXPORT_LOCK}.`,
+    });
+    return;
+  }
+  const changed = [];
+  for (const [file, digest] of Object.entries(lock.files ?? {})) {
+    const content = await readFile(path.join(report.projectDirectory, file)).catch(() => null);
+    if (!content || createHash('sha256').update(content).digest('hex') !== digest) changed.push(file);
+  }
+  if (changed.length) {
+    report.finding('exports.freshness', 'blocking', 'The HTML and PDF are older than files they were built from.', {
+      evidence: changed.join(', '),
+      remediation: REFRESH_EXPORTS,
+    });
+  } else {
+    report.finding('exports.freshness', 'info', 'The HTML and PDF match the files they were built from.');
+  }
 }
 
 async function checkSources(inputs, report) {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { chmod, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -111,6 +112,62 @@ test('missing Marp, missing Discovery, and bad arguments exit 2', async () => {
 
   const noDiscovery = await exportDeck(await mkdtemp(path.join(os.tmpdir(), 'no-discovery-')), { bin: await stubBin() });
   assert.equal(noDiscovery.code, 2);
+});
+
+// A project whose Markdown references local media in both forms Generation uses,
+// plus a remote image, and whose Marp configuration loads one theme CSS file.
+async function projectWithMedia() {
+  const directory = await project();
+  await mkdir(path.join(directory, 'images'));
+  await mkdir(path.join(directory, 'themes/editorial'), { recursive: true });
+  await writeFile(path.join(directory, 'images/flow.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  await writeFile(path.join(directory, 'images/photo.png'), 'png bytes');
+  await writeFile(path.join(directory, 'themes/editorial/editorial.css'), '/* @theme editorial */');
+  await writeFile(path.join(directory, 'deck.md'), [
+    '---', 'marp: true', '---', '',
+    '<img src="images/flow.svg" alt="Flow">', '',
+    '![Photo](images/photo.png)', '',
+    '![Remote](https://example.com/remote.png)', '',
+  ].join('\n'));
+  return directory;
+}
+
+const sha256 = (text) => createHash('sha256').update(text).digest('hex');
+
+test('a successful export records what it was built from in export-lock.json', async () => {
+  const directory = await projectWithMedia();
+
+  const result = await exportDeck(directory, { bin: await stubBin() });
+
+  assert.equal(result.code, 0, result.output);
+  const lock = JSON.parse(await readFile(path.join(directory, 'export-lock.json'), 'utf8'));
+  assert.deepEqual(Object.keys(lock.files).sort(), ['deck.md', 'images/flow.svg', 'images/photo.png', 'themes/editorial/editorial.css']);
+  assert.equal(lock.files['images/flow.svg'], sha256('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+  assert.equal(lock.files['themes/editorial/editorial.css'], sha256('/* @theme editorial */'));
+});
+
+test('a failed export leaves export-lock.json untouched', async () => {
+  const directory = await projectWithMedia();
+  await writeFile(path.join(directory, 'export-lock.json'), '{"previous":true}');
+
+  for (const env of [{ STUB_MARP_HTML: 'fail' }, { STUB_MARP_PDF_DEFAULT: 'fail' }]) {
+    const result = await exportDeck(directory, { bin: await stubBin(), env });
+    assert.equal(result.code, 1, result.output);
+    assert.equal(await readFile(path.join(directory, 'export-lock.json'), 'utf8'), '{"previous":true}');
+  }
+});
+
+test('a browser saved to the Marp configuration does not change the fingerprints', async () => {
+  const directory = await projectWithMedia();
+  const bin = await stubBin(['chromium']);
+  await exportDeck(directory, { bin });
+  const before = await readFile(path.join(directory, 'export-lock.json'), 'utf8');
+
+  const fallback = await exportDeck(directory, { bin, env: { STUB_MARP_PDF_DEFAULT: 'fail', STUB_MARP_GOOD: 'chromium' } });
+
+  assert.equal(fallback.code, 0, fallback.output);
+  assert.match(await readFile(path.join(directory, '.marprc.yml'), 'utf8'), /^browserPath:/m);
+  assert.equal(await readFile(path.join(directory, 'export-lock.json'), 'utf8'), before);
 });
 
 test('a Marp error keeps its indented lines across blank ones', () => {

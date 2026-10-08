@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { deflateSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -260,9 +261,42 @@ function compressedPdfWithPages(mediaBoxes) {
 
 test('export parity reports no problems for real Marp HTML and PDF output', async () => {
   const project = await marpExportProject();
+  await writeExportLock(project, ['PRESENTASJON.md', 'media/diagram.svg', 'media/portrait.svg', 'media/collaboration-landscape.png']);
   const report = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread');
   assert.deepEqual(report.findings.filter((finding) => finding.severity !== 'info'), []);
   assert.equal(findingsFor(report, 'exports.parity')[0].value, 8);
+});
+
+test('exports.freshness warns in Proofread when no export fingerprint was recorded', async () => {
+  const project = await marpExportProject();
+  const proofread = findingsFor(await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread'), 'exports.freshness');
+  assert.equal(proofread.length, 1);
+  assert.equal(proofread[0].severity, 'warning');
+  assert.match(proofread[0].remediation, /generate-slides/);
+  const generation = await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'generation');
+  assert.deepEqual(findingsFor(generation, 'exports.freshness'), []);
+});
+
+// Records what an export read, as the export does: a SHA-256 per project file.
+async function writeExportLock(project, files) {
+  const digests = {};
+  for (const file of files) digests[file] = createHash('sha256').update(await readFile(path.join(project, file))).digest('hex');
+  await writeFile(path.join(project, 'export-lock.json'), JSON.stringify({ schemaVersion: 1, files: digests }));
+}
+
+test('exports.freshness blocks Proofread when a file changed after the export', async () => {
+  const media = 'media/diagram.svg';
+  for (const changed of [media, 'PRESENTASJON.md']) {
+    const project = await marpExportProject();
+    await writeExportLock(project, ['PRESENTASJON.md', media]);
+    assert.equal(findingsFor(await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread'), 'exports.freshness')[0].severity, 'info');
+
+    await writeFile(path.join(project, changed), `${await readFile(path.join(project, changed), 'utf8')}\n<!-- edited -->\n`);
+    const [finding] = findingsFor(await jsonReport('check', 'exports', '--project-dir', project, '--profile', 'proofread'), 'exports.freshness');
+    assert.equal(finding.severity, 'blocking', changed);
+    assert.equal(finding.evidence, changed);
+    assert.match(finding.remediation, /generate-slides/);
+  }
 });
 
 test('exports.dimensions checks every PDF page and names the page that is not 16:9', async () => {
