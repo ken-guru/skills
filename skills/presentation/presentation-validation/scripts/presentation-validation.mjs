@@ -749,25 +749,30 @@ const EXPORT_LOCK = 'export-lock.json';
 const REFRESH_EXPORTS = 'Refresh the exports with generate-slides.';
 
 // The export writes export-lock.json with a SHA-256 of every file it read
-// (Markdown, local media, theme CSS); a file that no longer matches means the
-// HTML and PDF were built from an older version of it.
+// (Markdown, local media, theme CSS), or null for referenced media that didn't
+// exist yet. A file that no longer matches, including one that appeared since,
+// means the HTML and PDF were built from an older version of it.
 async function checkExportFreshness(report) {
   let lock;
   try {
     lock = JSON.parse(await readFile(path.join(report.projectDirectory, EXPORT_LOCK), 'utf8'));
   } catch {
+    lock = null;
+  }
+  if (lock?.schemaVersion !== 1 || typeof lock.files !== 'object' || lock.files === null) {
     report.finding('exports.freshness', 'warning', `Export freshness cannot be verified: ${EXPORT_LOCK} is missing or unreadable.`, {
       remediation: `${REFRESH_EXPORTS} The export records ${EXPORT_LOCK}.`,
     });
     return;
   }
   const changed = [];
-  for (const [file, digest] of Object.entries(lock.files ?? {})) {
+  for (const [file, digest] of Object.entries(lock.files)) {
     const content = await readFile(path.join(report.projectDirectory, file)).catch(() => null);
-    if (!content || createHash('sha256').update(content).digest('hex') !== digest) changed.push(file);
+    const current = content && createHash('sha256').update(content).digest('hex');
+    if ((current ?? null) !== digest) changed.push(file);
   }
   if (changed.length) {
-    report.finding('exports.freshness', 'blocking', 'The HTML and PDF are older than files they were built from.', {
+    report.finding('exports.freshness', 'blocking', `The HTML and PDF are older than ${changed.join(', ')}.`, {
       evidence: changed.join(', '),
       remediation: REFRESH_EXPORTS,
     });

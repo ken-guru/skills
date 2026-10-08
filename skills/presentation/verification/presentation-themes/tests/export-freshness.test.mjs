@@ -59,3 +59,29 @@ test('validation trusts a fresh export and blocks once a diagram it embeds chang
   assert.equal((await freshness(project))[0].severity, 'info');
   assert.ok(JSON.parse(await readFile(path.join(project, 'export-lock.json'), 'utf8')).files['PRESENTASJON.md']);
 });
+
+test('media rendered after the export makes the export stale', async (t) => {
+  // Generation exports before the Media Renderers run, so the first export
+  // references diagrams that don't exist yet.
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'export-freshness-'));
+  t.after(() => rm(workspace, { recursive: true, force: true }));
+  const bin = path.join(workspace, 'bin');
+  const project = path.join(workspace, 'deck');
+  await mkdir(bin);
+  await mkdir(path.join(project, 'images'), { recursive: true });
+  await writeFile(path.join(bin, 'marp'), `#!/bin/sh\nexec "${process.execPath}" "${stubMarp}" "$@"\n`);
+  await chmod(path.join(bin, 'marp'), 0o755);
+  await writeFile(path.join(project, 'DISCOVERY.json'), JSON.stringify({ paths: {} }));
+  await writeFile(path.join(project, 'PROJECT.json'), JSON.stringify({ projectType: 'presentation' }));
+  await writeFile(path.join(project, '.marprc.yml'), 'allowLocalFiles: true\n');
+  await writeFile(path.join(project, 'PRESENTASJON.md'), '---\nmarp: true\n---\n\n<img src="images/flow.svg" alt="Flow">\n');
+
+  assert.equal((await exportDeck(project, bin)).code, 0);
+  assert.equal((await freshness(project))[0].severity, 'info');
+
+  await writeFile(path.join(project, 'images/flow.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  const [stale] = await freshness(project);
+  assert.equal(stale.severity, 'blocking');
+  assert.equal(stale.evidence, 'images/flow.svg');
+  assert.match(stale.message, /images\/flow\.svg/);
+});

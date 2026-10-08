@@ -13,8 +13,9 @@
 //
 // After both exports succeed, `export-lock.json` records a SHA-256 of every
 // file they were built from: the Markdown, each local media file it
-// references, and the theme CSS `.marprc.yml` loads. presentation-validation
-// compares it to tell a stale export from a current one.
+// references, and the theme CSS `.marprc.yml` loads. A referenced file that
+// doesn't exist yet (media rendered after Generation) is recorded as null.
+// presentation-validation compares it to tell a stale export from a current one.
 //
 // Exit 0: HTML and PDF written. Exit 1: an export failed. Exit 2: usage or
 // prerequisite error.
@@ -121,21 +122,35 @@ function isFile(file) {
   }
 }
 
-// Local files the Markdown references as images: Markdown image syntax and
-// src attributes. Remote and data URLs are skipped.
-function mediaReferences(markdown) {
-  const references = [
-    ...[...markdown.matchAll(/!\[[^\]]*\]\(\s*<?([^)\s>]+)/g)].map((match) => match[1]),
-    ...[...markdown.matchAll(/\ssrc=["']([^"']+)["']/g)].map((match) => match[1]),
-  ];
-  return references.filter((reference) => !/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)).map((reference) => decodeURI(reference.split(/[?#]/)[0]));
+function decoded(reference) {
+  try {
+    return decodeURI(reference);
+  } catch {
+    return reference;
+  }
 }
 
-// Theme CSS files from `.marprc.yml`'s themeSet, a file or a directory of CSS.
+// Local files the Markdown references as images: Markdown image syntax (with
+// or without <angle brackets>) and src attributes outside <style> and
+// <script>. Remote and data URLs are skipped.
+function mediaReferences(markdown) {
+  const text = markdown.replace(/<(style|script)\b[\s\S]*?<\/\1>/gi, '');
+  const references = [
+    ...[...text.matchAll(/!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^)\s]+))/g)].map((match) => match[1] ?? match[2]),
+    ...[...text.matchAll(/\ssrc=["']([^"']+)["']/g)].map((match) => match[1]),
+  ];
+  return references.filter((reference) => !/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)).map((reference) => decoded(reference.split(/[?#]/)[0]));
+}
+
+// Theme CSS files from `.marprc.yml`'s themeSet: a path, a [flow, list] or a
+// block list, each a file or a directory of CSS.
 async function themeFiles(config, projectDirectory) {
-  const block = config.match(/^themeSet:[ \t]*(.*)\n((?:[ \t]+-.*\n?)*)/m);
+  const uncommented = config.split('\n').map((line) => line.replace(/\s+#.*$/, '')).join('\n');
+  const block = uncommented.match(/^themeSet:[ \t]*(.*)(?:\n((?:[ \t]+-.*(?:\n|$))*))?/m);
   if (!block) return [];
-  const entries = [block[1], ...block[2].split('\n').map((line) => line.replace(/^\s*-\s*/, ''))]
+  const inline = block[1].trim().replace(/^\[|\]$/g, '').split(',');
+  const listed = (block[2] ?? '').split('\n').map((line) => line.replace(/^\s*-\s*/, ''));
+  const entries = [...inline, ...listed]
     .map((entry) => entry.trim().replace(/^["']|["']$/g, ''))
     .filter(Boolean);
   const files = [];
@@ -160,9 +175,8 @@ async function recordExport(projectDirectory, presentation, config) {
   ];
   const files = {};
   for (const file of sources) {
-    if (!isFile(file)) continue;
     const key = path.relative(projectDirectory, file).split(path.sep).join('/');
-    files[key] = createHash('sha256').update(await readFile(file)).digest('hex');
+    files[key] = isFile(file) ? createHash('sha256').update(await readFile(file)).digest('hex') : null;
   }
   const sorted = Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
   await writeFile(path.join(projectDirectory, 'export-lock.json'), `${JSON.stringify({ schemaVersion: 1, files: sorted }, null, 2)}\n`);

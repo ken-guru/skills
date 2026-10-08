@@ -78,13 +78,14 @@ test('a media fix refreshes only the exports, without regenerating the slides', 
   assert.match(exportOnly, /skip\s+Steps\s+1–5\s+and\s+the\s+Restart\s+Guard/i);
   assert.match(exportOnly, /Step\s+6/);
   assert.match(exportOnly, /`Overwriting <file>`/);
-  assert.match(exportOnly, /HTML\s+and\s+PDF/);
+  assert.match(exportOnly, /overwrites\s+only\s+the\s+HTML\s+and\s+PDF/);
   assert.match(exportOnly, /`phases\.generation`\s+stays\s+`done`/);
+  assert.match(exportOnly, /export\s+fails[\s\S]*every\s+phase\s+unchanged/);
 
   const proofread = await read('proofread-presentation/SKILL.md');
   const fix = proofread.match(/## Fixes that need another phase\n([\s\S]*?)\n## /)[1];
   assert.match(fix, /rerenders\s+media/);
-  assert.match(fix, /`generate-slides`\s+export/);
+  assert.match(fix, /`generate-slides`\s+export\s+and\s+the\s+HTML\s+and\s+PDF\s+to\s+overwrite/);
 });
 
 test('a reset commit names the fix the user chose', async () => {

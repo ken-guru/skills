@@ -146,6 +146,30 @@ test('a successful export records what it was built from in export-lock.json', a
   assert.equal(lock.files['themes/editorial/editorial.css'], sha256('/* @theme editorial */'));
 });
 
+test('the lock reads every reference form and records media not rendered yet as null', async () => {
+  const directory = await project({ config: 'themeSet: [./themes/a.css, "./themes/b.css"] # two themes\n' });
+  await mkdir(path.join(directory, 'images'));
+  await mkdir(path.join(directory, 'themes'));
+  await writeFile(path.join(directory, 'images/my photo.png'), 'png');
+  await writeFile(path.join(directory, 'themes/a.css'), '/* a */');
+  await writeFile(path.join(directory, 'themes/b.css'), '/* b */');
+  await writeFile(path.join(directory, 'deck.md'), [
+    '---', 'marp: true', '---', '',
+    '![Photo](<images/my photo.png>)', '',
+    '<img src="images/later.svg" alt="Rendered after Generation">', '',
+    '![Odd](images/100%zz.png)', '',
+    '<style>section { background: url(src="images/not-media.png") }</style>', '',
+  ].join('\n'));
+
+  const result = await exportDeck(directory, { bin: await stubBin() });
+
+  assert.equal(result.code, 0, result.output);
+  const { files } = JSON.parse(await readFile(path.join(directory, 'export-lock.json'), 'utf8'));
+  assert.deepEqual(Object.keys(files).sort(), ['deck.md', 'images/100%zz.png', 'images/later.svg', 'images/my photo.png', 'themes/a.css', 'themes/b.css']);
+  assert.equal(files['images/later.svg'], null);
+  assert.equal(files['images/my photo.png'], sha256('png'));
+});
+
 test('a failed export leaves export-lock.json untouched', async () => {
   const directory = await projectWithMedia();
   await writeFile(path.join(directory, 'export-lock.json'), '{"previous":true}');

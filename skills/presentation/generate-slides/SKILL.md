@@ -45,9 +45,11 @@ refreshing the exports only.
 
 When the request or the chosen fix asks only to refresh the HTML and PDF, for
 example after media was rerendered, and the presentation Markdown exists:
-complete Startup, then skip Steps 1–5 and the Restart Guard. Print one
-`Overwriting <file>` line each for the HTML and PDF, run Step 6 on the existing
-Markdown, and report the result. `phases.generation` stays `done`.
+complete Startup, then skip Steps 1–5 and the Restart Guard. This path
+overwrites only the HTML and PDF: print one `Overwriting <file>` line for each,
+run Step 6 on the existing Markdown, and report the result. `phases.generation`
+stays `done`. When the export fails, report its message and leave every phase
+unchanged.
 
 ## Procedure
 
