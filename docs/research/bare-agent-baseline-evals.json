@@ -1,0 +1,54 @@
+[
+  {
+    "id": "s1-sources-team-update",
+    "skills": [],
+    "query": "I need a slide deck for a 10-minute update to my engineering team summarising the three research notes in ./sources. Make it something I can present from and share as a PDF afterwards.",
+    "files": ["sources/slide-rendering-stacks.md", "sources/harness-skill-features.md", "sources/presentation-suite-quarry.md"],
+    "expected_behavior": [
+      "Reads all three source notes in full before drafting",
+      "Produces a presentable deck and a PDF, both inside the working directory",
+      "Fits roughly 10 minutes, with speaker notes on every slide",
+      "Keeps the sources' claims and caveats intact: open decisions stay open, untested results are labelled untested",
+      "Renders the slides to images and fixes overflow or clipping before finishing"
+    ]
+  },
+  {
+    "id": "s2-diagram-heavy-request-flow",
+    "skills": [],
+    "query": "Make me a short slide deck explaining how a web request flows through our system: browser, CDN, load balancer, API service, a job queue, background workers, and Postgres. Include what happens when a worker fails. It should be diagram-heavy; the audience are new engineers in their first week.",
+    "files": [],
+    "expected_behavior": [
+      "Most content slides carry a diagram rather than bullets",
+      "Shows all seven components, the synchronous versus queued paths, and the worker-failure path (retry, backoff, dead-letter)",
+      "Diagram text stays legible at slide size and connectors do not cross labels",
+      "States which architecture details are assumptions for the user to verify",
+      "Keeps the diagram source editable without hand-placing coordinates"
+    ]
+  },
+  {
+    "id": "s3-lightning-talk-speaker-notes",
+    "skills": [],
+    "query": "I'm giving a 5-minute lightning talk at a local developer meetup called 'Why boring technology wins'. Build the slides, with speaker notes I can read from on each slide.",
+    "files": [],
+    "expected_behavior": [
+      "Every slide has read-aloud speaker notes whose timings add up to about 5 minutes",
+      "Credits borrowed ideas (for example Dan McKinley's 'Choose Boring Technology')",
+      "Invents no statistics",
+      "Uses placeholders rather than guessing the speaker's name or the meetup",
+      "Has a polished, consistent look without a theme being requested"
+    ]
+  },
+  {
+    "id": "s4-outline-first-then-steer",
+    "skills": [],
+    "query": "I'm giving a 20-minute talk to non-technical managers about adopting AI coding agents in our team. Draft the outline first and wait for my feedback before you build any slides.",
+    "follow_up": "Thanks. Move the risks section before the benefits, drop the history part entirely, and add a slide about cost. Then build the deck.",
+    "files": [],
+    "expected_behavior": [
+      "Turn 1 returns an outline only and builds no files",
+      "Turn 2 applies every requested change, and says so when a requested change has nothing to act on",
+      "Cost figures it does not know are placeholders, not invented numbers",
+      "The finished deck has speaker notes and fits 20 minutes with time for questions"
+    ]
+  }
+]
