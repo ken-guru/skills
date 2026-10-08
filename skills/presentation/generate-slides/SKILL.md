@@ -38,7 +38,16 @@ the pass is incomplete until both the preference scan and the check succeed.
 8. If theme state is absent, report: `Theme selection is absent; using Editorial. Rerun Discovery to choose another theme.` Do not mutate Discovery.
 
 If generated outputs or media already exist, run the owner-local Restart Guard in
-[RESTART-GUARD.md](RESTART-GUARD.md) after successful theme preflight.
+[RESTART-GUARD.md](RESTART-GUARD.md) after successful theme preflight, unless
+refreshing the exports only.
+
+## Refresh the exports only
+
+When the request or the chosen fix asks only to refresh the HTML and PDF, for
+example after media was rerendered, and the presentation Markdown exists:
+complete Startup, then skip Steps 1–5 and the Restart Guard. Print one
+`Overwriting <file>` line each for the HTML and PDF, run Step 6 on the existing
+Markdown, and report the result. `phases.generation` stays `done`.
 
 ## Procedure
 

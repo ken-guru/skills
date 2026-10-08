@@ -68,5 +68,12 @@
     "query": "proofread this presentation",
     "precondition": "Slide 1's diagram fails the 20 px Effective Text Size rule",
     "expected": "skill proposes one fix naming generate-diagrams and generate-slides in order, slide 1 as the rerender scope, the Markdown, HTML, and PDF to overwrite, and the media to keep, and changes nothing before the answer"
+  },
+  {
+    "skill": "proofread-presentation",
+    "type": "boundary",
+    "query": "proofread this presentation",
+    "precondition": "Slide 1's SVG fails Effective Text Size while its DIAGRAM_SPEC.md entry is correct",
+    "expected": "skill proposes one fix that names generate-diagrams for slide 1, then generate-slides export, and lists the SVG, HTML, and PDF to overwrite"
   }
 ]
