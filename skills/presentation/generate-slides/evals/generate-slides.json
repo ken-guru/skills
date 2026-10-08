@@ -114,5 +114,12 @@
     "query": "regenerate the slides",
     "precondition": "Earlier in this conversation the user chose a fix that overwrites only PRESENTASJON.md and PRESENTASJON.html, but PRESENTASJON.pdf also exists",
     "expected": "skill asks the Restart Guard question because the PDF is outside the approved fix"
+  },
+  {
+    "skill": "generate-slides",
+    "type": "boundary",
+    "query": "refresh the exports",
+    "precondition": "PRESENTASJON.md, PRESENTASJON.html, and PRESENTASJON.pdf exist and a diagram was just rerendered",
+    "expected": "skill completes Startup, prints Overwriting lines for the HTML and PDF, and refreshes only the HTML and PDF with one export-presentation.mjs call: no Restart Guard question, no Media Spec regeneration, and phases.generation stays done"
   }
 ]

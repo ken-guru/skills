@@ -71,6 +71,23 @@ test('the Restart Guard takes an earlier fix as its answer only on an exact matc
   assert.match(refresh ?? '', /even\s+after\s+an\s+earlier\s+answer/);
 });
 
+test('a media fix refreshes only the exports, without regenerating the slides', async () => {
+  const slides = await read('generate-slides/SKILL.md');
+  const exportOnly = slides.match(/## Refresh the exports only\n([\s\S]*?)\n## /)?.[1];
+  assert.ok(exportOnly, 'missing the "Refresh the exports only" section');
+  assert.match(exportOnly, /skip\s+Steps\s+1–5\s+and\s+the\s+Restart\s+Guard/i);
+  assert.match(exportOnly, /Step\s+6/);
+  assert.match(exportOnly, /`Overwriting <file>`/);
+  assert.match(exportOnly, /overwrites\s+only\s+the\s+HTML\s+and\s+PDF/);
+  assert.match(exportOnly, /`phases\.generation`\s+stays\s+`done`/);
+  assert.match(exportOnly, /export\s+fails[\s\S]*every\s+phase\s+unchanged/);
+
+  const proofread = await read('proofread-presentation/SKILL.md');
+  const fix = proofread.match(/## Fixes that need another phase\n([\s\S]*?)\n## /)[1];
+  assert.match(fix, /rerenders\s+media/);
+  assert.match(fix, /`generate-slides`\s+export\s+and\s+the\s+HTML\s+and\s+PDF\s+to\s+overwrite/);
+});
+
 test('a reset commit names the fix the user chose', async () => {
   assert.match(await read('build-presentation/GIT_CHECKPOINTS.md'), /name\s+the\s+fix\s+the\s+user\s+chose/);
 });
@@ -91,4 +108,6 @@ test('each decision has a documented eval', async () => {
   await expect('proofread-presentation', /proposes one fix naming generate-diagrams and generate-slides/);
   await expect('generate-slides', /without asking the Restart Guard question/);
   await expect('generate-slides', /asks the Restart Guard question because/);
+  await expect('generate-slides', /refreshes only the HTML and PDF/);
+  await expect('proofread-presentation', /then generate-slides export/);
 });

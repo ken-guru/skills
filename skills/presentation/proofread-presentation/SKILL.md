@@ -46,8 +46,10 @@ Text Size, a stale export), propose the fix in one Decision Prompt that lists th
 Skills to run, in order; each rerender's slide scope; the files to overwrite; and
 the files to keep. Proofread changes nothing before the answer. When a diagram's
 layout must change, name `generate-diagrams` and leave layout choices to
-`generate-diagrams`. When the user chooses the fix, invoke each named Skill in
-order; each keeps its own writes, state changes, and checks.
+`generate-diagrams`. When the fix rerenders media, also list `generate-slides`
+export and the HTML and PDF to overwrite: the PDF embeds media as it was when
+exported. When the user chooses the fix, invoke each named Skill in order; each
+keeps its own writes, state changes, and checks.
 
 ## Blocking validation
 
