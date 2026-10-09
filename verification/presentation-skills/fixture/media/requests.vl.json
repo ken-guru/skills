@@ -1,0 +1,7 @@
+{
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "quarter", "type": "ordinal", "title": "Quarter" },
+    "y": { "field": "requests", "type": "quantitative", "title": "Requests (millions per month)" }
+  }
+}

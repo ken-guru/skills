@@ -72,7 +72,7 @@ section th { font-weight: 700; border-bottom-width: 2px; }
 
 /* Images keep their aspect ratio inside their slot. */
 section img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; margin: 0 auto; }
-section p:has(> img:only-child) { min-height: 0; flex: 1 1 auto; display: flex; align-items: center; justify-content: center; }
+section p:has(> img:only-child) { min-height: 0; display: flex; align-items: center; justify-content: center; }
 
 /* A caption is the paragraph right after an image. */
 section p:has(> img:only-child) + p {

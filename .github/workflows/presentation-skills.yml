@@ -21,8 +21,10 @@ env:
 jobs:
   presentation-skills:
     name: presentation-skills
+    # A fixed runner image plus the skills' own pinned, checksum-verified tools
+    # is the pinned environment the fixture deck renders in.
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -40,10 +42,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tool-cache
-          key: presentation-skills-tools-${{ runner.os }}-${{ hashFiles('skills/**/scripts/*.mjs') }}
+          key: presentation-skills-tools-${{ runner.os }}-${{ hashFiles('skills/**/scripts/*.mjs', 'skills/**/scripts/marp-cli/package-lock.json') }}
 
-      - name: Check frontmatter, command shape, and shared modules
-        run: node --test verification/presentation-skills/
+      - name: Install pinned tools
+        run: |
+          node skills/creating-diagrams/scripts/creating-diagrams.mjs setup
+          node skills/creating-charts/scripts/creating-charts.mjs setup
+          node skills/presentation/rendering-slides/scripts/rendering-slides.mjs setup
 
       - name: Validate frontmatter with the official skills-ref
         run: |
@@ -54,14 +59,10 @@ jobs:
             uvx --from "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref" skills-ref validate "$skill"
           done
 
-      - name: Install pinned tools
-        run: |
-          for script in skills/creating-diagrams/scripts/creating-diagrams.mjs \
-                        skills/creating-charts/scripts/creating-charts.mjs \
-                        skills/presentation/rendering-slides/scripts/rendering-slides.mjs; do
-            [ -f "$script" ] || continue
-            node "$script" setup
-          done
+      - name: Check frontmatter, command shape, shared files, and the fixture deck
+        env:
+          FIXTURE_SLIDES_DIR: ${{ runner.temp }}/fixture-slides
+        run: node --test verification/presentation-skills/
 
       - name: Test each skill through its command interface
         run: |
@@ -71,3 +72,11 @@ jobs:
             [ -d "$skill/tests" ] || continue
             node --test "$skill"/tests/*.test.mjs
           done
+
+      - name: Keep the fixture's rendered slides for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixture-slides
+          path: ${{ runner.temp }}/fixture-slides
+          if-no-files-found: ignore

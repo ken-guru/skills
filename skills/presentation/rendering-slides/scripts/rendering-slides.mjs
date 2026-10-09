@@ -15,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cacheRoot, installPinned, missingToolMessage, onPath, platformKey } from './tools.mjs';
 import { parseDeck } from './deck.mjs';
+import { formatFindings, pdfFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SETUP_COMMAND = 'node scripts/rendering-slides.mjs setup';
@@ -46,7 +47,7 @@ class RenderError extends Error {}
 
 function parseArguments(argv) {
   const [command, ...rest] = argv;
-  if (!['setup', 'theme', 'theme-values', 'render'].includes(command)) throw new UsageError(`Unknown command "${command ?? ''}". Use setup, theme, theme-values, or render.`);
+  if (!['setup', 'theme', 'theme-values', 'render', 'check'].includes(command)) throw new UsageError(`Unknown command "${command ?? ''}". Use setup, theme, theme-values, render, or check.`);
   const options = { command, deck: null, name: null, pptx: false, images: false, status: false };
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
@@ -294,7 +295,53 @@ async function render(options) {
   }
   console.log(`✅ Rendered ${deck.slides.length} slides with ${path.basename(browser.path)} (from ${browser.source}):`);
   for (const item of written) console.log(`   • ${item}`);
+  return reportChecks(await runChecks(options.deck, deck, { marpPath: marpTool.path, browserPath: browser.path }));
+}
+
+// Every scripted rule of the Accessibility Bar: the Deck Source and theme always,
+// and the rendered PDF and slides when the deck has been rendered.
+async function runChecks(folder, deck, tools) {
+  const findings = [...sourceFindings(deck, folder), ...themeFindings(themeValuesFrom(await readFile(path.join(folder, 'theme.css'), 'utf8')))];
+  const notes = [];
+  const pdfPath = path.join(folder, 'dist', 'deck.pdf');
+  if (!tools || !existsSync(pdfPath)) {
+    notes.push('Rendered checks (PDF tags, contrast and text size on the slides) run after `render`.');
+    return { findings, notes };
+  }
+  findings.push(...pdfFindings(await readFile(pdfPath)));
+  // The bare template shows every slide at once, so each can be measured.
+  const checkHtml = path.join('dist', '.check.html');
+  try {
+    marp(tools.marpPath, ['deck.md', '--theme-set', 'theme.css', '--html', '--allow-local-files', '--no-stdin', '--template', 'bare', '-o', checkHtml], tools.browserPath, folder);
+    const rendered = await renderedFindings({ htmlPath: path.join(folder, checkHtml), browserPath: tools.browserPath, marpScriptPath: tools.marpPath.endsWith('.js') ? tools.marpPath : null });
+    if (rendered.skipped) notes.push(rendered.skipped);
+    findings.push(...rendered.findings);
+  } finally {
+    await rm(path.join(folder, checkHtml), { force: true });
+  }
+  return { findings, notes };
+}
+
+function reportChecks({ findings, notes }) {
+  for (const note of notes) console.log(`ℹ️  ${note}`);
+  if (findings.length) {
+    console.log(`❌ Accessibility Bar: ${findings.length} finding${findings.length === 1 ? '' : 's'}. Fix the source and render again:`);
+    console.log(formatFindings(findings));
+    return 1;
+  }
+  console.log('✅ Accessibility Bar: all scripted checks pass. Judgement checks (meaningful headings and alt text, reading order, colour as the only signal) still need a review.');
   return 0;
+}
+
+async function check(options) {
+  const deckPath = path.join(options.deck, 'deck.md');
+  if (!existsSync(deckPath)) throw new UsageError(`${deckPath} not found.`);
+  if (!existsSync(path.join(options.deck, 'theme.css'))) throw new UsageError(`${path.join(options.deck, 'theme.css')} not found. Run \`node scripts/rendering-slides.mjs theme --deck ${options.deck} --name editorial\` first.`);
+  const deck = parseDeck(await readFile(deckPath, 'utf8'));
+  const marpTool = resolveMarp();
+  const browser = resolveBrowser();
+  const tools = marpTool.path && browser.path ? { marpPath: marpTool.path, browserPath: browser.path } : null;
+  return reportChecks(await runChecks(options.deck, deck, tools));
 }
 
 async function main(argv) {
@@ -302,6 +349,7 @@ async function main(argv) {
   if (options.command === 'setup') return setup(options);
   if (options.command === 'theme') return applyTheme(options);
   if (options.command === 'theme-values') return themeValues(options);
+  if (options.command === 'check') return check(options);
   return render(options);
 }
 

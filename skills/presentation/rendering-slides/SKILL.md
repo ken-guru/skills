@@ -26,6 +26,12 @@ Script paths below are relative to this skill's folder. Run each as one command 
 3. **Render.** Run `node scripts/rendering-slides.mjs render --deck <folder>`. It writes `dist/deck.html` (to present from, and the accessible version), `dist/deck.pdf` (tagged, with an outline), and `dist/deck-notes.md` (the speaker-notes script). Add `--pptx` only when the person asks for PowerPoint, and say it is made of slide pictures, so it is neither editable nor accessible. Add `--images` for PNG slide images.
 4. **Look.** Render with `--images` and look at every slide: text overflowing its slot, overlapping elements, unreadable contrast, a visual that misses its caption. Fix the source (`deck.md`, `theme.css`, or `media/`), never `dist/`, and render again.
 
+## The Accessibility Bar
+
+Every `render` ends with the scripted checks of the [Accessibility Bar](references/accessibility-bar.md): one visible heading per slide, alt text or a decorative marker on every image, no content in background images, `lang` and `title` set, table headers, descriptive link text, the theme's colour pairs, contrast and 20 px minimum text measured on the rendered slides, a tagged PDF with an outline, and the label and alt prefix on generated images. A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering.
+
+The checks cannot judge whether headings and alt text are meaningful, whether the reading order makes sense, or whether colour is the only signal in a picture. Say so when reporting, and leave those to a review.
+
 ## When the render fails
 
 - **The sandbox blocks the browser.** The error says so and explains how to allow that one render command outside the sandbox for the harness in use. Pass this on to the person; never change their harness settings yourself.
