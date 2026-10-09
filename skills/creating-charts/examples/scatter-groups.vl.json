@@ -1,0 +1,9 @@
+{
+  "mark": { "type": "point", "filled": true, "size": 200 },
+  "encoding": {
+    "x": { "field": "team_size", "type": "quantitative", "title": "Team size" },
+    "y": { "field": "lead_time_days", "type": "quantitative", "title": "Lead time (days)" },
+    "shape": { "field": "group", "type": "nominal", "title": "Group" },
+    "color": { "field": "group", "type": "nominal", "title": "Group" }
+  }
+}

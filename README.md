@@ -14,6 +14,7 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Skill | Description |
 |---|---|
+| [creating-charts](skills/creating-charts/SKILL.md) | Create static, accessible charts from real data with Vega-Lite, with alt text, a source caption, and a data table |
 | [creating-diagrams](skills/creating-diagrams/SKILL.md) | Create legible D2 diagrams styled by role, with a legibility check against the space they will fill |
 | [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, structured output, and explicit user style preferences |
 | [setup-devcontainer](skills/setup-devcontainer/SKILL.md) | Generate a shared devcontainer baseline, optionally with SSH deploy-key/signing-key automation |
