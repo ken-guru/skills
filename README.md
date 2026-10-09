@@ -8,7 +8,7 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Suite | Description |
 |---|---|
-| [Presentation](skills/presentation/README.md) | Eight Skills for discovering, structuring, generating, validating, rendering, and proofreading presentations, with a required editorial pass |
+| [Presentation](skills/presentation/README.md) | Four Skills that plan, draft, render, and review a slide deck with speaker notes, using the four general-purpose skills below for sources and visuals |
 
 ## Standalone Skills
 

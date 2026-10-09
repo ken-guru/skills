@@ -92,6 +92,26 @@ for (const name of present) {
   });
 }
 
+// Shared contracts are authored once in the suite's docs/ and copied into each
+// suite skill that needs them at runtime.
+for (const shared of ['accessibility-bar.md', 'deck-folder.md']) {
+  test(`every copy of ${shared} matches the suite's docs/ original`, () => {
+    const original = readFileSync(path.join(root, 'skills', 'presentation', 'docs', shared), 'utf8');
+    for (const name of present.filter((skill) => SUITE.includes(skill))) {
+      const copy = path.join(skillDirectory(name), 'references', shared);
+      if (existsSync(copy)) assert.equal(readFileSync(copy, 'utf8'), original, `${path.relative(root, copy)} differs from skills/presentation/docs/${shared}`);
+    }
+  });
+}
+
+test('the plugin lists every presentation skill that exists, and nothing else', () => {
+  const plugin = JSON.parse(readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf8'));
+  const listed = plugin.skills.map((entry) => path.resolve(root, entry));
+  const expected = present.map(skillDirectory);
+  assert.deepEqual([...listed].sort(), [...expected].sort());
+  for (const directory of listed) assert.ok(existsSync(path.join(directory, 'SKILL.md')), `${path.relative(root, directory)} has no SKILL.md`);
+});
+
 test('every copy of the shared tool-cache module is identical', () => {
   const copies = present.map((name) => path.join(skillDirectory(name), 'scripts', 'tools.mjs')).filter(existsSync);
   const texts = new Set(copies.map((file) => readFileSync(file, 'utf8')));

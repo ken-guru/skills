@@ -1,7 +1,7 @@
 {
   "name": "presentation-skills",
-  "version": "1.1.0",
-  "description": "A state-aware presentation workflow: discover requirements, structure an agenda, generate slides and media, and proofread the result.",
+  "version": "3.0.0",
+  "description": "Plan, research, draft, illustrate, render, and review a slide deck with speaker notes, with skills that also work on their own.",
   "author": {
     "name": "Ken Sørevåge"
   },
@@ -11,17 +11,15 @@
     "presentation",
     "slides",
     "marp",
-    "agenda",
-    "proofreading"
+    "diagrams",
+    "charts",
+    "research",
+    "accessibility"
   ],
   "skills": [
-    "./skills/presentation/build-presentation",
-    "./skills/presentation/discover-presentation",
-    "./skills/presentation/structure-agenda",
-    "./skills/presentation/generate-slides",
-    "./skills/presentation/generate-images",
-    "./skills/presentation/generate-diagrams",
-    "./skills/presentation/proofread-presentation",
-    "./skills/presentation/presentation-validation"
+    "./skills/researching-sources",
+    "./skills/creating-diagrams",
+    "./skills/creating-charts",
+    "./skills/generating-images"
   ]
 }
