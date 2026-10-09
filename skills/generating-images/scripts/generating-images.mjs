@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// generating-images: generate one illustration with an Image Provider and mark it as AI-generated.
+// generating-images: generate one illustration with an image provider and mark it as AI-generated.
 //
 //   node scripts/generating-images.mjs plan --count <n> [--provider gemini|openai] [--model <id>]
 //   node scripts/generating-images.mjs generate --prompt "<text>" --alt "<description>" --out <file.png>
@@ -90,7 +90,7 @@ function selectProvider(options) {
     return options.provider;
   }
   const available = Object.keys(PROVIDERS).filter((name) => process.env[PROVIDERS[name].key]);
-  if (!available.length) throw new UsageError('No Image Provider is configured. Set GEMINI_API_KEY or OPENAI_API_KEY in the environment.');
+  if (!available.length) throw new UsageError('No image provider is configured. Set GEMINI_API_KEY or OPENAI_API_KEY in the environment.');
   return available[0];
 }
 

@@ -34,5 +34,3 @@ Produce a **Source Set**: the sources a piece of work may rely on, each with a c
 - **Never invent a source, a quotation, or a number.** Every claim names the source it comes from, with enough reference detail for a person to find it.
 - **Quote sparingly and exactly.** Paraphrase by default; when quoting, copy the words exactly and mark them as a quotation.
 - **Dates matter.** Note when each source was published and flag findings that may be out of date.
-
-When the Source Set feeds a presentation, the natural next step is planning the storyline: `planning-presentation`, if installed, takes the approved Source Set from there.

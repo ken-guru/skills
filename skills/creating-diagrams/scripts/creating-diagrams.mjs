@@ -13,7 +13,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { installPinned, missingToolMessage, platformKey, resolveTool } from './tools.mjs';
+import { cacheRoot, installPinned, missingToolMessage, platformKey, resolveTool } from './tools.mjs';
 
 const SETUP_COMMAND = 'node scripts/creating-diagrams.mjs setup';
 
@@ -222,7 +222,7 @@ function d2Message(output, input, preamble) {
 }
 
 async function setup(options) {
-  const binaryPath = D2_TOOL.cachePath((await import('./tools.mjs')).cacheRoot());
+  const binaryPath = D2_TOOL.cachePath(cacheRoot());
   if (options.status) {
     const resolution = resolveTool(D2_TOOL);
     if (!resolution.path) {
@@ -253,6 +253,11 @@ async function renderOrCheck(options) {
 
   const resolution = resolveTool(D2_TOOL);
   if (!resolution.path) throw new UsageError(missingToolMessage('D2', resolution, SETUP_COMMAND));
+  if (resolution.source !== 'cache') {
+    // Layouts change between D2 releases; checks were tuned on the pinned version.
+    const version = d2(resolution.path, ['--version']).output.trim();
+    if (!version.includes(D2_VERSION)) console.log(`⚠️  D2 from ${resolution.source} is ${version || 'an unknown version'}; this skill is tested with ${D2_VERSION}. Run \`${SETUP_COMMAND}\` to use the pinned version.`);
+  }
   const theme = await themeValues(options.theme);
   const preamble = rolePreamble(theme);
   const darkCanvas = relativeLuminance(theme['--color-bg']) < 0.2;

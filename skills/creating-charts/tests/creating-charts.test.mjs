@@ -103,6 +103,14 @@ test('every shipped example passes the check', needsTool, () => {
   }
 });
 
+test('theme colours that would make marks too faint are refused before rendering', () => {
+  const directory = scratch();
+  const theme = write(directory, 'theme.json', { '--color-bg': '#ffffff', '--color-accent': '#f4f4f4' });
+  const result = run(['check', write(directory, 'a.vl.json', BAR), '--data', write(directory, 'a.csv', CSV), '--theme', theme]);
+  assert.equal(result.code, 1);
+  assert.match(result.out, /--color-accent \(#f4f4f4\).*3:1/);
+});
+
 test('theme values colour the marks', needsTool, () => {
   const directory = scratch();
   const theme = write(directory, 'theme.json', { '--color-bg': '#eee8dc', '--color-text': '#321f2e', '--color-surface': '#fffaf0', '--color-muted': '#5a4653', '--color-accent': '#c63f32', '--color-on-accent': '#fffaf0' });

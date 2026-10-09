@@ -25,7 +25,8 @@ function run(script, args) {
 }
 
 const ready = Object.values(scripts).every(existsSync) && Object.values(scripts).every((script) => run(script, ['setup', '--status']).code === 0);
-const needsTools = { skip: ready ? false : 'pinned tools missing: run setup for creating-diagrams, creating-charts, and rendering-slides' };
+// Locally a missing tool skips the fixture; in CI it fails, so the required check never passes without rendering.
+const needsTools = { skip: ready || process.env.CI ? false : 'pinned tools missing: run setup for creating-diagrams, creating-charts, and rendering-slides' };
 const themes = existsSync(path.join(root, 'skills', 'presentation', 'rendering-slides', 'themes', 'editorial-inverse.css')) ? ['editorial', 'editorial-inverse'] : ['editorial'];
 
 for (const theme of themes) {

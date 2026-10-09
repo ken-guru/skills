@@ -109,12 +109,19 @@ function missingLinuxLibraries(binary) {
 async function linuxDependencyAdvice(binary) {
   const missing = missingLinuxLibraries(binary);
   if (!missing.length) return null;
-  const debDeps = path.join(path.dirname(binary), 'deb.deps');
-  const packages = existsSync(debDeps) ? (await readFile(debDeps, 'utf8')).split(/\s+/).filter(Boolean) : [];
-  const install = packages.length
-    ? `sudo apt-get install -y ${packages.join(' ')}`
-    : '(no package list shipped; install the libraries above with your package manager)';
-  return `The browser is missing ${missing.length} system librar${missing.length === 1 ? 'y' : 'ies'} (${missing.join(', ')}). Ask the person to install them once; this skill never runs sudo:\n   ${install}\n   On Fedora or RHEL, install the equivalent packages with dnf.`;
+  // chrome-headless-shell ships its own package lists for Debian and RPM systems.
+  const packages = async (file) => {
+    const list = path.join(path.dirname(binary), file);
+    return existsSync(list) ? (await readFile(list, 'utf8')).split(/\s+/).filter(Boolean) : [];
+  };
+  const deb = await packages('deb.deps');
+  const rpm = await packages('rpm.deps');
+  const commands = [
+    deb.length ? `Debian or Ubuntu: sudo apt-get install -y ${deb.join(' ')}` : null,
+    rpm.length ? `Fedora or RHEL: sudo dnf install -y ${rpm.join(' ')}` : null,
+  ].filter(Boolean);
+  const install = commands.length ? commands.join('\n   ') : '(no package list shipped; install the libraries above with your package manager)';
+  return `The browser is missing ${missing.length} system librar${missing.length === 1 ? 'y' : 'ies'} (${missing.join(', ')}). Ask the person to install them once; this skill never runs sudo:\n   ${install}`;
 }
 
 async function setup(options) {

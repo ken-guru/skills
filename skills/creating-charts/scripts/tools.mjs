@@ -8,7 +8,7 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -107,8 +107,4 @@ export async function installPinned({ name, url, sha256: expected, installDirect
   await chmod(binaryPath, 0o755);
   log(`✅ ${name} installed at ${binaryPath} (checksum verified)`);
   return binaryPath;
-}
-
-export async function readText(file) {
-  return readFile(file, 'utf8');
 }

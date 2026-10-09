@@ -28,9 +28,9 @@ Script paths below are relative to this skill's folder. Run each as one command 
 
 ## The Accessibility Bar
 
-Every `render` ends with the scripted checks of the [Accessibility Bar](references/accessibility-bar.md): one visible heading per slide, alt text or a decorative marker on every image, no content in background images, `lang` and `title` set, table headers, descriptive link text, the theme's colour pairs, contrast and 20 px minimum text measured on the rendered slides, a tagged PDF with an outline, and the label and alt prefix on generated images. A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering.
+Every `render` ends with the scripted checks listed in the [Accessibility Bar](references/accessibility-bar.md) ("Who checks what"). A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering.
 
-The checks cannot judge whether headings and alt text are meaningful, whether the reading order makes sense, or whether colour is the only signal in a picture. Say so when reporting, and leave those to a review.
+The judgement checks in that table need a person or a review; say so when reporting a passing render.
 
 ## When the render fails
 

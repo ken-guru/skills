@@ -41,6 +41,9 @@ const MINIMUM_TEXT_SIZE = 20;
 const DEFAULT_SLOT = { width: 1164, height: 616 };
 // Charts are drawn at their slot size, so these sizes are what the audience sees.
 const LABEL_SIZE = 22;
+// The Accessibility Bar's contrast minimums: graphics (marks) and text.
+const MARK_CONTRAST = 3;
+const TEXT_CONTRAST = 4.5;
 const TITLE_SIZE = 24;
 
 const NEUTRAL_THEME = {
@@ -159,7 +162,30 @@ async function themeValues(file) {
   } catch (error) {
     throw new UsageError(`Could not read theme values from ${file}: ${error.message}`);
   }
-  return { ...NEUTRAL_THEME, ...values };
+  const merged = { ...NEUTRAL_THEME, ...values };
+  for (const key of ['--color-bg', '--color-text', '--color-muted', '--color-accent']) {
+    if (!/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(merged[key])) throw new UsageError(`Theme value ${key} must be a hex colour, got "${merged[key]}".`);
+  }
+  return merged;
+}
+
+function luminance(hex) {
+  const value = hex.replace('#', '');
+  const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
+  const [r, g, b] = [0, 2, 4].map((start) => parseInt(full.slice(start, start + 2), 16) / 255)
+    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// Marks and their labels use these colours on the chart background (WCAG 1.4.11 and 1.4.3).
+function contrastProblems(theme) {
+  const ratio = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+  const problems = [];
+  for (const [key, minimum] of [['--color-accent', MARK_CONTRAST], ['--color-muted', MARK_CONTRAST], ['--color-text', TEXT_CONTRAST]]) {
+    const value = ratio(theme[key], theme['--color-bg']);
+    if (value < minimum) problems.push(`${key} (${theme[key]}) on --color-bg (${theme['--color-bg']}) is ${value.toFixed(2)}:1; chart ${key === '--color-text' ? 'text' : 'marks'} need ${minimum}:1`);
+  }
+  return problems;
 }
 
 // A Vega-Lite config from the theme values: colours by meaning, slot-size text.
@@ -265,9 +291,11 @@ async function renderOrCheck(options) {
   const rows = await readData(options.data);
   if (!rows.length) throw new RuleError(`${path.basename(options.data)} has no data rows.`);
 
+  const theme = await themeValues(options.theme);
+  const faint = contrastProblems(theme);
+  if (faint.length) throw new RuleError(`The theme's colours would make the chart hard to read; nothing was written:\n${faint.map((p) => `   • ${p}`).join('\n')}\nUse darker (or, on a dark background, lighter) shades.`);
   const resolution = resolveTool(VL_TOOL);
   if (!resolution.path) throw new UsageError(missingToolMessage('vl-convert', resolution, SETUP_COMMAND));
-  const theme = await themeValues(options.theme);
 
   const full = {
     $schema: 'https://vega.github.io/schema/vega-lite/v5.json',

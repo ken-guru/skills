@@ -14,7 +14,7 @@ Script paths below are relative to this skill's folder. Run each as one command 
 
 ## Before generating: provider and cost
 
-An Image Provider is chosen like this: `--provider gemini` or `--provider openai` when the person asked for one; otherwise whichever of `GEMINI_API_KEY` or `OPENAI_API_KEY` is set, Gemini first. If neither is set, ask the person to set one; never ask them to paste a key into the conversation.
+The image provider is chosen like this: `--provider gemini` or `--provider openai` when the person asked for one; otherwise whichever of `GEMINI_API_KEY` or `OPENAI_API_KEY` is set, Gemini first. If neither is set, ask the person to set one; never ask them to paste a key into the conversation.
 
 Generating costs money, so the person approves first:
 

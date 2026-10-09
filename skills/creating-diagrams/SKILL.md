@@ -26,7 +26,7 @@ Copy this checklist and tick it off:
 ```
 - [ ] 1. D2 is installed
 - [ ] 2. One message stated
-- [ ] 3. D2 written with role classes
+- [ ] 3. D2 written with Diagram Roles
 - [ ] 4. check passes
 - [ ] 5. render written and the PNG looked at
 - [ ] 6. Alt text written
@@ -34,7 +34,7 @@ Copy this checklist and tick it off:
 
 1. Run `node scripts/creating-diagrams.mjs setup --status`. If D2 is missing, ask the person to run `node scripts/creating-diagrams.mjs setup` once, outside the sandbox. It downloads the pinned D2 with a verified checksum into a shared cache.
 2. Write the diagram's one message as a comment on the first line, for example `# One message: only the API crosses the network boundary.` Split anything that needs two messages into two diagrams.
-3. Write D2 that styles every shape and connection with a **role class** only, never colours or font sizes:
+3. Write D2 that styles every shape and connection with a **Diagram Role** (`class: <role>`) only, never colours or font sizes:
 
    | Role | Use for |
    |---|---|

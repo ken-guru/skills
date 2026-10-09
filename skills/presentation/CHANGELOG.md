@@ -21,7 +21,7 @@ This is a breaking release. Every 2.x skill is removed.
 
 3. **Install the tools once**, outside your harness's sandbox: run `setup` for `rendering-slides`, `creating-diagrams`, and `creating-charts` (each skill names the exact command when a tool is missing).
 4. **Old Project Folders are not converted.** Start a new Deck Folder; you can paste an old Agenda into `planning-presentation` as your outline.
-5. To stay on 2.x, pin the last 2.x tag (`#presentation-v2.x.y`).
+5. To stay on 2.x, pin the last 2.x commit: `npx skills@latest add ken-guru/skills#878e311` (2.x was never tagged).
 
 | 2.x skill | 3.0.0 replacement |
 |---|---|
@@ -30,8 +30,7 @@ This is a breaking release. Every 2.x skill is removed.
 | `generate-slides` | `drafting-slides` (the Deck Source) and `rendering-slides` (theme and export) |
 | `generate-diagrams` | `creating-diagrams` |
 | `generate-images` | `generating-images` |
-| `proofread-presentation` | `reviewing-presentation` |
-| `presentation-validation` | `rendering-slides`' `check` |
+| `proofread-presentation`, `presentation-validation` | `reviewing-presentation` (judgement) and `rendering-slides`' `check` (scripted rules) |
 
 ### Changes
 

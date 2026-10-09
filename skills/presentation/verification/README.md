@@ -30,4 +30,4 @@ skills/presentation/verification/smoke/run.sh copilot 01-sourced-team-update
 skills/presentation/verification/smoke/run.sh codex 02-diagram-heavy-request-flow
 ```
 
-Each run happens in a fresh folder; grade its log and Deck Folder against the scenario's `graders/` by hand and record the results in the release PR.
+Install the eight skills in that harness first (`npx skills@latest add ken-guru/skills#<branch or tag> --skill …`), and run each skill's `setup` once; the script uses whatever the harness has installed. Each run happens in a fresh folder; grade its log and Deck Folder against the scenario's `graders/` by hand and record the results in the release PR.

@@ -10,6 +10,8 @@ metadata:
 
 Write the Deck Source, `deck.md`: the single editable file every rendered output comes from. The Deck Folder layout is in [references/deck-folder.md](references/deck-folder.md).
 
+Script paths below are relative to this skill's folder. Run each as one command with the folder's absolute path in front, never chained with `&&`, `$(…)`, or heredocs.
+
 ## Inputs
 
 - **The argument**: `storyline.md` when it exists, or an outline or notes the person gives. If `storyline.md` lacks `approved: true`, say it is still a draft and offer to continue.
