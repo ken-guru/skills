@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -46,6 +46,11 @@ for (const theme of themes) {
     const rendered = step(scripts.rendering, ['render', '--deck', deck, '--images']);
     assert.match(rendered, /Accessibility Bar: all scripted checks pass/);
     for (const file of ['deck.html', 'deck.pdf', 'deck-notes.md']) assert.ok(existsSync(path.join(deck, 'dist', file)), file);
+    // dist/ is self-contained: every image the HTML deck uses is found from dist/.
+    const html = readFileSync(path.join(deck, 'dist', 'deck.html'), 'utf8');
+    const sources = [...html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]).filter((src) => !/^(data|https?):/.test(src));
+    assert.ok(sources.length >= 3, `expected the fixture's images in deck.html, found ${sources.length}`);
+    for (const src of sources) assert.ok(existsSync(path.join(deck, 'dist', decodeURI(src))), `dist/${src} is missing, so the HTML deck shows a broken image`);
     // CI keeps the slide images so a person can review them when themes or pins change.
     if (process.env.FIXTURE_SLIDES_DIR) cpSync(path.join(deck, 'dist', 'slides'), path.join(process.env.FIXTURE_SLIDES_DIR, theme), { recursive: true });
   });

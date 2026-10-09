@@ -10,7 +10,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, realpathSync } from 'node:fs';
-import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cacheRoot, installPinned, missingToolMessage, onPath, platformKey } from './tools.mjs';
@@ -48,7 +48,7 @@ class RenderError extends Error {}
 function parseArguments(argv) {
   const [command, ...rest] = argv;
   if (!['setup', 'theme', 'theme-values', 'render', 'check'].includes(command)) throw new UsageError(`Unknown command "${command ?? ''}". Use setup, theme, theme-values, render, or check.`);
-  const options = { command, deck: null, name: null, pptx: false, images: false, status: false };
+  const options = { command, deck: null, name: null, brand: null, pptx: false, images: false, status: false };
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     const value = () => {
@@ -59,13 +59,15 @@ function parseArguments(argv) {
     };
     if (argument === '--deck') options.deck = path.resolve(value());
     else if (argument === '--name') options.name = value();
+    else if (argument === '--brand') options.brand = path.resolve(value());
     else if (argument === '--pptx') options.pptx = true;
     else if (argument === '--images') options.images = true;
     else if (argument === '--status') options.status = true;
     else throw new UsageError(`Unknown option ${argument}.`);
   }
   if (command !== 'setup' && !options.deck) throw new UsageError(`${command} needs --deck <Deck Folder>.`);
-  if (command === 'theme' && !THEMES.includes(options.name)) throw new UsageError(`theme needs --name ${THEMES.join(' or ')}.`);
+  if (command === 'theme' && !options.brand && !THEMES.includes(options.name)) throw new UsageError(`theme needs --name ${THEMES.join(' or ')}, or --brand <brand.json>.`);
+  if (command === 'theme' && options.brand && options.name) throw new UsageError('Use either --name or --brand; a brand file names its base theme.');
   return options;
 }
 
@@ -188,12 +190,73 @@ export async function flattenTheme(css) {
   return flattened;
 }
 
+function deckTheme(css, origin, extra = '') {
+  const body = css.replace(/^@import\s+["']default["'];\s*$/gm, '');
+  return `/* @theme deck */\n/* ${origin} Edit the values on :root to adjust the look; render again to see the change. */\n@import "default";\n${body}${extra}`.replace(/\n{3,}/g, '\n\n');
+}
+
 async function applyTheme(options) {
+  if (options.brand) return applyBrand(options);
   const css = await flattenTheme(await readTheme(options.name));
   await mkdir(options.deck, { recursive: true });
-  const content = `/* @theme deck */\n/* Copied from rendering-slides' ${options.name} theme. Edit the values on :root to adjust the look; render again to see the change. */\n${css.startsWith('@import "default"') ? '' : '@import "default";\n'}${css.replace(/^@import\s+["']default["'];\s*$/gm, '')}`;
-  await writeFile(path.join(options.deck, 'theme.css'), content.replace(/\n{3,}/g, '\n\n'));
+  await writeFile(path.join(options.deck, 'theme.css'), deckTheme(css, `Copied from rendering-slides' ${options.name} theme.`));
   console.log(`✅ ${path.join(options.deck, 'theme.css')} now holds the ${options.name} theme. Set \`theme: deck\` in deck.md's front matter.`);
+  return 0;
+}
+
+// Brand themes change only colours, fonts, and the logo; layout and sizing stay the base theme's.
+const BRAND_COLOUR = /^--color-[a-z-]+$/;
+const BRAND_FONTS = new Set(['--font-heading', '--font-body', '--font-mono']);
+
+async function applyBrand(options) {
+  if (!existsSync(options.brand)) throw new UsageError(`${options.brand} not found.`);
+  let brand;
+  try {
+    brand = JSON.parse(await readFile(options.brand, 'utf8'));
+  } catch (error) {
+    throw new UsageError(`${options.brand} is not valid JSON: ${error.message}`);
+  }
+  const base = brand.base ?? 'editorial';
+  if (!THEMES.includes(base)) throw new UsageError(`"base" must be ${THEMES.join(' or ')}, got "${base}".`);
+  const overrides = {};
+  const refused = [];
+  for (const [key, value] of Object.entries(brand.colours ?? {})) (BRAND_COLOUR.test(key) ? (overrides[key] = value) : refused.push(key));
+  for (const [key, value] of Object.entries(brand.fonts ?? {})) (BRAND_FONTS.has(key) ? (overrides[key] = value) : refused.push(key));
+  if (refused.length) throw new UsageError(`A brand theme sets only colours, fonts, and the logo; it cannot set ${refused.join(', ')}. Layout and sizing stay the base theme's so legibility holds.`);
+  for (const [key, value] of Object.entries(overrides)) {
+    if (/[;{}]/.test(String(value))) throw new UsageError(`${key} must be a single CSS value, got "${value}".`);
+  }
+
+  const brandDirectory = path.dirname(options.brand);
+  const fontFaces = [];
+  for (const font of brand.fontFiles ?? []) {
+    const source = path.resolve(brandDirectory, font.file ?? '');
+    if (!font.family || !existsSync(source)) throw new UsageError(`Each fontFiles entry needs a "family" and an existing "file"; ${font.file ?? '(no file)'} was not found next to the brand file.`);
+    await mkdir(path.join(options.deck, 'fonts'), { recursive: true });
+    await copyFile(source, path.join(options.deck, 'fonts', path.basename(source)));
+    fontFaces.push(`@font-face {\n  font-family: "${font.family}";\n  src: url("fonts/${path.basename(source)}");\n  font-weight: ${font.weight ?? 400};\n  font-style: ${font.style ?? 'normal'};\n}`);
+  }
+  if (brand.logo) {
+    const source = path.resolve(brandDirectory, brand.logo);
+    if (!existsSync(source)) throw new UsageError(`The logo ${brand.logo} was not found next to the brand file.`);
+    const target = `brand-logo${path.extname(source).toLowerCase()}`;
+    await mkdir(path.join(options.deck, 'media'), { recursive: true });
+    await copyFile(source, path.join(options.deck, 'media', target));
+    overrides['--logo'] = `url("media/${target}")`;
+  }
+
+  const css = await flattenTheme(await readTheme(base));
+  const extra = `\n/* Brand overrides */\n${fontFaces.join('\n')}\n:root {\n${Object.entries(overrides).map(([key, value]) => `  ${key}: ${value};`).join('\n')}\n}\n`;
+  const content = deckTheme(css, `Brand theme on rendering-slides' ${base} theme.`, extra);
+  await mkdir(options.deck, { recursive: true });
+  await writeFile(path.join(options.deck, 'theme.css'), content);
+  console.log(`✅ ${path.join(options.deck, 'theme.css')} now holds a brand theme based on ${base}. Set \`theme: deck\` in deck.md's front matter.`);
+  const findings = themeFindings(themeValuesFrom(content));
+  if (findings.length) {
+    console.log('❌ The brand colours were written as given, but these pairs miss the Accessibility Bar. Ask the person whether to use the suggested shades:');
+    console.log(formatFindings(findings));
+    return 1;
+  }
   return 0;
 }
 
@@ -276,6 +339,12 @@ async function render(options) {
 
   const dist = path.join(options.deck, 'dist');
   await mkdir(dist, { recursive: true });
+  // dist/ is self-contained: the HTML deck finds its images, fonts, and logo
+  // from there, so the folder can be shared or presented from as it is.
+  for (const assets of ['media', 'fonts']) {
+    await rm(path.join(dist, assets), { recursive: true, force: true });
+    if (existsSync(path.join(options.deck, assets))) await cp(path.join(options.deck, assets), path.join(dist, assets), { recursive: true });
+  }
   const common = ['deck.md', '--theme-set', 'theme.css', '--html', '--allow-local-files', '--no-stdin'];
   marp(marpTool.path, [...common, '-o', path.join('dist', 'deck.html')], browser.path, options.deck);
   marp(marpTool.path, [...common, '--pdf', '--pdf-outlines', '-o', path.join('dist', 'deck.pdf')], browser.path, options.deck);
