@@ -23,6 +23,7 @@
     "./skills/generating-images",
     "./skills/presentation/planning-presentation",
     "./skills/presentation/drafting-slides",
-    "./skills/presentation/rendering-slides"
+    "./skills/presentation/rendering-slides",
+    "./skills/presentation/reviewing-presentation"
   ]
 }
