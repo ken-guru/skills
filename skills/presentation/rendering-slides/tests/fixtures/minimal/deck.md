@@ -33,6 +33,8 @@ Every new technology spends an innovation token.
 - Each team has only a few to spend
 - Spend them on your product, not on plumbing
 
+<!-- Visual intent: an illustration of a small budget of tokens being spent -->
+
 <!--
 Dan McKinley's framing: you get about three innovation tokens. [S1]
 -->

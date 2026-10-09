@@ -102,6 +102,7 @@ test('render writes HTML, a tagged PDF with an outline, and a speaker-notes scri
   assert.match(notes, /## 3\. Innovation tokens/);
   assert.match(notes, /Dan McKinley's framing/);
   assert.doesNotMatch(notes, /_class/);
+  assert.doesNotMatch(notes, /Visual intent/);
 });
 
 test('a slide-picture PPTX and PNG images are made only on request, and labelled', needsTools, () => {

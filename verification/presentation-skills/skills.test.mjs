@@ -3,7 +3,9 @@
 // Run: node --test verification/presentation-skills/
 
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -116,8 +118,24 @@ test('the plugin lists every presentation skill that exists, and nothing else', 
   for (const directory of listed) assert.ok(existsSync(path.join(directory, 'SKILL.md')), `${path.relative(root, directory)} has no SKILL.md`);
 });
 
-test('every copy of the shared tool-cache module is identical', () => {
-  const copies = present.map((name) => path.join(skillDirectory(name), 'scripts', 'tools.mjs')).filter(existsSync);
-  const texts = new Set(copies.map((file) => readFileSync(file, 'utf8')));
-  assert.equal(texts.size, copies.length ? 1 : 0, `tools.mjs differs between: ${copies.map((file) => path.relative(root, file)).join(', ')}`);
+test('the complete Deck Source example in drafting-slides passes rendering-slides\' check', { skip: !present.includes('drafting-slides') || !present.includes('rendering-slides') }, () => {
+  const reference = readFileSync(path.join(skillDirectory('drafting-slides'), 'references', 'deck-source-format.md'), 'utf8');
+  const example = reference.split('## A complete example')[1]?.match(/```markdown\n([\s\S]*?)\n```/)?.[1];
+  assert.ok(example, 'deck-source-format.md has no complete example');
+  const folder = mkdtempSync(path.join(tmpdir(), 'deck-example-'));
+  writeFileSync(path.join(folder, 'deck.md'), `${example}\n`);
+  const cli = path.join(skillDirectory('rendering-slides'), 'scripts', 'rendering-slides.mjs');
+  const themed = spawnSync(process.execPath, [cli, 'theme', '--deck', folder, '--name', 'editorial'], { encoding: 'utf8' });
+  assert.equal(themed.status, 0, themed.stderr);
+  const checked = spawnSync(process.execPath, [cli, 'check', '--deck', folder], { encoding: 'utf8' });
+  assert.equal(checked.status, 0, `${checked.stdout}${checked.stderr}`);
 });
+
+// Shared modules are copied into each skill that runs them, so each installs alone.
+for (const module of ['tools.mjs', 'deck.mjs']) {
+  test(`every copy of the shared ${module} module is identical`, () => {
+    const copies = present.map((name) => path.join(skillDirectory(name), 'scripts', module)).filter(existsSync);
+    const texts = new Set(copies.map((file) => readFileSync(file, 'utf8')));
+    assert.equal(texts.size, copies.length ? 1 : 0, `${module} differs between: ${copies.map((file) => path.relative(root, file)).join(', ')}`);
+  });
+}

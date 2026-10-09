@@ -21,6 +21,7 @@
     "./skills/creating-diagrams",
     "./skills/creating-charts",
     "./skills/generating-images",
+    "./skills/presentation/drafting-slides",
     "./skills/presentation/rendering-slides"
   ]
 }

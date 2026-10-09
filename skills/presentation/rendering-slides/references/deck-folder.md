@@ -20,6 +20,7 @@ One folder per presentation, in the current directory unless the person names an
 - **Approvals** live in frontmatter: `brief.md`, `sources.md`, and `storyline.md` carry `approved: true` only after the person approves. A file without it is a draft: say so and offer to continue; never block.
 - **The Deck Source is the source of truth.** Everything in `dist/` is regenerated from `deck.md`, `theme.css`, and `media/`. Rendering again is always safe.
 - **Citations** in `deck.md` point at Source Set entries by their number, for example `[S2]`, in the speaker notes.
+- **Visual Intents** sit in `deck.md` as `<!-- Visual intent: … -->` comments where the visual goes. They form the visuals plan and are left out of the speaker-notes script. (Marp's presenter view shows them, as it shows every comment.)
 - **Never edit `dist/` by hand.** Change the source and render again.
 
 ## brief.md
