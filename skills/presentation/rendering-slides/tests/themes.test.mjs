@@ -79,6 +79,11 @@ test('brand colours below the bar are written as given, reported, and given a pa
   assert.equal(result.code, 1);
   assert.match(result.out, /--color-muted \(#c8bfb5\) on --color-bg .* A shade that passes: --color-muted: #[0-9a-f]{6}/);
   assert.equal(values(directory)['--color-muted'], '#c8bfb5');
+  // One colour fails several pairs; every finding must suggest the same shade, and it must pass them all.
+  const shades = new Set([...result.out.matchAll(/A shade that passes: --color-muted: (#[0-9a-f]{6})/g)].map((match) => match[1]));
+  assert.equal(shades.size, 1, `expected one suggested shade, got ${[...shades].join(', ')}`);
+  const fixed = brand(directory, { base: 'editorial', colours: { '--color-muted': [...shades][0] } });
+  assert.equal(fixed.code, 0, fixed.out);
 });
 
 test('a brand theme cannot change layout or sizing', () => {

@@ -61,6 +61,10 @@ test('an image without alt text fails unless marked decorative', () => {
   assert.equal(marked.code, 0, marked.out);
 });
 
+test('an image that does not exist in the Deck Folder fails', () => {
+  expectFinding(deck('# One\n\n![A diagram of the request path](media/request-path.svg)\n'), /Slide 1 \[missing-image\]: .*media\/request-path\.svg/);
+});
+
 test('content in a background image fails', () => {
   expectFinding(deck('# One\n\n![bg right A chart of sales](media/a.svg)\n', { files: { 'media/a.svg': SVG } }), /\[background-image\]/);
 });

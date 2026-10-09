@@ -43,15 +43,16 @@ export function contrast(a, b) {
 
 const toHex = ({ r, g, b }) => `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
 
-// The nearest shade of `colour` (towards black or white) that reaches `target` against `background`.
-export function suggestShade(colour, background, target) {
-  const towardsBlack = luminance(background) > 0.18;
+// The nearest shade of `colour` (towards black on light backgrounds, white on
+// dark ones) that meets every { background, target } constraint at once.
+export function suggestShade(colour, constraints) {
+  const towardsBlack = luminance(constraints[0].background) > 0.18;
   for (let step = 1; step <= 100; step += 1) {
     const f = step / 100;
     const mix = towardsBlack
       ? { r: colour.r * (1 - f), g: colour.g * (1 - f), b: colour.b * (1 - f) }
       : { r: colour.r + (255 - colour.r) * f, g: colour.g + (255 - colour.g) * f, b: colour.b + (255 - colour.b) * f };
-    if (contrast(mix, background) >= target) return toHex(mix);
+    if (constraints.every(({ background, target }) => contrast(mix, background) >= target)) return toHex(mix);
   }
   return null;
 }
@@ -70,6 +71,7 @@ const THEME_PAIRS = [
 
 export function themeFindings(values) {
   const findings = [];
+  const failing = [];
   for (const [fg, bg, minimum, what] of THEME_PAIRS) {
     const foreground = parseColour(values[fg] ?? '');
     const background = parseColour(values[bg] ?? '');
@@ -78,10 +80,20 @@ export function themeFindings(values) {
       continue;
     }
     const ratio = contrast(foreground, background);
-    if (ratio < minimum) {
-      const suggestion = suggestShade(foreground, background, minimum);
-      findings.push({ slide: null, rule: 'theme-contrast', message: `${fg} (${values[fg]}) on ${bg} (${values[bg]}) is ${ratio.toFixed(2)}:1 for ${what}; it needs ${minimum}:1.${suggestion ? ` A shade that passes: ${fg}: ${suggestion}.` : ''}` });
-    }
+    if (ratio < minimum) failing.push({ fg, bg, minimum, what, ratio, foreground });
+  }
+  // One suggestion per colour, meeting every pair that colour is used in, so
+  // following one finding never breaks another.
+  const suggestions = {};
+  for (const fg of new Set(failing.map((pair) => pair.fg))) {
+    const constraints = THEME_PAIRS.filter(([key]) => key === fg)
+      .map(([, bg, target]) => ({ background: parseColour(values[bg] ?? ''), target }))
+      .filter(({ background }) => background);
+    suggestions[fg] = suggestShade(failing.find((pair) => pair.fg === fg).foreground, constraints);
+  }
+  for (const { fg, bg, minimum, what, ratio } of failing) {
+    const suggestion = suggestions[fg];
+    findings.push({ slide: null, rule: 'theme-contrast', message: `${fg} (${values[fg]}) on ${bg} (${values[bg]}) is ${ratio.toFixed(2)}:1 for ${what}; it needs ${minimum}:1.${suggestion ? ` A shade that passes: ${fg}: ${suggestion}.` : ''}` });
   }
   return findings;
 }
@@ -113,6 +125,9 @@ export function sourceFindings(deck, folder) {
     else if (slide.headings[0].level > 2) at('heading', 'starts with a lower-level heading; the slide heading must come first.');
 
     for (const image of slide.images) {
+      if (!/^[a-z]+:/i.test(image.src) && !existsSync(path.join(folder, decodeURI(image.src)))) {
+        at('missing-image', `shows ${image.src}, which is not in the Deck Folder; make the visual or fix the path.`);
+      }
       if (image.bg && !image.decorative) at('background-image', `uses a background image (${image.src}) for content. Background images lose their alt text in the PDF: use ordinary image syntax, or mark it <!-- decorative -->.`);
       else if (!image.bg && !image.alt && !image.decorative) at('alt-text', `has an image without alt text (${image.src}). Describe what it shows, or mark it <!-- decorative --> if it carries no information (WCAG 1.1.1).`);
       const sidecar = readSidecar(folder, image.src);
