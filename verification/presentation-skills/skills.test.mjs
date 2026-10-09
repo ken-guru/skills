@@ -28,6 +28,10 @@ function frontmatter(file) {
   let current = null;
   for (const line of match[1].split('\n')) {
     const top = line.match(/^([\w-]+):\s*(.*)$/);
+    // A plain (unquoted) YAML scalar may not contain ": " or " #", nor start with an indicator character.
+    if (top && top[2] && !/^["']/.test(top[2])) {
+      assert.doesNotMatch(top[2], /: | #|^[-?:,[\]{}#&*!|>%@`]/, `${file}: "${top[1]}" must be quoted to be valid YAML`);
+    }
     if (top) {
       current = top[1];
       fields[current] = top[2] === '' ? {} : top[2].replace(/^["']|["']$/g, '');
