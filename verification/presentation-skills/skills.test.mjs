@@ -64,7 +64,11 @@ for (const name of present) {
     assert.doesNotMatch(fields.description, /<[^>]+>/, `${name}: description must not contain XML tags`);
     assert.match(fields.metadata?.version ?? '', /^"\d+\.\d+\.\d+"$/, `${name}: metadata.version must be a quoted X.Y.Z string`);
     assert.match(fields.metadata?.changelog ?? '', /^"https:\/\/github\.com\/ken-guru\/skills\/blob\/main\/.+CHANGELOG\.md"$/, `${name}: metadata.changelog must be a quoted main URL`);
-    assert.ok(existsSync(path.join(directory, 'CHANGELOG.md')), `${name}: CHANGELOG.md missing`);
+    // A Release Unit keeps one CHANGELOG.md at its root: the suite's for suite members.
+    const unitRoot = SUITE.includes(name) ? path.dirname(directory) : directory;
+    assert.ok(existsSync(path.join(unitRoot, 'CHANGELOG.md')), `${name}: CHANGELOG.md missing at ${path.relative(root, unitRoot)}`);
+    assert.ok(fields.metadata.changelog.includes(path.relative(root, path.join(unitRoot, 'CHANGELOG.md'))), `${name}: metadata.changelog must point at its Release Unit's CHANGELOG.md`);
+    if (SUITE.includes(name)) assert.equal(fields.metadata.version, `"${JSON.parse(readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf8')).version}"`, `${name}: suite members carry the suite (plugin) version`);
   });
 
   test(`${name}: SKILL.md stays short and references stay one level deep`, () => {

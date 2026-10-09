@@ -20,6 +20,7 @@
     "./skills/researching-sources",
     "./skills/creating-diagrams",
     "./skills/creating-charts",
-    "./skills/generating-images"
+    "./skills/generating-images",
+    "./skills/presentation/rendering-slides"
   ]
 }
