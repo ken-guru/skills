@@ -14,6 +14,7 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Skill | Description |
 |---|---|
+| [creating-diagrams](skills/creating-diagrams/SKILL.md) | Create legible D2 diagrams styled by role, with a legibility check against the space they will fill |
 | [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, structured output, and explicit user style preferences |
 | [setup-devcontainer](skills/setup-devcontainer/SKILL.md) | Generate a shared devcontainer baseline, optionally with SSH deploy-key/signing-key automation |
 | [setup-claude-devcontainer](skills/setup-claude-devcontainer/SKILL.md) | Install Claude Code into an existing shared devcontainer |

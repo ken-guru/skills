@@ -1,0 +1,10 @@
+# One message: a failed job is retried, then parked for a person.
+direction: right
+run: Worker runs job {class: base}
+ok: "Succeeded?" {shape: diamond; class: base}
+done: Done {class: emphasis}
+dlq: Dead-letter queue {class: risk}
+run -> ok {class: flow}
+ok -> done: "yes" {class: flow}
+ok -> run: "no: retry" {class: optional-flow}
+ok -> dlq: "no, 3rd try" {class: risk-flow}

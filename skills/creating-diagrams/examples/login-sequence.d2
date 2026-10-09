@@ -1,0 +1,10 @@
+# One message: the token is issued only after the password check.
+shape: sequence_diagram
+# Declare every actor first: an actor first seen inside a group turns the group into an actor.
+user: Person {class: base}
+app: App {class: base}
+auth: Auth service {class: emphasis}
+user -> app: sign in {class: flow}
+app -> auth: check password {class: flow}
+auth -> app: token {class: flow}
+app -> user: signed in {class: flow}
