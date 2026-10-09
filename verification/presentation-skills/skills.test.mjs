@@ -1,6 +1,6 @@
 // Collection-level checks for the presentation skill set: the four Presentation
 // suite members and the four general-purpose Standalone Skills.
-// Run: node --test verification/presentation-skills/
+// Run: node --test verification/presentation-skills/*.test.mjs
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';

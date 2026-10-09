@@ -44,7 +44,7 @@ through each skill's `setup`. Moving a pin is a release of that skill:
 
 1. Update the version and checksums in the skill's script (or the Marp CLI
    lockfile under `rendering-slides/scripts/marp-cli/`).
-2. Run the skill's `setup`, its tests, and `node --test verification/presentation-skills/`.
+2. Run the skill's `setup`, its tests, and `node --test verification/presentation-skills/*.test.mjs`.
 3. Review the fixture deck's rendered slides (the `fixture-slides` CI artifact)
    before merging. There are no pixel baselines: a person looks.
 

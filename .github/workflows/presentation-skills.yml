@@ -62,7 +62,7 @@ jobs:
       - name: Check frontmatter, command shape, shared files, and the fixture deck
         env:
           FIXTURE_SLIDES_DIR: ${{ runner.temp }}/fixture-slides
-        run: node --test verification/presentation-skills/
+        run: node --test verification/presentation-skills/*.test.mjs
 
       - name: Test each skill through its command interface
         run: |
