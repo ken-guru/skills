@@ -22,6 +22,8 @@ Welcome everyone. This takes about ten minutes. [S1]
 
 ## The request path
 
+<!-- Visual intent: diagram showing that only cache misses reach the API, which then queues slow work -->
+
 ![A request passes the CDN and reaches the API only on a cache miss; the API then queues the work](media/request-path.svg)
 
 Most requests never get past the CDN.
@@ -38,6 +40,8 @@ Walk the path left to right. The long description: 1. The browser sends a reques
 
 - Requests doubled this year
 - The queue absorbs the peaks
+
+<!-- Visual intent: chart of monthly requests per quarter; the point is that traffic doubled in a year -->
 
 ![Requests rose from 12 to 24 million per month between Q1 and Q4](media/requests.svg)
 
