@@ -1,0 +1,8 @@
+{
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "year", "type": "ordinal", "title": "Year" },
+    "y": { "field": "share", "type": "quantitative", "stack": "normalize", "title": "Share of cost", "axis": { "format": "%" } },
+    "color": { "field": "category", "type": "nominal", "title": "Category" }
+  }
+}

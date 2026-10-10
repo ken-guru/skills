@@ -3,9 +3,10 @@
 .devcontainer/.env
 .devcontainer/project-mounts.local.json
 .devcontainer/allowed-domains.local.txt
-skills/presentation/verification/presentation-themes/.generated/
-skills/presentation/verification/presentation-themes/reports/
-skills/presentation/verification/presentation-themes/node_modules/
+# The presentation skills' pinned tool cache when KEN_GURU_SKILLS_CACHE points into the repo (as in CI).
+.tool-cache/
+# claude plugin eval writes its reports beside the cases.
+skills/**/evals/results/
 
 # Wayfinder planning is temporary; preserve historical tracked files but ignore new ones.
 wayfinder/**

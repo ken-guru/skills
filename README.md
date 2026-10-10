@@ -8,12 +8,16 @@ A Collection of agent Skills and cohesive Skill Suites.
 
 | Suite | Description |
 |---|---|
-| [Presentation](skills/presentation/README.md) | Eight Skills for discovering, structuring, generating, validating, rendering, and proofreading presentations, with a required editorial pass |
+| [Presentation](skills/presentation/README.md) | Four Skills that plan, draft, render, and review a slide deck with speaker notes, using the four general-purpose skills below for sources and visuals |
 
 ## Standalone Skills
 
 | Skill | Description |
 |---|---|
+| [creating-charts](skills/creating-charts/SKILL.md) | Create static, accessible charts from real data with Vega-Lite, with alt text, a source caption, and a data table |
+| [creating-diagrams](skills/creating-diagrams/SKILL.md) | Create legible D2 diagrams styled by role, with a legibility check against the space they will fill |
+| [generating-images](skills/generating-images/SKILL.md) | Generate illustrations with Gemini or OpenAI after cost approval, marked as AI-generated with a provenance record |
+| [researching-sources](skills/researching-sources/SKILL.md) | Find and vet credible sources into a Source Set, turning conflicting claims into questions for you |
 | [unslop](skills/unslop/SKILL.md) | Edit prose to remove AI tells while preserving meaning, tone, technical precision, structured output, and explicit user style preferences |
 | [setup-devcontainer](skills/setup-devcontainer/SKILL.md) | Generate a shared devcontainer baseline, optionally with SSH deploy-key/signing-key automation |
 | [setup-claude-devcontainer](skills/setup-claude-devcontainer/SKILL.md) | Install Claude Code into an existing shared devcontainer |

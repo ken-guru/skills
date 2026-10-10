@@ -1,166 +1,73 @@
 # Presentation Domain Glossary
 
-## Phase Skill
+The language of the Presentation suite and the general-purpose skills it uses. Terms are defined once here; skills use them without redefining them.
 
-A Presentation Skill that operates on a persistent Project Folder. It reads and
-writes state files, can be invoked independently, and can be sequenced by the
-Orchestrator.
-_Avoid_: pipeline skill, workflow step
+## Process
 
-## Phase
+**Interview** — Finding out what the person means: audience, goal, occasion, length, constraints, look, and premises, in rounds of questions until nothing important is unclear. Produces the Brief.
+_Avoid_: discovery, intake
 
-One logical step in the content creation pipeline. The lifecycle phases are:
+**Research** — Finding out what the world says: reading supplied sources, finding credible ones, judging credibility, and putting conflicting claims to the person. Produces the Source Set.
+_Avoid_: source fetching
 
-1. **Discovery** — gather requirements from the user (topic, audience, duration, language, occasion)
-2. **Structure** — build and iterate on the content outline
-3. **Generation** — render the final output files
-4. **Proofread** — quality check the generated output; skippable but recommended
+**Storyline stage** — Arranging the argument from the Source Set. Produces the Storyline.
 
-**Media phases** — independently invokable Presentation Skills for producing
-images and diagrams. They have their own Project Folder state and completion
-rules, but remain media work associated with the Structure-to-Generation flow.
+**Draft** — Writing each slide's heading, body, speaker notes, and Visual Intent. Produces the Deck Source.
 
-## Project Type
+**Visuals** — Turning Visual Intents into Media.
 
-The category of content a pipeline produces (e.g., presentation). Determines default values, output templates, and validation rules for all phase skills.
-_Avoid_: content type, project kind
+**Render** — Applying the look and exporting the formats. Produces the Rendered Deck.
 
-## Project Folder
+**Review** — Checking facts and traceability, language, legibility, timing, and the rendered result. Produces Findings.
 
-The on-disk directory that Phase Skills use to exchange state and presentation artifacts for one project.
-_Avoid_: working directory, output folder
+**Gate** — A point where the person must approve before work continues: the Brief, the Source Set with its conflict rulings, the Storyline, and the visuals plan. Recorded as `approved: true` in the file; a missing approval warns and never blocks.
+_Avoid_: checkpoint, exit criteria
 
-## Orchestrator
+## Artifacts
 
-A Phase Skill that coordinates a full pipeline — detecting project state and routing the user to the next phase.
-_Avoid_: coordinator, controller, runner
+**Deck Folder** — One folder per presentation holding its artifacts under fixed names. The files are the only state.
+_Avoid_: project folder, output folder
 
-## Exit Criteria
+**Brief** — The confirmed description of the talk: audience, goal, occasion, length, constraints, look, editorial preferences, language, sources in hand, and any research waiver. `brief.md`.
 
-The conditions an orchestrator verifies before advancing from one phase to the next. Defined per phase transition; all conditions must pass before the next phase skill is called.
-_Avoid_: completion checklist, done criteria
+**Source Set** — The vetted sources the deck may rely on, each with a credibility note and the claims it supports, plus every conflict with the person's ruling. `sources.md`.
+_Avoid_: bibliography, references
 
-## Restart Guard
+**Storyline** — The approved argument: key message, narrative arc, sections, and slide topics. `storyline.md`.
+_Avoid_: agenda, outline (an outline is what a person may bring; the Storyline is what they approve)
 
-A protocol invoked at phase startup when re-running that phase would make downstream files stale. Presents the user with an explicit inventory of affected files and a choice before any modifications are made.
-_Avoid_: cleanup prompt, stale file handler
+**Deck Source** — The single editable source of truth for the slides: one Marp Markdown file with speaker notes and citations in HTML comments. Every rendered output is regenerated from it. `deck.md`.
 
-## Decision Prompt
+**Visual Intent** — The job a slide's visual must do and what must remain perceptible in it. The set of Visual Intents is the visuals plan the person approves.
+_Avoid_: image prompt, media spec
 
-A question a Presentation Skill asks the user and waits on before acting, such as a Media Scope choice, a Restart Guard, or a design choice. A Skill controls when and how it asks.
-_Avoid_: approval, permission, confirmation step
+**Media** — The diagrams, charts, and images made from Visual Intents, kept in `media/`.
 
-## Eval
+**Rendered Deck** — The outputs in `dist/`: HTML, tagged PDF, and the speaker-notes script, plus a slide-picture PPTX and PNG slide images on request.
 
-A test case that documents expected skill routing behaviour for a given query. Three types:
-- **positive** — the skill should load
-- **negative** — the skill should not load
-- **boundary** — correct routing depends on project state
+**Findings** — Review results, grouped by the stage that owns each fix.
 
-## Trigger
+## Look
 
-The `description` field in a skill's frontmatter. Written as a `Load when…` instruction that the agent uses to decide which skill to invoke for a given user request.
-_Avoid_: activation condition, routing description
+**Theme** — One Marp CSS file whose values are CSS custom properties on `:root`. Editorial (light) and Editorial Inverse (dark) ship; the deck's chosen theme is copied into its Deck Folder as `theme.css`.
+_Avoid_: theme package, skin
 
----
+**Brand Theme** — A theme that imports Editorial or Editorial Inverse and overrides only colours, fonts, and an optional title-slide logo.
+_Avoid_: template, organisation theme
 
-## Presentation-specific terminology
+**Theme Values** — A theme's custom properties as JSON, passed to `creating-diagrams` and `creating-charts` so visuals match the slides.
 
-**Slide** — One page in the final rendered output.
+**Layout Class** — The one Marp class a slide uses: default, `title`, `section`, `split`, `visual`, or `quote`. Each declares the slot its visual fills.
+_Avoid_: archetype, slide template
 
-**Slide Archetype** — A theme-independent semantic role assigned to a Slide from its content and media intent, such as title, section, text-only, text-plus-image, data, diagram, or quotation. A Presentation Theme composes an archetype but does not reclassify it.
-_Avoid_: layout, slide template, slide type
+**Slot** — The space a visual fills on a 1280×720 slide reference, used to check that its text stays legible.
 
-**Archetype Variation** — A named composition within one Slide Archetype, selected deterministically from content shape, media orientation, and other declared applicability rules. It changes presentation without changing semantic role.
-_Avoid_: alternate template, random layout
+**Diagram Role** — The fixed styling classes a diagram uses instead of colours: `base`, `emphasis`, `muted`, `risk`, `boundary`, `flow`, `optional-flow`, `risk-flow`.
 
-**Content Slot** — A theme-independent named part of a Slide Archetype, such as title, body, media, caption, metric, or attribution. Presentation Themes arrange populated slots but do not invent content to fill them.
-_Avoid_: placeholder, content region
+## Quality
 
-**Content Capacity** — The maximum content an archetype composition guarantees it can display without clipping, hiding, or compressing text below approved readability limits. Generation must restructure content that exceeds this limit.
-_Avoid_: character limit, overflow allowance
+**Accessibility Bar** — The single accessibility standard every deck meets: WCAG 2.2 AA, with visual criteria (contrast, colour not the only signal, 20 px minimum text) and structural criteria (headings, alt text, reading order, language, link purpose). Stated in `docs/accessibility-bar.md`.
 
-**Semantic Slide Markup** — The theme-independent Marp and HTML structure that declares a Slide's archetype, variation, and populated Content Slots in accessible reading order. Every Theme Package must compose this shared structure without requiring theme-specific markup.
-_Avoid_: slide HTML, layout markup, theme markup
+**Effective Text Size** — The size the smallest text in a visual reaches in its slot on the 1280×720 reference. Must be at least 20 px.
 
-**Decorative Element** — A theme-supplied shape, texture, rule, number, or ornamental mark that carries no information and is excluded from the Slide's reading order. It must not imply meaning or obstruct content or media.
-_Avoid_: visual cue, data decoration
-
-**Agenda** — The structured outline containing sections, slide topics, image placeholders, source references, and a glossary. Produced during the Structure phase and consumed by Generation.
-
-**Media Specs** — Files produced during the Structure phase (`IMAGE_SPEC.md` and `DIAGRAM_SPEC.md`) that map slides to visual assets. `IMAGE_SPEC.md` contains AI image generation prompts; `DIAGRAM_SPEC.md` contains D2 source code for diagrams.
-_Avoid_: image plan, prompt file, media plan
-
-**Media Intent** — The communicative job of a visual and the subjects, labels, relationships, or encodings that must remain perceptible. Presentation Theme treatment may change its framing but must preserve this intent.
-_Avoid_: visual style, image purpose
-
-**Intended Media Orientation** — The portrait or landscape orientation declared for a Picture before rendering. It selects the matching text-plus-image Archetype Variation and guides media generation; an existing asset's dimensions must agree with it.
-_Avoid_: image shape, layout direction
-
-**Media Scope** — The subset of Media Spec entries targeted for generation in a given run: all entries, missing-only entries, or a user-specified subset by slide number or filename.
-_Avoid_: image set, generation targets
-
-**Media Renderer** — A Presentation Skill that turns an approved Media Spec into
-media assets and updates the corresponding media phase in the Project Folder.
-Image and Diagram Media Renderers share the scope, review, reporting, and state
-preservation protocol while retaining distinct provider behavior.
-
-_Avoid_: media generator, rendering helper
-
-**Image Provider** — The external AI image-generation API (e.g. Gemini, OpenAI)
-that the Image Media Renderer calls to fulfill one Media Spec entry. Providers
-differ in auth, models, and response format but share one seam: a prompt in,
-a PNG buffer out.
-_Avoid_: image backend, image API, image vendor
-
-**Provider Selection** — How the Image Media Renderer picks an Image Provider
-for a run: an explicit override when given, otherwise auto-detected from which
-provider's API key is set in the environment.
-_Avoid_: provider config, provider mode
-
-**Generation Mode** — How media (images or diagrams) is produced within a run. Batch by default; Interactive on request. **Batch**: all media in scope are generated sequentially without pausing. **Interactive**: one visual is generated at a time, pausing after each for user review before proceeding.
-_Avoid_: run mode, output mode, step-by-step mode
-
-**Narrative structure** — The logical flow of a presentation (e.g., "problem → solution → implications")
-
-**Editorial preferences** — User-supplied instructions for presentation prose:
-an optional `tone`, a list of styles to `prefer`, and a list of styles to `avoid`.
-They are persisted in `DISCOVERY.json.editorialPreferences` and are mandatory
-inputs to the `unslop` pass. They affect editable copy, not protected markup,
-citations, accessibility text, commands, or machine-readable metadata.
-
-**Glossary** (Begreper og definisjoner) — Canonical definitions of all domain-specific terms used in the presentation
-
-**Agenda-time diagram briefing** — The collaborative capture of each Diagram slide's intent and content once the draft outline is presented, in one round covering every Diagram slide, before any diagram specification or D2 source is generated.
-
-**Diagram brief** — The named block on a Diagram agenda entry that records its Message, Show, and Takeaway. It is the single source of truth for a diagram's intent and content.
-
-**Presentation Theme** — A presentation-wide visual system that composes Slide Archetypes through palette, typography, spacing, decorative geometry, and media treatment without changing content or Media Intent. One applies to an entire presentation; its fonts are offline-safe unless the user explicitly requests an external font.
-_Avoid_: style, skin, template
-
-**Theme Package** — A versioned, self-contained definition of one Presentation Theme, including its composition rules, media treatment, metadata, and Marp CSS. Generation snapshots the selected package into the Project Folder so every rendering surface consumes the same visual system.
-_Avoid_: theme files, CSS theme, theme assets
-
-**Theme Manifest** — The declarative interface of a Theme Package, defining its identity, compatibility, composition rules, Content Capacity, typography, media treatment, and required semantic slide classes. Generation and validation consume the manifest rather than inferring behavior from CSS.
-_Avoid_: theme config, style metadata
-
-**Diagram Role** — A semantic styling class a diagram shape or connection declares in Media Spec D2 (`class: <role>`). The fixed set is `base`, `emphasis`, `muted`, `risk`, and `boundary` for nodes and `flow`, `optional-flow`, and `risk-flow` for connections. Every Theme Manifest maps each role to palette keys and a default font size; the Diagram Media Renderer turns them into D2 styling at render time, so Media Specs never carry colors or font sizes.
-_Avoid_: diagram style, D2 class, diagram palette
-
-**Effective Text Size** — The size diagram text actually reaches on the slide: the smallest `<text>` font size in the rendered SVG multiplied by the contain scale `min(boxWidth / viewBoxWidth, boxHeight / viewBoxHeight)` into the diagram archetype's declared media box on the 1280×720 reference. Every diagram must reach 20 px; the Diagram Media Renderer and Generation and Proofread validation enforce it independently.
-_Avoid_: diagram font size, label size, rendered size
-
-**Theme Catalog** — The installed registry of bundled Presentation Themes, defining their stable order, default, package locations, and supported Semantic Slide Markup version. Theme-specific behavior remains in each Theme Manifest.
-_Avoid_: theme list, theme registry
-
-**Theme Resolution** — The deterministic operation that combines persisted theme selection, the installed Theme Catalog, and any locked project snapshot into one validated Theme Package or a precise blocking error.
-_Avoid_: theme loading, theme lookup
-
-**Theme Acceptance Suite** — The non-shipping verification corpus that exercises Theme Resolution, project generation, and rendered-deck acceptance with canonical fixtures and reviewed visual baselines.
-_Avoid_: theme tests, visual test deck
-
-**External Font Override** — An optional, explicitly requested typeface for slide-rendered text that replaces a Presentation Theme's default typography while retaining its offline-safe fallback stack. It does not apply inside images or diagrams, and bundled themes never require one.
-_Avoid_: custom font, theme font
-
-**Accessible Reference Output** — The HTML presentation used to evaluate semantic headings, reading order, text alternatives, and visual accessibility. PDF and PPTX are visual derivatives and are not assumed to preserve equivalent accessibility semantics.
-_Avoid_: accessible deck, canonical export
+**Generated Visual** — Media made by an AI image provider. Always carries a visible label, alt text starting "AI-generated:", and a sidecar recording provider, model, prompt, and date.

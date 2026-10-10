@@ -1,0 +1,8 @@
+{
+  "name": "rendering-slides-marp-cli",
+  "private": true,
+  "description": "Pinned Marp CLI for rendering-slides. `setup` installs it with `npm ci` into the shared tool cache; nothing is installed in the skill folder.",
+  "dependencies": {
+    "@marp-team/marp-cli": "4.5.1"
+  }
+}

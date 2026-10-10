@@ -1,0 +1,16 @@
+{
+  "layer": [
+    { "mark": { "type": "line", "strokeWidth": 4 } },
+    {
+      "mark": { "type": "text", "align": "left", "dx": 8 },
+      "transform": [{ "filter": "datum.month === '2026-09'" }],
+      "encoding": { "text": { "field": "series" } }
+    }
+  ],
+  "encoding": {
+    "x": { "field": "month", "type": "temporal", "title": "Month" },
+    "y": { "field": "value", "type": "quantitative", "title": "Requests (thousands)" },
+    "color": { "field": "series", "type": "nominal", "legend": null },
+    "strokeDash": { "field": "series", "type": "nominal", "legend": null }
+  }
+}
