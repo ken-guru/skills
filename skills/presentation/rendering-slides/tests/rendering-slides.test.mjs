@@ -114,6 +114,17 @@ test('a slide-picture PPTX and PNG images are made only on request, and labelled
   assert.match(result.out, /neither editable nor accessible/);
 });
 
+test('a browser whose own sandbox cannot start stops with advice, never rendering unsandboxed by itself', needsTools, () => {
+  const directory = themed();
+  const fake = path.join(mkdtempSync(path.join(os.tmpdir(), 'fake-browser-')), 'chrome');
+  writeFileSync(fake, '#!/bin/sh\necho "FATAL:zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running on Ubuntu 23.10+ ..." >&2\nexit 1\n');
+  chmodSync(fake, 0o755);
+  const result = run(['render', '--deck', directory], { CHROME_PATH: fake });
+  assert.equal(result.code, 1, result.out);
+  assert.match(result.out, /user namespaces/);
+  assert.match(result.out, /CHROME_NO_SANDBOX=1/);
+});
+
 test('a browser blocked by the macOS sandbox gets advice to allow that one command', needsTools, () => {
   const directory = themed();
   const fake = path.join(mkdtempSync(path.join(os.tmpdir(), 'fake-browser-')), 'chrome');

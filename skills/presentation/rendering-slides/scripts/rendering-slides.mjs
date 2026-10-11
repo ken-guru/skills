@@ -9,13 +9,15 @@
 // Exit codes: 0 success; 1 the render or a check failed; 2 usage, prerequisite, or internal error.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import os from 'node:os';
 import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cacheRoot, installPinned, missingToolMessage, onPath, platformKey } from './tools.mjs';
 import { parseDeck } from './deck.mjs';
-import { formatFindings, pdfFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
+import { assetFindings, formatFindings, pdfFindings, rawHtmlFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SETUP_COMMAND = 'node scripts/rendering-slides.mjs setup';
@@ -39,6 +41,11 @@ const INSTALLED_BROWSERS = {
   ],
 };
 const THEMES = ['editorial', 'editorial-inverse'];
+// Every Marp call reads the skill's own config, never one from the untrusted
+// Deck Folder: it keeps only <span lang> and <br> of raw HTML. Local files stay
+// allowed so media/ and fonts/ reach the PDF; checks.mjs keeps them inside the folder.
+const MARP_CONFIG = path.join(SKILL, 'scripts', 'marp.config.json');
+const MARP_ARGS = ['deck.md', '--config-file', MARP_CONFIG, '--theme-set', 'theme.css', '--allow-local-files', '--no-stdin'];
 // Marp renders a slow deck in seconds; this only stops a hung browser.
 const RENDER_TIMEOUT_MS = 300_000;
 
@@ -290,7 +297,18 @@ const SANDBOX_SIGNATURES = [
   { pattern: /EROFS|read-only file system/i, where: 'the sandbox makes your home directory read-only' },
 ];
 
+// Chrome's own sandbox, not the coding agent's: it needs user namespaces.
+const CHROME_SANDBOX_SIGNATURE = /No usable sandbox/;
+
 function sandboxAdvice(output) {
+  if (CHROME_SANDBOX_SIGNATURE.test(output)) {
+    return [
+      'The browser\'s own sandbox could not start: this system blocks the user namespaces it needs (or the render runs as root).',
+      'Rendering never turns that sandbox off by itself. Either:',
+      '   • allow unprivileged user namespaces for Chrome on this system (Ubuntu 24.04 restricts them through AppArmor)',
+      '   • or ask the person whether to run this one render with CHROME_NO_SANDBOX=1 set, which Marp and the checks both honour.',
+    ].join('\n');
+  }
   const match = SANDBOX_SIGNATURES.find(({ pattern }) => pattern.test(output));
   if (!match) return null;
   return [
@@ -304,14 +322,23 @@ function sandboxAdvice(output) {
 
 function marp(marpPath, args, browser, deckFolder) {
   const isScript = marpPath.endsWith('.js');
-  const result = spawnSync(isScript ? process.execPath : marpPath, isScript ? [marpPath, ...args] : args, {
-    cwd: deckFolder,
-    encoding: 'utf8',
-    timeout: RENDER_TIMEOUT_MS,
-    // CHROME_PATH pins the browser; MARP_USER keeps Marp's temp files out of
-    // $HOME, which sandboxes make read-only.
-    env: { ...process.env, CHROME_PATH: browser, MARP_USER: process.env.MARP_USER || 'rendering-slides' },
-  });
+  // CHROME_PATH pins the browser. On Linux Marp writes its temp page to $HOME,
+  // which sandboxes make read-only, so it gets a scratch HOME. MARP_USER is
+  // never passed: Marp reads it as "inside Marp's Docker image" and turns off
+  // the browser sandbox.
+  const { MARP_USER, ...env } = process.env;
+  const home = process.platform === 'linux' ? mkdtempSync(path.join(os.tmpdir(), 'rendering-slides-home-')) : null;
+  let result;
+  try {
+    result = spawnSync(isScript ? process.execPath : marpPath, isScript ? [marpPath, ...args] : args, {
+      cwd: deckFolder,
+      encoding: 'utf8',
+      timeout: RENDER_TIMEOUT_MS,
+      env: { ...env, CHROME_PATH: browser, ...(home ? { HOME: home } : {}) },
+    });
+  } finally {
+    if (home) rmSync(home, { recursive: true, force: true });
+  }
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   if (result.error) throw new RenderError(`Marp did not finish: ${result.error.message}`);
   if (result.status !== 0) {
@@ -342,6 +369,10 @@ async function render(options) {
   if (!browser.path) throw new UsageError(missingToolMessage('A browser for PDF export', browser, SETUP_COMMAND));
 
   const deck = parseDeck(await readFile(deckPath, 'utf8'));
+  const trust = await trustFindings(options.deck, deck, marpTool.path);
+  if (!trust.engine) throw new UsageError(`Could not load Marp's engine next to ${marpTool.path}, so the Deck Folder cannot be checked before rendering. Run once, outside the sandbox: ${SETUP_COMMAND}`);
+  if (trust.findings.length) return reportChecks({ findings: trust.findings, notes: [UNTRUSTED_NOTE] });
+
   if (deck.frontmatter.theme !== 'deck') console.log(`⚠️  deck.md uses theme "${deck.frontmatter.theme ?? '(none)'}"; set \`theme: deck\` so it uses theme.css.`);
 
   const dist = path.join(options.deck, 'dist');
@@ -352,26 +383,51 @@ async function render(options) {
     await rm(path.join(dist, assets), { recursive: true, force: true });
     if (existsSync(path.join(options.deck, assets))) await cp(path.join(options.deck, assets), path.join(dist, assets), { recursive: true });
   }
-  const common = ['deck.md', '--theme-set', 'theme.css', '--html', '--allow-local-files', '--no-stdin'];
-  marp(marpTool.path, [...common, '-o', path.join('dist', 'deck.html')], browser.path, options.deck);
-  marp(marpTool.path, [...common, '--pdf', '--pdf-outlines', '-o', path.join('dist', 'deck.pdf')], browser.path, options.deck);
+  marp(marpTool.path, [...MARP_ARGS, '-o', path.join('dist', 'deck.html')], browser.path, options.deck);
+  marp(marpTool.path, [...MARP_ARGS, '--pdf', '--pdf-outlines', '-o', path.join('dist', 'deck.pdf')], browser.path, options.deck);
   await writeFile(path.join(dist, 'deck-notes.md'), notesScript(deck));
   const written = ['dist/deck.html', 'dist/deck.pdf (tagged, with an outline)', 'dist/deck-notes.md'];
 
   if (options.pptx) {
-    marp(marpTool.path, [...common, '--pptx', '-o', path.join('dist', 'deck.pptx')], browser.path, options.deck);
+    marp(marpTool.path, [...MARP_ARGS, '--pptx', '-o', path.join('dist', 'deck.pptx')], browser.path, options.deck);
     written.push('dist/deck.pptx (slide pictures: neither editable nor accessible)');
   }
   if (options.images) {
     const slides = path.join(dist, 'slides');
     await rm(slides, { recursive: true, force: true });
     await mkdir(slides, { recursive: true });
-    marp(marpTool.path, [...common, '--images', 'png', '-o', path.join('dist', 'slides', 'deck.png')], browser.path, options.deck);
+    marp(marpTool.path, [...MARP_ARGS, '--images', 'png', '-o', path.join('dist', 'slides', 'deck.png')], browser.path, options.deck);
     written.push(`dist/slides/ (${(await readdir(slides)).length} PNG images)`);
   }
   console.log(`✅ Rendered ${deck.slides.length} slides with ${path.basename(browser.path)} (from ${browser.source}):`);
   for (const item of written) console.log(`   • ${item}`);
   return reportChecks(await runChecks(options.deck, deck, { marpPath: marpTool.path, browserPath: browser.path }));
+}
+
+const UNTRUSTED_NOTE = 'Nothing was rendered: the Deck Folder is untrusted input, so these findings must be fixed first.';
+
+function marpEngine(marpPath) {
+  try {
+    return createRequire(realpathSync(marpPath))('@marp-team/marp-core');
+  } catch {
+    return null;
+  }
+}
+
+// Raw HTML in the Deck Source, and every file Marp's own render of the deck
+// would load. Runs before Marp CLI or a browser opens the Deck Folder.
+async function trustFindings(folder, deck, marpPath) {
+  const findings = rawHtmlFindings(deck);
+  const engine = marpPath ? marpEngine(marpPath) : null;
+  if (!engine) return { findings, engine: false };
+  const marp = new engine.Marp(JSON.parse(readFileSync(MARP_CONFIG, 'utf8')));
+  try {
+    marp.themeSet.add(await readFile(path.join(folder, 'theme.css'), 'utf8'));
+  } catch (error) {
+    throw new UsageError(`theme.css is not a theme Marp can read: ${error.message}`);
+  }
+  findings.push(...assetFindings(marp.render(await readFile(path.join(folder, 'deck.md'), 'utf8')), folder));
+  return { findings, engine: true };
 }
 
 // Every scripted rule of the Accessibility Bar: the Deck Source and theme always,
@@ -388,8 +444,9 @@ async function runChecks(folder, deck, tools) {
   // The bare template shows every slide at once, so each can be measured.
   const checkHtml = path.join('dist', '.check.html');
   try {
-    marp(tools.marpPath, ['deck.md', '--theme-set', 'theme.css', '--html', '--allow-local-files', '--no-stdin', '--template', 'bare', '-o', checkHtml], tools.browserPath, folder);
-    const rendered = await renderedFindings({ htmlPath: path.join(folder, checkHtml), browserPath: tools.browserPath, marpScriptPath: tools.marpPath.endsWith('.js') ? tools.marpPath : null });
+    marp(tools.marpPath, [...MARP_ARGS, '--template', 'bare', '-o', checkHtml], tools.browserPath, folder);
+    const rendered = await renderedFindings({ htmlPath: path.join(folder, checkHtml), browserPath: tools.browserPath, marpScriptPath: tools.marpPath.endsWith('.js') ? tools.marpPath : null })
+      .catch((error) => { throw new RenderError(sandboxAdvice(error.message) ?? `The check browser failed: ${error.message}`); });
     if (rendered.skipped) notes.push(rendered.skipped);
     findings.push(...rendered.findings);
   } finally {
@@ -417,7 +474,14 @@ async function check(options) {
   const marpTool = resolveMarp();
   const browser = resolveBrowser();
   const tools = marpTool.path && browser.path ? { marpPath: marpTool.path, browserPath: browser.path } : null;
-  return reportChecks(await runChecks(options.deck, deck, tools));
+  const trust = await trustFindings(options.deck, deck, marpTool.path);
+  const notes = trust.engine ? [] : [`Asset paths are checked with Marp's engine, which is not installed: run ${SETUP_COMMAND}.`];
+  if (trust.findings.length) {
+    const unrendered = await runChecks(options.deck, deck, null);
+    return reportChecks({ findings: [...trust.findings, ...unrendered.findings], notes: [...notes, UNTRUSTED_NOTE] });
+  }
+  const checked = await runChecks(options.deck, deck, tools);
+  return reportChecks({ findings: checked.findings, notes: [...notes, ...checked.notes] });
 }
 
 async function main(argv) {

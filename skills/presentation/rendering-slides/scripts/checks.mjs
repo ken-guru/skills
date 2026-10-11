@@ -1,7 +1,8 @@
-// The scripted checks of the Accessibility Bar (references/accessibility-bar.md).
+// The scripted checks of the Accessibility Bar (references/accessibility-bar.md), and the
+// rules that keep an untrusted Deck Folder from reaching outside itself (references/deck-folder.md).
 // Each finding is { slide, rule, message }; slide is null for deck-wide findings.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { inflateSync } from 'node:zlib';
@@ -98,6 +99,131 @@ export function themeFindings(values) {
   return findings;
 }
 
+// ── Untrusted Deck Folder ────────────────────────────────────────────────────
+// A Deck Folder may come from fetched pages or another person, and the render
+// may read local files. Nothing in it may reach outside it; these run before Marp.
+
+// The raw HTML Marp keeps (tag → attributes); it shows any other tag as text.
+const ALLOWED_HTML = JSON.parse(readFileSync(new URL('./marp.config.json', import.meta.url), 'utf8')).html;
+const ASSET_ADVICE = 'A render may only use files inside the Deck Folder or https: URLs; copy the file into media/ or fonts/.';
+
+// Why a reference may not be rendered, or null when it stays inside the folder.
+// data: URIs carry their content inline, so they reach nothing.
+export function leavesFolder(reference, folder) {
+  const ref = reference.trim();
+  if (/^(https|data):/i.test(ref)) return null;
+  if (/^[a-z][a-z\d+.-]*:/i.test(ref)) return 'uses a scheme other than https:';
+  // A browser reads a backslash in a file URL as a slash, and an encoded slash hides one.
+  if (/\\|%2f|%5c/i.test(ref)) return 'hides a path behind an escaped slash';
+  if (ref.startsWith('/') || path.isAbsolute(ref)) return 'is an absolute path';
+  let decoded;
+  try {
+    decoded = decodeURIComponent(ref.replace(/[?#].*$/, ''));
+  } catch {
+    return 'is not a valid path';
+  }
+  const inside = (root, target) => target === root || target.startsWith(`${root}${path.sep}`);
+  const target = path.resolve(folder, decoded);
+  if (!inside(path.resolve(folder), target)) return 'leaves the Deck Folder';
+  if (existsSync(target) && !inside(realpathSync(folder), realpathSync(target))) return 'links to a file outside the Deck Folder';
+  return null;
+}
+
+// CSS as the browser reads it: without comments, and with escapes such as u\72l( or \2e decoded.
+function decodeCss(css) {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\\([0-9a-f]{1,6})[ \t\r\n\f]?/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '�';
+    })
+    .replace(/\\\r?\n/g, '')
+    .replace(/\\(.)/g, '$1');
+}
+
+const unquote = (token) => token.trim().replace(/^(["'])([\s\S]*)\1$/, '$2');
+
+// The text between a function's opening parenthesis (at `start`) and its matching close.
+function argumentsAt(text, start) {
+  let depth = 1;
+  let quote = null;
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote) { if (char === quote) quote = null; } else if (char === '"' || char === "'") quote = char;
+    else if (char === '(') depth += 1;
+    else if (char === ')' && (depth -= 1) === 0) return text.slice(start, index);
+  }
+  return text.slice(start);
+}
+
+// Every file a stylesheet loads: url() and src(), the strings in image-set(),
+// image(), and cross-fade(), and @import.
+function cssReferences(css) {
+  const text = decodeCss(css);
+  const references = [...text.matchAll(/\b(?:url|src)\(\s*("[^"]*"|'[^']*'|[^)]*?)\s*\)/gi)].map((match) => unquote(match[1]));
+  for (const match of text.matchAll(/(?:-webkit-)?(?:image-set|image|cross-fade)\(/gi)) {
+    for (const string of argumentsAt(text, match.index + match[0].length).matchAll(/"[^"]*"|'[^']*'/g)) references.push(unquote(string[0]));
+  }
+  for (const match of text.matchAll(/@import\s*("[^"]*"|'[^']*')/gi)) references.push(unquote(match[1]));
+  return references;
+}
+
+function decodeEntities(text) {
+  const named = { quot: '"', apos: "'", amp: '&', lt: '<', gt: '>' };
+  return text.replace(/&(#x[0-9a-f]+|#\d+|quot|apos|amp|lt|gt);/gi, (_, entity) => {
+    if (entity[0] !== '#') return named[entity.toLowerCase()];
+    const code = entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '�';
+  });
+}
+
+// Every file Marp's own render of the deck would load, read from its HTML and CSS,
+// so each way Markdown or CSS can name a file is covered. Each slide is one <svg>.
+export function assetFindings({ html, css }, folder) {
+  const findings = [];
+  const reported = new Set();
+  const check = (slide, reference) => {
+    const reason = leavesFolder(reference, folder);
+    if (!reason || reported.has(reference)) return;
+    reported.add(reference);
+    findings.push({ slide, rule: 'asset-path', message: `loads ${reference}, which ${reason}. ${ASSET_ADVICE}` });
+  };
+  html.split(/(?=<svg\b[^>]*\bdata-marpit-svg)/).forEach((chunk, index) => {
+    const slide = index > 0 ? index : null;
+    for (const [, name, value] of chunk.matchAll(/\s(src|srcset|poster|style)="([^"]*)"/gi)) {
+      const decoded = decodeEntities(value);
+      if (name.toLowerCase() === 'style') cssReferences(decoded).forEach((reference) => check(slide, reference));
+      else if (name.toLowerCase() === 'srcset') decoded.split(',').map((candidate) => candidate.trim().split(/\s+/)[0]).filter(Boolean).forEach((reference) => check(slide, reference));
+      else check(slide, decoded);
+    }
+  });
+  for (const reference of cssReferences(css)) check(null, reference);
+  return findings;
+}
+
+// Code blocks and inline code are shown as text, never interpreted.
+function withoutCode(text) {
+  return text.replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1[^\n]*$/gm, '').replace(/`[^`\n]*`/g, '');
+}
+
+// Raw HTML outside Marp's allowlist, which the render would show as text or strip.
+export function rawHtmlFindings(deck) {
+  const findings = [];
+  for (const slide of deck.slides) {
+    const markup = withoutCode(slide.text).replace(/<!--[\s\S]*?-->/g, '').replace(/<style\b[\s\S]*?<\/style\s*>/gi, '');
+    const found = new Set();
+    for (const [, name, attributes] of markup.matchAll(/<\/?([A-Za-z][\w-]*)((?:\s[^>]*)?)>/g)) {
+      const tag = name.toLowerCase();
+      if (!(tag in ALLOWED_HTML)) { found.add(`<${tag}>`); continue; }
+      for (const [attribute] of attributes.matchAll(/[^\s=/"']+(?=\s*=|\s|\/|$)/g)) {
+        if (!ALLOWED_HTML[tag].includes(attribute.toLowerCase())) found.add(`<${tag} ${attribute.toLowerCase()}>`);
+      }
+    }
+    for (const markupFound of found) findings.push({ slide: slide.number, rule: 'raw-html', message: `has raw HTML ${markupFound}, which the render drops or shows as text. Use Markdown instead; only <span lang="…"> and <br> are kept.` });
+  }
+  return findings;
+}
+
 // ── Deck Source ──────────────────────────────────────────────────────────────
 
 function readSidecar(folder, src) {
@@ -125,7 +251,7 @@ export function sourceFindings(deck, folder) {
     else if (slide.headings[0].level > 2) at('heading', 'starts with a lower-level heading; the slide heading must come first.');
 
     for (const image of slide.images) {
-      if (!/^[a-z]+:/i.test(image.src) && !existsSync(path.join(folder, decodeURI(image.src)))) {
+      if (!leavesFolder(image.src, folder) && !/^[a-z]+:/i.test(image.src) && !existsSync(path.join(folder, decodeURI(image.src)))) {
         at('missing-image', `shows ${image.src}, which is not in the Deck Folder; make the visual or fix the path.`);
       }
       if (image.bg && !image.decorative) at('background-image', `uses a background image (${image.src}) for content. Background images lose their alt text in the PDF: use ordinary image syntax, or mark it <!-- decorative -->.`);
@@ -211,7 +337,9 @@ export async function renderedFindings({ htmlPath, browserPath, marpScriptPath }
     return { skipped: 'puppeteer-core was not found next to Marp CLI; run setup so contrast and text size can be measured on the rendered slides.', findings: [] };
   }
   const { default: puppeteer } = await import(pathToFileURL(puppeteerEntry).href);
-  const browser = await puppeteer.launch({ executablePath: browserPath, headless: true, args: ['--no-sandbox', '--allow-file-access-from-files'] });
+  // Chrome's sandbox stays on; it cannot start as root, and CHROME_NO_SANDBOX is the person's explicit opt-out (Marp honours it too).
+  const noSandbox = process.getuid?.() === 0 || Boolean(process.env.CHROME_NO_SANDBOX);
+  const browser = await puppeteer.launch({ executablePath: browserPath, headless: true, args: noSandbox ? ['--no-sandbox'] : [] });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });

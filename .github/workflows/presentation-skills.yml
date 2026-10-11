@@ -50,6 +50,11 @@ jobs:
           node skills/creating-charts/scripts/creating-charts.mjs setup
           node skills/presentation/rendering-slides/scripts/rendering-slides.mjs setup
 
+      # Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs; allowing
+      # them keeps CI on the sandboxed default the skills give people locally.
+      - name: Allow the browser sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Validate frontmatter with the official skills-ref
         run: |
           for skill in skills/researching-sources skills/creating-diagrams skills/creating-charts skills/generating-images \

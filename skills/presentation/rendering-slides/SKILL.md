@@ -35,6 +35,8 @@ The judgement checks in that table need a person or a review; say so when report
 ## When the render fails
 
 - **The sandbox blocks the browser.** The error says so and explains how to allow that one render command outside the sandbox for the harness in use. Pass this on to the person; never change their harness settings yourself.
+- **The browser's own sandbox cannot start.** The error gives the fix; ask the person before setting `CHROME_NO_SANDBOX=1` for that render.
+- **An `asset-path` or `raw-html` finding stops the render.** The Deck Folder is untrusted input: copy the file into `media/` or `fonts/`, or write the markup as Markdown, then render again.
 - **A tool is missing.** The error names the exact `setup` command.
 
 ## Theme values for visuals
