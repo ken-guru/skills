@@ -20,14 +20,14 @@ const PROVIDERS = {
     models: ['gemini-3.1-flash-image', 'gemini-3-pro-image', 'gemini-2.5-flash-image'],
     defaultModel: 'gemini-3.1-flash-image',
     pricing: 'https://ai.google.dev/gemini-api/docs/pricing',
-    baseUrl: () => baseUrl('GENERATING_IMAGES_GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+    baseUrl: () => providerBaseUrl('GENERATING_IMAGES_GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
   },
   openai: {
     key: 'OPENAI_API_KEY',
     models: ['gpt-image-1-mini', 'gpt-image-1', 'gpt-image-1.5', 'gpt-image-2'],
     defaultModel: 'gpt-image-1-mini',
     pricing: 'https://openai.com/api/pricing/',
-    baseUrl: () => baseUrl('GENERATING_IMAGES_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+    baseUrl: () => providerBaseUrl('GENERATING_IMAGES_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
   },
 };
 
@@ -48,7 +48,7 @@ class ProviderError extends Error {}
 // with every request, so they accept only https: or this machine.
 const LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
 
-function baseUrl(variable, fallback) {
+function providerBaseUrl(variable, fallback) {
   const value = process.env[variable];
   if (!value) return fallback;
   let url;
