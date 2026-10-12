@@ -16,10 +16,11 @@ Maintainer tools for checking the presentation skills before a release. Nothing 
 From the repository root:
 
 ```bash
-claude plugin eval . --ablation with-without --model haiku --max-cost-usd 20 --allow-tools Write Edit "Bash(node:*)" WebSearch WebFetch
-claude plugin eval . --ablation with-without --model sonnet --max-cost-usd 40 --allow-tools Write Edit "Bash(node:*)" WebSearch WebFetch
-claude plugin eval . --ablation with-without --model opus --max-cost-usd 80 --allow-tools Write Edit "Bash(node:*)" WebSearch WebFetch
+claude plugin eval . -j 4 --ablation with-without --model haiku --max-cost-usd 5 --allow-tools Write Edit "Bash(node:*)" WebSearch WebFetch
+claude plugin eval . -j 4 --ablation with-without --model sonnet --max-cost-usd 15 --allow-tools Write Edit "Bash(node:*)" WebSearch WebFetch
 ```
+
+Haiku is the release baseline. Sonnet is a spot check: a full pass costs about $9, so run it when skill wording changes a lot. `-j 4` runs four agent runs at once on your own credentials, with the same cost and a quarter of the wait.
 
 The runner finds the cases in each skill's own `evals/` folder: the suite's scenarios in [`../evals/`](../evals/), and the cases of `planning-presentation` and `researching-sources`. Keep `--allow-tools` last, since it takes a list. Without it, no run can write a file, and every file grader fails in both arms. Reports go to `evals/results/` at the repository root, which is ignored.
 
