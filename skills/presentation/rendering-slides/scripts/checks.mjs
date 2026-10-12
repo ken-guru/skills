@@ -109,6 +109,14 @@ const ASSET_ADVICE = 'A render may only use files inside the Deck Folder or http
 
 // Why a reference may not be rendered, or null when it stays inside the folder.
 // data: URIs carry their content inline, so they reach nothing.
+// How target escapes folder: 'leaves' as written, 'links' through a symlink, or null if it stays inside.
+export function folderEscape(folder, target) {
+  const inside = (root, file) => file === root || file.startsWith(`${root}${path.sep}`);
+  if (!inside(path.resolve(folder), path.resolve(target))) return 'leaves';
+  if (existsSync(target) && !inside(realpathSync(folder), realpathSync(target))) return 'links';
+  return null;
+}
+
 export function leavesFolder(reference, folder) {
   const ref = reference.trim();
   if (/^(https|data):/i.test(ref)) return null;
@@ -122,10 +130,9 @@ export function leavesFolder(reference, folder) {
   } catch {
     return 'is not a valid path';
   }
-  const inside = (root, target) => target === root || target.startsWith(`${root}${path.sep}`);
-  const target = path.resolve(folder, decoded);
-  if (!inside(path.resolve(folder), target)) return 'leaves the Deck Folder';
-  if (existsSync(target) && !inside(realpathSync(folder), realpathSync(target))) return 'links to a file outside the Deck Folder';
+  const escape = folderEscape(folder, path.resolve(folder, decoded));
+  if (escape === 'leaves') return 'leaves the Deck Folder';
+  if (escape === 'links') return 'links to a file outside the Deck Folder';
   return null;
 }
 

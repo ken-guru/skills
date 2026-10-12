@@ -40,7 +40,7 @@ Then run `node scripts/rendering-slides.mjs theme --deck <folder> --brand brand.
 - **colours**: any of `--color-bg`, `--color-text`, `--color-surface`, `--color-muted`, `--color-accent`, `--color-on-accent`.
 - **fonts**: `--font-heading`, `--font-body`, `--font-mono`, each with fallbacks. Always end with a generic family (`serif`, `sans-serif`, `monospace`).
 - **fontFiles**: only font files the person supplies and may use, as `.woff2`, `.woff`, `.ttf`, or `.otf`. They are copied to the Deck Folder's `fonts/`. Nothing is fetched from the web. `family` is a plain name (letters, digits, spaces, hyphens), `weight` a whole number from 100 to 900, and `style` `normal` or `italic`.
-- **logo**: an `.svg`, `.png`, or `.jpg` file, copied to `media/brand-logo.*` and shown on the title slide only.
+- **logo**: an `.svg`, `.png`, or `.jpg` (`.jpeg`) file, copied to `media/brand-logo.*` and shown on the title slide only.
 - Font and logo files sit in the brand file's folder or below it, with plain file names. A file elsewhere is refused; copy it in beside the brand file first.
 
 When a brand colour misses the Accessibility Bar, the theme is still written exactly as given, and the command lists each failing pair with a nearby shade that passes. Show this to the person and let them choose; never change their brand colours silently.

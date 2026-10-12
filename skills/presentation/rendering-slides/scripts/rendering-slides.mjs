@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cacheRoot, installPinned, missingToolMessage, onPath, platformKey } from './tools.mjs';
 import { parseDeck } from './deck.mjs';
-import { assetFindings, formatFindings, pdfFindings, rawHtmlFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
+import { assetFindings, folderEscape, formatFindings, pdfFindings, rawHtmlFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SETUP_COMMAND = 'node scripts/rendering-slides.mjs setup';
@@ -230,20 +230,21 @@ const FONT_FAMILY = /^[A-Za-z0-9 -]+$/;
 function brandFile(brandDirectory, file, field, extensions) {
   if (typeof file !== 'string' || !file) throw new UsageError(`${field} needs a "file" next to the brand file.`);
   const source = path.resolve(brandDirectory, file);
-  const inside = (root, target) => target.startsWith(`${root}${path.sep}`);
-  if (path.isAbsolute(file) ||!inside(brandDirectory, source)) throw new UsageError(`${field} ${file} must sit in the brand file's folder or below it.`);
+  const escape = path.isAbsolute(file) ? 'leaves' : folderEscape(brandDirectory, source);
+  if (escape === 'leaves') throw new UsageError(`${field} ${file} must sit in the brand file's folder or below it.`);
+  if (escape === 'links') throw new UsageError(`${field} ${file} links to a file outside the brand file's folder.`);
   if (!PLAIN_FILE_NAME.test(path.basename(source))) throw new UsageError(`${field} ${file} needs a plain file name: letters, digits, spaces, dots, hyphens, and underscores.`);
   if (!extensions.includes(path.extname(source).toLowerCase())) throw new UsageError(`${field} ${file} must be one of ${extensions.join(', ')}.`);
   if (!existsSync(source)) throw new UsageError(`${field} ${file} was not found next to the brand file.`);
-  if (!inside(realpathSync(brandDirectory), realpathSync(source))) throw new UsageError(`${field} ${file} links to a file outside the brand file's folder.`);
   return source;
 }
 
 function fontFace(brandDirectory, font) {
   const source = brandFile(brandDirectory, font.file, 'The fontFiles entry', FONT_EXTENSIONS);
-  const { family, weight = 400, style = 'normal' } = font;
+  const { family, style = 'normal' } = font;
+  const weight = Number(font.weight ?? 400);
   if (typeof family !== 'string' || !FONT_FAMILY.test(family)) throw new UsageError(`A fontFiles "family" is a plain name (letters, digits, spaces, hyphens), got "${family ?? ''}".`);
-  if (!Number.isInteger(weight) || weight < 100 || weight > 900) throw new UsageError(`A fontFiles "weight" is a whole number from 100 to 900, got "${weight}".`);
+  if (!Number.isInteger(weight) || weight < 100 || weight > 900) throw new UsageError(`A fontFiles "weight" is a whole number from 100 to 900, got "${font.weight}".`);
   if (!['normal', 'italic'].includes(style)) throw new UsageError(`A fontFiles "style" is normal or italic, got "${style}".`);
   return { source, css: `@font-face {\n  font-family: "${family}";\n  src: url("fonts/${path.basename(source)}");\n  font-weight: ${weight};\n  font-style: ${style};\n}` };
 }
