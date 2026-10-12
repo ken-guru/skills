@@ -43,8 +43,10 @@ case "$harness" in
     ;;
   codex)
     # Rendering needs the browser outside Codex's sandbox; workspace-write with
-    # network access lets Chromium start on Linux.
-    codex exec --full-auto -c sandbox_workspace_write.network_access=true "$prompt" > run.log 2>&1 || status=$?
+    # network access lets Chromium start on Linux. Codex 0.154 replaced
+    # --full-auto with --approve-for-me (same sandbox, approvals reviewed for you).
+    # The run folder is not a git repository, and Codex would wait on stdin.
+    codex exec --approve-for-me --skip-git-repo-check -c sandbox_workspace_write.network_access=true "$prompt" < /dev/null > run.log 2>&1 || status=$?
     ;;
   *)
     echo "Unknown harness $harness: use copilot or codex" >&2
@@ -53,3 +55,4 @@ case "$harness" in
 esac
 echo "$harness $scenario exit=${status:-0} secs=$(( $(date +%s) - start )) folder=$out"
 echo "Graders to apply by hand: $(ls "$case_dir/graders" | tr '\n' ' ')"
+exit "${status:-0}"
