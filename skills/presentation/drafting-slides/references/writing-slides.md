@@ -16,11 +16,12 @@ A heading is the one thing the audience should take from the slide, as a short s
 - Write them as spoken sentences the speaker can read aloud, in their voice.
 - Start with the sentence that introduces the slide; end with the bridge to the next.
 - Every factual claim carries its citation, for example `[S2]`. Opinions and personal experience are labelled as such.
+- Credit borrowed ideas, frameworks, and well-known quotations by name (for example, Dan McKinley's "Choose Boring Technology"), even when research is waived.
 - Put long descriptions of diagrams and the data tables of charts here, so people who cannot see the visual can still follow.
 
 ## Timing
 
-Plan about one slide per minute for a typical talk, fewer for a talk with demos or discussion. Check the total against the Brief's length, leaving the agreed time for questions, and say when the draft is likely to run over.
+Plan about one slide per minute for a typical talk, fewer for a talk with demos or discussion. Write the notes at about 130 words per minute of speaking time, so a five-minute talk has about 650 words of notes; `reviewing-presentation`'s `timing` uses the same rate. Check the total against the Brief's length, leaving the agreed time for questions, and say when the draft is likely to run short or over.
 
 ## Language and tone
 

@@ -33,6 +33,8 @@ The Deck Folder layout is in [references/deck-folder.md](references/deck-folder.
 
 When the person brings their own outline or brief, start from it: confirm what is there, ask only about what is missing, and continue from the right step.
 
+When the person asks to see a draft first, show the draft before the interview: write the Brief and the Storyline from what you know, mark each gap only they can fill as `[to fill: what is needed]`, keep both `approved: false`, and ask the interview questions alongside the draft. A placeholder is never filled by guessing.
+
 When reading the person's project for context, leave out files that hold secrets, such as `.env` files, keys, and credentials.
 
 When the Storyline is approved, the natural next step is drafting slides: `drafting-slides`, if installed, turns it into the Deck Source.
