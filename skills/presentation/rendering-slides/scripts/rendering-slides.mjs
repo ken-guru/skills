@@ -221,6 +221,32 @@ async function applyTheme(options) {
 // Brand themes change only colours, fonts, and the logo; layout and sizing stay the base theme's.
 const BRAND_COLOUR = /^--color-[a-z-]+$/;
 const BRAND_FONTS = new Set(['--font-heading', '--font-body', '--font-mono']);
+// Brand files go into the theme's CSS by name, so they are plain names from the brand file's own folder.
+const FONT_EXTENSIONS = ['.woff2', '.woff', '.ttf', '.otf'];
+const LOGO_EXTENSIONS = ['.svg', '.png', '.jpg', '.jpeg'];
+const PLAIN_FILE_NAME = /^[\w. -]+$/;
+const FONT_FAMILY = /^[A-Za-z0-9 -]+$/;
+
+function brandFile(brandDirectory, file, field, extensions) {
+  if (typeof file !== 'string' || !file) throw new UsageError(`${field} needs a "file" next to the brand file.`);
+  const source = path.resolve(brandDirectory, file);
+  const inside = (root, target) => target.startsWith(`${root}${path.sep}`);
+  if (path.isAbsolute(file) ||!inside(brandDirectory, source)) throw new UsageError(`${field} ${file} must sit in the brand file's folder or below it.`);
+  if (!PLAIN_FILE_NAME.test(path.basename(source))) throw new UsageError(`${field} ${file} needs a plain file name: letters, digits, spaces, dots, hyphens, and underscores.`);
+  if (!extensions.includes(path.extname(source).toLowerCase())) throw new UsageError(`${field} ${file} must be one of ${extensions.join(', ')}.`);
+  if (!existsSync(source)) throw new UsageError(`${field} ${file} was not found next to the brand file.`);
+  if (!inside(realpathSync(brandDirectory), realpathSync(source))) throw new UsageError(`${field} ${file} links to a file outside the brand file's folder.`);
+  return source;
+}
+
+function fontFace(brandDirectory, font) {
+  const source = brandFile(brandDirectory, font.file, 'The fontFiles entry', FONT_EXTENSIONS);
+  const { family, weight = 400, style = 'normal' } = font;
+  if (typeof family !== 'string' || !FONT_FAMILY.test(family)) throw new UsageError(`A fontFiles "family" is a plain name (letters, digits, spaces, hyphens), got "${family ?? ''}".`);
+  if (!Number.isInteger(weight) || weight < 100 || weight > 900) throw new UsageError(`A fontFiles "weight" is a whole number from 100 to 900, got "${weight}".`);
+  if (!['normal', 'italic'].includes(style)) throw new UsageError(`A fontFiles "style" is normal or italic, got "${style}".`);
+  return { source, css: `@font-face {\n  font-family: "${family}";\n  src: url("fonts/${path.basename(source)}");\n  font-weight: ${weight};\n  font-style: ${style};\n}` };
+}
 
 async function applyBrand(options) {
   if (!existsSync(options.brand)) throw new UsageError(`${options.brand} not found.`);
@@ -242,25 +268,21 @@ async function applyBrand(options) {
   }
 
   const brandDirectory = path.dirname(options.brand);
-  const fontFaces = [];
-  for (const font of brand.fontFiles ?? []) {
-    const source = path.resolve(brandDirectory, font.file ?? '');
-    if (!font.family || !existsSync(source)) throw new UsageError(`Each fontFiles entry needs a "family" and an existing "file"; ${font.file ?? '(no file)'} was not found next to the brand file.`);
+  const fontFaces = (brand.fontFiles ?? []).map((font) => fontFace(brandDirectory, font));
+  const logo = brand.logo ? brandFile(brandDirectory, brand.logo, 'The logo', LOGO_EXTENSIONS) : null;
+  for (const { source } of fontFaces) {
     await mkdir(path.join(options.deck, 'fonts'), { recursive: true });
     await copyFile(source, path.join(options.deck, 'fonts', path.basename(source)));
-    fontFaces.push(`@font-face {\n  font-family: "${font.family}";\n  src: url("fonts/${path.basename(source)}");\n  font-weight: ${font.weight ?? 400};\n  font-style: ${font.style ?? 'normal'};\n}`);
   }
-  if (brand.logo) {
-    const source = path.resolve(brandDirectory, brand.logo);
-    if (!existsSync(source)) throw new UsageError(`The logo ${brand.logo} was not found next to the brand file.`);
-    const target = `brand-logo${path.extname(source).toLowerCase()}`;
+  if (logo) {
+    const target = `brand-logo${path.extname(logo).toLowerCase()}`;
     await mkdir(path.join(options.deck, 'media'), { recursive: true });
-    await copyFile(source, path.join(options.deck, 'media', target));
+    await copyFile(logo, path.join(options.deck, 'media', target));
     overrides['--logo'] = `url("media/${target}")`;
   }
 
   const css = await flattenTheme(await readTheme(base));
-  const extra = `\n/* Brand overrides */\n${fontFaces.join('\n')}\n:root {\n${Object.entries(overrides).map(([key, value]) => `  ${key}: ${value};`).join('\n')}\n}\n`;
+  const extra = `\n/* Brand overrides */\n${fontFaces.map((face) => face.css).join('\n')}\n:root {\n${Object.entries(overrides).map(([key, value]) => `  ${key}: ${value};`).join('\n')}\n}\n`;
   const content = deckTheme(css, `Brand theme on rendering-slides' ${base} theme.`, extra);
   await mkdir(options.deck, { recursive: true });
   await writeFile(path.join(options.deck, 'theme.css'), content);

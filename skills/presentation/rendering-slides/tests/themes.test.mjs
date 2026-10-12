@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -91,4 +91,33 @@ test('a brand theme cannot change layout or sizing', () => {
   const result = brand(directory, { base: 'editorial', colours: { '--slot-visual': '1280x720', '--font-size': '12px' } });
   assert.equal(result.code, 2);
   assert.match(result.out, /only colours, fonts, and the logo; it cannot set --slot-visual, --font-size/);
+});
+
+test('a brand file takes its files from its own folder and its font values in their plain shapes', () => {
+  const outside = mkdtempSync(path.join(os.tmpdir(), 'rendering-slides-outside-'));
+  writeFileSync(path.join(outside, 'secret.woff2'), 'outside font');
+  writeFileSync(path.join(outside, 'logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  const font = (entry) => ({ fontFiles: [{ family: 'Brand Serif', file: 'BrandSerif.woff2', ...entry }] });
+  const cases = [
+    ['a font file outside the folder', font({ file: path.join('..', path.basename(outside), 'secret.woff2') }), /fontFiles/],
+    ['an absolute logo path', { logo: path.join(outside, 'logo.svg') }, /logo/],
+    ['a logo linked to a file outside the folder', { logo: 'linked.svg' }, /logo/],
+    ['a font file that is not a font', font({ file: 'notes.txt' }), /\.woff2/],
+    ['a logo that is not an image', { logo: 'logo.html' }, /\.svg/],
+    ['a font file name that breaks the CSS string', font({ file: 'Brand").woff2' }), /fontFiles/],
+    ['a family that breaks the CSS string', font({ family: 'Brand"; } section { display: none' }), /family/],
+    ['a weight that is not a number', font({ weight: '400; color: red' }), /weight/],
+    ['a weight outside 100 to 900', font({ weight: 950 }), /weight/],
+    ['a style other than normal or italic', font({ style: 'normal; color: red' }), /style/],
+  ];
+  for (const [name, spec, message] of cases) {
+    const directory = folder();
+    symlinkSync(path.join(outside, 'logo.svg'), path.join(directory, 'linked.svg'));
+    const result = brand(directory, { base: 'editorial', ...spec }, {
+      'BrandSerif.woff2': 'fake font', 'notes.txt': 'text', 'logo.html': '<p>', 'Brand").woff2': 'fake font',
+    });
+    assert.equal(result.code, 2, `${name}: ${result.out}`);
+    assert.match(result.out, message, name);
+    assert.equal(existsSync(path.join(directory, 'theme.css')), false, name);
+  }
 });
