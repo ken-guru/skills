@@ -36,7 +36,7 @@ Script paths below are relative to this skill's folder. Run each as one command 
    - Charts: `creating-charts`, if installed, with data only from the person or the Source Set. Otherwise, show the data as a table.
    - Illustrations: `generating-images`, if installed. Otherwise, leave the Visual Intent in place and say no image was made.
 
-   Theme values come from `rendering-slides theme-values` (see that skill). Then place each visual with ordinary image syntax and its alt text, followed by its caption. Put a chart's data table in the slide's speaker notes. Give every generated image a visible "AI-generated illustration" caption and alt text starting "AI-generated:".
+   Apply the theme before the first visual: theme values come from `rendering-slides theme-values`, which reads the `theme.css` that `rendering-slides theme` writes (see that skill). Then place each visual with ordinary image syntax and its alt text, followed by its caption. Put a chart's data table in the slide's speaker notes. Give every generated image a visible "AI-generated illustration" caption and alt text starting "AI-generated:".
 5. **Check the deck.** Every slide has one visible heading, speaker notes, and a citation for every factual claim; every image has alt text or a `<!-- decorative -->` marker; the front matter has `title` and `lang`. If `rendering-slides` is installed, its `check` command verifies the scripted rules.
 
 When the deck is drafted, the natural next step is rendering it: `rendering-slides`, if installed, applies the theme, exports the formats, and checks the Accessibility Bar ([references/accessibility-bar.md](references/accessibility-bar.md)).

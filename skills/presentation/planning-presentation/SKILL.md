@@ -1,6 +1,6 @@
 ---
 name: planning-presentation
-description: "Plans a presentation with the person: interviews them until the audience, goal, and premises are clear, records the Brief, and builds an approved storyline from vetted sources. Use when someone wants to make, plan, or structure a talk, presentation, or slide deck, or needs help working out what to say."
+description: "Plans a presentation with the person: interviews them until the audience, goal, and premises are clear, records the Brief, and builds an approved storyline from vetted sources, the first step towards a Marp deck with a PDF and a speaker-notes script. Use when someone wants to make, plan, or structure a talk, presentation, or slide deck, or needs help working out what to say."
 metadata:
   version: "3.0.0"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
@@ -32,6 +32,8 @@ The Deck Folder layout is in [references/deck-folder.md](references/deck-folder.
 5. **Approval.** Show the Storyline and revise it until the person approves; then set `approved: true`.
 
 When the person brings their own outline or brief, start from it: confirm what is there, ask only about what is missing, and continue from the right step.
+
+When reading the person's project for context, leave out files that hold secrets, such as `.env` files, keys, and credentials.
 
 When the Storyline is approved, the natural next step is drafting slides: `drafting-slides`, if installed, turns it into the Deck Source.
 
