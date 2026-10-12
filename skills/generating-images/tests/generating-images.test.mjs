@@ -140,3 +140,13 @@ test('a moderation block explains what to change', async () => {
   assert.match(result.out, /content moderation.*violence/);
   assert.equal(existsSync(out), false);
 });
+
+test('a provider base URL that is neither https: nor loopback is refused before the key is sent', async () => {
+  for (const url of ['http://example.invalid/v1', 'http://127.0.0.1.example.invalid/v1', 'file:///etc/passwd']) {
+    const out = target('a.png');
+    const result = await run(['generate', ...BASE_ARGS, '--out', out, '--approved'], { OPENAI_API_KEY: 'sk-test', GENERATING_IMAGES_OPENAI_BASE_URL: url });
+    assert.equal(result.code, 2, `${url}: ${result.out}`);
+    assert.match(result.out, /GENERATING_IMAGES_OPENAI_BASE_URL/);
+    assert.equal(existsSync(out), false);
+  }
+});
