@@ -7,9 +7,6 @@
   },
   "repository": "https://github.com/ken-guru/skills",
   "license": "MIT",
-  "experimental": {
-    "evals": "skills/presentation/evals"
-  },
   "keywords": [
     "presentation",
     "slides",

@@ -5,8 +5,9 @@
 .devcontainer/allowed-domains.local.txt
 # The presentation skills' pinned tool cache when KEN_GURU_SKILLS_CACHE points into the repo (as in CI).
 .tool-cache/
-# claude plugin eval writes its reports beside the cases.
+# claude plugin eval writes its reports to evals/results/, or beside the cases with --eval-dir.
 skills/**/evals/results/
+evals/results/
 
 # Wayfinder planning is temporary; preserve historical tracked files but ignore new ones.
 wayfinder/**
