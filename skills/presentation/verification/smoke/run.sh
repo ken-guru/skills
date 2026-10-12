@@ -2,15 +2,29 @@
 # Smoke-runs one plugin eval scenario in Copilot CLI or Codex, which have no
 # eval runner. Maintainer tool, not part of any skill's runtime.
 #
-# Usage: run.sh <copilot|codex> <scenario folder name> [output folder]
+# Usage: run.sh [--i-accept-host-risk] <copilot|codex> <scenario folder name> [output folder]
 #   e.g. run.sh copilot 01-sourced-team-update
 #
 # The prompt is the scenario's prompt.md body. The run happens in a fresh
 # folder; read its log and Deck Folder against the scenario's graders/.
+#
+# Both harnesses run with every tool, every path, and the network allowed, so
+# the script runs in a container (such as this repo's devcontainer) unless
+# --i-accept-host-risk says the maintainer accepts that on their own machine.
 set -euo pipefail
 
-harness="${1:?usage: run.sh <copilot|codex> <scenario> [output folder]}"
-scenario="${2:?usage: run.sh <copilot|codex> <scenario> [output folder]}"
+accept_host_risk=false
+if [ "${1:-}" = "--i-accept-host-risk" ]; then
+  accept_host_risk=true
+  shift
+fi
+if [ "$accept_host_risk" = false ] && [ ! -f /.dockerenv ] && [ ! -f /run/.containerenv ]; then
+  echo "This runs Copilot or Codex with every tool, every path, and the network allowed. Run it in the repo's devcontainer, or pass --i-accept-host-risk first to run it on this machine." >&2
+  exit 2
+fi
+
+harness="${1:?usage: run.sh [--i-accept-host-risk] <copilot|codex> <scenario> [output folder]}"
+scenario="${2:?usage: run.sh [--i-accept-host-risk] <copilot|codex> <scenario> [output folder]}"
 here="$(cd "$(dirname "$0")" && pwd)"
 case_dir="$here/../../evals/$scenario"
 [ -f "$case_dir/prompt.md" ] || { echo "No scenario $scenario in skills/presentation/evals/" >&2; exit 2; }

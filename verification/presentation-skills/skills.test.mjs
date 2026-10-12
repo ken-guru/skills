@@ -4,7 +4,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -143,3 +143,27 @@ for (const module of ['tools.mjs', 'deck.mjs']) {
     assert.equal(texts.size, copies.length ? 1 : 0, `${module} differs between: ${copies.map((file) => path.relative(root, file)).join(', ')}`);
   });
 }
+
+// The smoke runs give Copilot and Codex free rein, so they belong in a container.
+test('the smoke script runs a harness on the host only when the maintainer accepts the risk', () => {
+  const bin = mkdtempSync(path.join(tmpdir(), 'smoke-bin-'));
+  const marker = path.join(bin, 'ran');
+  writeFileSync(path.join(bin, 'copilot'), `#!/bin/sh\ntouch "${marker}"\n`);
+  chmodSync(path.join(bin, 'copilot'), 0o755);
+  const script = path.join(root, 'skills', 'presentation', 'verification', 'smoke', 'run.sh');
+  const env = { PATH: `${bin}:/usr/bin:/bin`, HOME: bin };
+  const inContainer = existsSync('/.dockerenv') || existsSync('/run/.containerenv');
+
+  const plain = spawnSync('bash', [script, 'copilot', '01-sourced-team-update', mkdtempSync(path.join(tmpdir(), 'smoke-out-'))], { encoding: 'utf8', env });
+  if (inContainer) {
+    assert.equal(plain.status, 0, plain.stderr);
+  } else {
+    assert.equal(plain.status, 2, plain.stdout);
+    assert.match(plain.stderr, /--i-accept-host-risk/);
+    assert.equal(existsSync(marker), false);
+  }
+
+  const accepted = spawnSync('bash', [script, '--i-accept-host-risk', 'copilot', '01-sourced-team-update', mkdtempSync(path.join(tmpdir(), 'smoke-out-'))], { encoding: 'utf8', env });
+  assert.equal(accepted.status, 0, accepted.stderr);
+  assert.ok(existsSync(marker));
+});

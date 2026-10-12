@@ -30,4 +30,6 @@ skills/presentation/verification/smoke/run.sh copilot 01-sourced-team-update
 skills/presentation/verification/smoke/run.sh codex 02-diagram-heavy-request-flow
 ```
 
+Both harnesses run with every tool, every path, and the network allowed (`--allow-all-tools --allow-all-paths` in Copilot, `--full-auto` with network access in Codex), since the runs show what the skills do without anyone approving each step. So run them in this repo's devcontainer, where the firewall limits what they reach. Outside a container the script stops; pass `--i-accept-host-risk` as its first argument only if you accept the harness acting on your own machine.
+
 Install the eight skills in that harness first (`npx skills@latest add ken-guru/skills#<branch or tag> --skill …`), and run each skill's `setup` once; the script uses whatever the harness has installed. Each run happens in a fresh folder; grade its log and Deck Folder against the scenario's `graders/` by hand and record the results in the release PR.
