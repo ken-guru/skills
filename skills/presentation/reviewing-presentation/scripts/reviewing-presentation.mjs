@@ -3,7 +3,7 @@
 //
 //   node scripts/reviewing-presentation.mjs timing --deck <folder>
 //
-// Exit codes: 0 fits (or no length to compare); 1 runs over the Brief's length; 2 usage error.
+// Exit codes: 0 fits, runs short (a warning), or no length to compare; 1 runs over the Brief's length; 2 usage error.
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
@@ -63,7 +63,11 @@ function timing({ deck: folder }) {
     console.log(`❌ The talk runs about ${over.toFixed(1)} minutes over the ${target} minutes in the Brief. Cut or merge slides, or shorten the notes.`);
     return 1;
   }
-  console.log(`✅ Fits the ${target} minutes in the Brief${over < -2 ? `, with about ${(-over).toFixed(1)} minutes to spare` : ''}.`);
+  if (over < -1) {
+    console.log(`⚠️  The talk runs about ${(-over).toFixed(1)} minutes short of the ${target} minutes in the Brief. Lengthen the notes or add a slide, unless the spare time is meant for questions.`);
+    return 0;
+  }
+  console.log(`✅ Fits the ${target} minutes in the Brief.`);
   return 0;
 }
 

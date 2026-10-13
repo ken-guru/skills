@@ -39,6 +39,13 @@ test('timing warns when the talk runs over the Brief\'s length', () => {
   assert.match(result.out, /runs about 3(\.0)? minutes over the 5 minutes in the Brief/);
 });
 
+test('timing warns when the talk runs well short of the Brief\'s length', () => {
+  const result = run(['timing', '--deck', deckFolder({ notesWords: 130, slides: 3, length: '5 minutes' })]);
+  assert.equal(result.code, 0, result.out);
+  assert.match(result.out, /runs about 2(\.0)? minutes short of the 5 minutes in the Brief/);
+  assert.doesNotMatch(result.out, /Fits/);
+});
+
 test('timing flags slides with no notes', () => {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'reviewing-presentation-test-'));
   writeFileSync(path.join(directory, 'deck.md'), '---\nmarp: true\n---\n\n## Only slide\n\nNo notes here.\n');

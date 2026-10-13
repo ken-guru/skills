@@ -34,7 +34,7 @@ Script paths below are relative to this skill's folder. Run each as one command 
 3. **Language.** Read every heading, body, and note. If `unslop` is installed, use it to find prose problems, with the Brief's tone, prefer, and avoid preferences. Otherwise look for filler, inflated claims, jargon the audience will not know, inconsistent terms, typos, and a voice that does not match the speaker.
 4. **Rendered slides.** Look at every slide image (`dist/slides/`, or render them): text overflowing or too small to read, overlapping elements, unreadable contrast, a visual that does not make its point, a missing "AI-generated illustration" label.
 5. **Accessibility judgement.** The scripts cannot judge these; you must: headings that say what the slide is about, alt text that says what matters in the image, a reading order that makes sense, colour never the only way to tell things apart, no text inside images, and link text that is clear in context.
-6. **Timing.** Run `node scripts/reviewing-presentation.mjs timing --deck <folder>`. It estimates speaking time from the notes and compares it with the Brief's length.
+6. **Timing.** Run `node scripts/reviewing-presentation.mjs timing --deck <folder>`. It estimates speaking time from the notes, compares it with the Brief's length, and says when the talk runs over or well short.
 7. **Report** the Findings in the conversation, using [references/findings.md](references/findings.md): grouped by the stage that owns each fix, most serious first, each with the slide, the problem, and the fix.
 
 An unsupported claim goes back to Research: say what evidence is missing, and that `researching-sources` (if installed) can find it, rather than suggesting the claim simply be deleted.
