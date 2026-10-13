@@ -23,7 +23,7 @@ independent owners; do not add a registry, schema, or checker for hypothetical s
 ## Required checks
 
 `main` accepts changes only through pull requests, and its ruleset requires one
-status check: **Presentation theme contracts**. Every other workflow runs without
+status check: **presentation-skills**. Every other workflow runs without
 blocking a merge. A PR opened with `GITHUB_TOKEN`, such as one from a release bot,
 triggers no workflows, so a required check never reports on it.
 
@@ -36,35 +36,22 @@ gh api repos/ken-guru/skills/rulesets --jq '.[].id' \
       --jq '.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
 ```
 
-## Dependency updates and rendered-gallery fingerprints
+## Pinned tools and rendered fixtures
 
-The Presentation Theme verification suite fingerprints its source inputs, including
-the suite `package-lock.json`. A dependency-only change can therefore invalidate
-the approved gallery manifest even when no CSS or rendering code changed. A stale
-fingerprint is a required follow-up, not a reason to weaken the check.
+The presentation skills download pinned, checksum-verified tools (D2,
+`vl-convert`, `chrome-headless-shell`, and Marp CLI from a committed lockfile)
+through each skill's `setup`. Moving a pin is a release of that skill:
 
-For Dependabot updates in `skills/presentation/verification/presentation-themes`:
+1. Update the version and checksums in the skill's script (or the Marp CLI
+   lockfile under `rendering-slides/scripts/marp-cli/`).
+2. Run the skill's `setup`, its tests, and `node --test verification/presentation-skills/*.test.mjs`.
+3. Review the fixture deck's rendered slides (the `fixture-slides` CI artifact)
+   before merging. There are no pixel baselines: a person looks.
 
-1. Install from the lockfile with `npm ci`.
-2. Regenerate the gallery fixtures and renders with `npm run fixtures:gallery` and
-   `npm run render:gallery`.
-3. Review the rendered output. Update the tracked source fingerprint in
-   `skills/presentation/docs/assets/presentation-themes/manifest.json` only after
-   confirming the reviewed gallery remains valid.
-4. Run `npm run check-gallery` and `npm test`, then include the manifest update in
-   the same PR as the lockfile update.
-
-Do not commit the generated `reports/` or `.generated/` files. If the dependency
-update changes the rendered pixels, stop and obtain explicit visual approval before
-replacing the public gallery assets.
-
-## Diagram media boxes
-
-A Theme Package's `archetypes.diagram.mediaBox` must match the diagram slot its
-CSS renders. After changing diagram, heading, or caption layout, run
-`npm run fixtures && node scripts/check-diagram-media-box.mjs` in
-`skills/presentation/verification/presentation-themes`
-and update the declaration; CI's `Diagram media box` job enforces it.
+Shared files are copied into each skill that needs them at runtime and kept
+identical by CI: `scripts/tools.mjs`, `scripts/deck.mjs`, and the suite's
+`docs/accessibility-bar.md` and `docs/deck-folder.md` (copied into
+`references/`). Edit the original and copy it to every skill that has one.
 
 ## Extracting a suite member
 

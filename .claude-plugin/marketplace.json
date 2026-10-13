@@ -8,13 +8,14 @@
     {
       "name": "presentation-skills",
       "source": "./",
-      "description": "A complete, state-aware presentation workflow with independently usable phase skills.",
+      "description": "Plan, research, draft, illustrate, render, and review slide decks with skills that also work on their own.",
       "category": "productivity",
       "keywords": [
         "presentation",
         "slides",
         "marp",
-        "agenda"
+        "diagrams",
+        "charts"
       ]
     }
   ]

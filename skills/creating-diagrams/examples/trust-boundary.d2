@@ -1,0 +1,14 @@
+# One message: only the API crosses the network boundary.
+direction: right
+public: Internet {
+  class: boundary
+  user: Browser {class: base}
+}
+private: Private network {
+  class: boundary
+  api: API {class: emphasis}
+  db: Postgres {shape: cylinder; class: base}
+  api -> db: query {class: flow}
+}
+# Connect by full key path; `api -> db` outside the container would create new shapes.
+public.user -> private.api: HTTPS {class: flow}

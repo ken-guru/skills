@@ -1,0 +1,13 @@
+/* @theme editorial-inverse */
+/* Editorial Inverse: Editorial's layout on a dark canvas. Only colour values change,
+   so the two themes can never drift apart. */
+@import "editorial";
+
+:root {
+  --color-bg: #241820;
+  --color-text: #f4ece0;
+  --color-surface: #33242e;
+  --color-muted: #c9b8c2;
+  --color-accent: #ee8a7c;
+  --color-on-accent: #241820;
+}
