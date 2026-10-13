@@ -38,5 +38,6 @@ Arc: problem → why it matters → what to do. Length: 5 minutes, about 6 slide
 ## Rules
 
 - Every factual claim cites the Source Set; opinions and the speaker's own experience are labelled.
+- A slide that waits on the person's input still states its claim, with the gap inside it: "Agents saved us [to fill: hours] a week on [to fill: kind of task]", not "Where agents helped".
 - Fit the length in the Brief: about one slide per minute for a typical talk, leaving the agreed time for questions.
 - When the person asks to move, drop, or add sections, apply every change and say plainly when a requested change has nothing to act on.
