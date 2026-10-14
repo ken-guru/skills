@@ -1,0 +1,9 @@
+# One message: a request crosses three hops before any work is queued.
+direction: right
+browser: Browser {class: base}
+cdn: CDN {class: base}
+api: API service {class: emphasis}
+queue: Job queue {class: base}
+browser -> cdn: request {class: flow}
+cdn -> api: cache miss {class: flow}
+api -> queue: enqueue {class: flow}

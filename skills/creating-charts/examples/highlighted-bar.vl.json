@@ -1,0 +1,11 @@
+{
+  "mark": "bar",
+  "encoding": {
+    "y": { "field": "team", "type": "nominal", "sort": "-x", "title": null },
+    "x": { "field": "hours", "type": "quantitative", "title": "Hours saved per month" },
+    "color": {
+      "condition": { "test": "datum.team === 'Platform'", "value": "#b42318" },
+      "value": "#57606a"
+    }
+  }
+}
