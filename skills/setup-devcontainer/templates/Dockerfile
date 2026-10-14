@@ -18,7 +18,7 @@
 # digest. If Dependabot is ever paused, refresh manually with:
 #   docker buildx imagetools inspect mcr.microsoft.com/devcontainers/base:ubuntu
 # and replace the sha256 below with the reported (multi-arch index) digest.
-FROM mcr.microsoft.com/devcontainers/base:ubuntu@sha256:edfb983aab9c579a385dc23c57d7d3703f5ec920124d99c16204a2cac465aab4 AS base
+FROM mcr.microsoft.com/devcontainers/base:ubuntu@sha256:0b997af705ff88f10e3293326dce61b4a9676b9f98de6aad67f1973691737dd8 AS base
 
 # Node.js — none of the AI CLIs need this themselves (all install as native
 # binaries), but it's kept as a general-purpose amenity for repos whose own
