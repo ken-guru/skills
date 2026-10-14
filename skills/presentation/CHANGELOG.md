@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.1
+
+Patch release of the presentation suite. The change is in `rendering-slides`; the other suite members carry the same version to match the plugin, with no content change. The Marp CLI tool tree now pins vulnerable transitive packages to fixed versions: `@xmldom/xmldom` 0.9.12, `katex` 0.19.0, and `basic-ftp` 6.2.3. Marp CLI stays at 4.5.1. Users need no changes to their decks. A machine whose tool cache was installed before this release keeps the old versions, because `setup` skips an install that is already present; clear the `marp-cli` folder in the cache to pick up the new tree.
+
+Known gap: the katex upgrade is checked only at the HTML level. Nobody has looked at a rendered math slide yet. Decks that use math (`math: katex`) are the ones to watch.
+
 ## 3.0.0
 
 A full replacement of the 2.x suite with four suite skills and four general-purpose Standalone Skills. See [ADR 0001](docs/adr/0001-rebuild-as-skill-native-skills.md).
