@@ -1,0 +1,14 @@
+# Accepted findings in the setup-devcontainer template image (ADR-0004, weekly
+# image-scan job). Identical on base digest 0b997af and 91eff04 as of 2026-10-20.
+#
+# Go binaries (usr/bin/gh, usr/bin/pebble): no upstream fix yet. gh 2.102.0 still
+# builds with golang.org/x/net 0.58.0; pebble comes from the base image.
+CVE-2026-78667 exp:2026-12-19
+CVE-2026-78669 exp:2026-12-19
+CVE-2026-97031 exp:2026-12-19
+
+# Node packages in the image (brace-expansion, undici): fixable, tracked as a
+# follow-up npm upgrade rather than fixed here.
+CVE-2026-102276 exp:2026-12-19
+CVE-2026-102278 exp:2026-12-19
+CVE-2026-19534 exp:2026-12-19
