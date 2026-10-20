@@ -38,6 +38,8 @@ npx skills@latest add ken-guru/skills \
 
 Any skill can also be installed on its own.
 
+The plugin's skill list is the `skills` field of the `presentation-skills` entry in `.claude-plugin/marketplace.json`. That list scopes the plugin: the default `skills/` scan is skipped, so the plugin doesn't pull in the Collection's other skills. Add a new suite member to that list, or it won't load with the plugin.
+
 ## Tools
 
 Skills that render install their pinned tools once, with verified checksums, into a shared per-user cache (`~/.cache/ken-guru-skills/`, or `$KEN_GURU_SKILLS_CACHE`). Each tells you the exact `setup` command when a tool is missing. Run `setup` outside your harness's sandbox.
