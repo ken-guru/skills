@@ -5,6 +5,7 @@
 //   node scripts/rendering-slides.mjs theme --deck <folder> --name editorial|editorial-inverse
 //   node scripts/rendering-slides.mjs theme-values --deck <folder>
 //   node scripts/rendering-slides.mjs render --deck <folder> [--pptx] [--images]
+//   node scripts/rendering-slides.mjs check --deck <folder> [--minutes <n>]
 //
 // Exit codes: 0 success; 1 the render or a check failed; 2 usage, prerequisite, or internal error.
 
@@ -18,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { cacheRoot, installPinned, missingToolMessage, onPath, platformKey } from './tools.mjs';
 import { parseDeck } from './deck.mjs';
 import { assetFindings, folderEscape, formatFindings, pdfFindings, rawHtmlFindings, renderedFindings, sourceFindings, themeFindings } from './checks.mjs';
+import { briefLength, speakingTimeNotes } from './timing.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SETUP_COMMAND = 'node scripts/rendering-slides.mjs setup';
@@ -55,7 +57,7 @@ class RenderError extends Error {}
 function parseArguments(argv) {
   const [command, ...rest] = argv;
   if (!['setup', 'theme', 'theme-values', 'render', 'check'].includes(command)) throw new UsageError(`Unknown command "${command ?? ''}". Use setup, theme, theme-values, render, or check.`);
-  const options = { command, deck: null, name: null, brand: null, pptx: false, images: false, status: false };
+  const options = { command, deck: null, name: null, brand: null, minutes: null, pptx: false, images: false, status: false };
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     const value = () => {
@@ -67,6 +69,10 @@ function parseArguments(argv) {
     if (argument === '--deck') options.deck = path.resolve(value());
     else if (argument === '--name') options.name = value();
     else if (argument === '--brand') options.brand = path.resolve(value());
+    else if (argument === '--minutes') {
+      options.minutes = Number(value());
+      if (!(options.minutes > 0)) throw new UsageError('--minutes needs a positive number of minutes.');
+    }
     else if (argument === '--pptx') options.pptx = true;
     else if (argument === '--images') options.images = true;
     else if (argument === '--status') options.status = true;
@@ -494,6 +500,7 @@ async function check(options) {
   if (!existsSync(deckPath)) throw new UsageError(`${deckPath} not found.`);
   if (!existsSync(path.join(options.deck, 'theme.css'))) throw new UsageError(`${path.join(options.deck, 'theme.css')} not found. Run \`node scripts/rendering-slides.mjs theme --deck ${options.deck} --name editorial\` first.`);
   const deck = parseDeck(await readFile(deckPath, 'utf8'));
+  const timing = speakingTimeNotes(deck, options.minutes ?? briefLength(options.deck));
   const marpTool = resolveMarp();
   const browser = resolveBrowser();
   const tools = marpTool.path && browser.path ? { marpPath: marpTool.path, browserPath: browser.path } : null;
@@ -501,10 +508,10 @@ async function check(options) {
   const notes = trust.engine ? [] : [`Asset paths are checked with Marp's engine, which is not installed: run ${SETUP_COMMAND}.`];
   if (trust.findings.length) {
     const unrendered = await runChecks(options.deck, deck, null);
-    return reportChecks({ findings: [...trust.findings, ...unrendered.findings], notes: [...notes, UNTRUSTED_NOTE] });
+    return reportChecks({ findings: [...trust.findings, ...unrendered.findings], notes: [...notes, ...timing, UNTRUSTED_NOTE] });
   }
   const checked = await runChecks(options.deck, deck, tools);
-  return reportChecks({ findings: checked.findings, notes: [...notes, ...checked.notes] });
+  return reportChecks({ findings: checked.findings, notes: [...notes, ...timing, ...checked.notes] });
 }
 
 async function main(argv) {

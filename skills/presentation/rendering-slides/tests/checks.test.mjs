@@ -212,3 +212,27 @@ test('a clean render passes every check, including the tagged PDF and its outlin
   assert.equal(result.code, 0, result.out);
   assert.match(result.out, /Accessibility Bar: all scripted checks pass/);
 });
+
+test('check prints the notes\' speaking time against the Brief, without changing the result', () => {
+  const words = Array.from({ length: 130 }, () => 'word').join(' ');
+  const directory = deck(`# One\n\n<!-- ${words} -->\n`, { files: { 'brief.md': '# Brief\n\n- Length: 5 minutes\n' } });
+  const result = run(['check', '--deck', directory]);
+  assert.equal(result.code, 0, result.out);
+  assert.match(result.out, /About 1\.0 minutes of speaking at 130 words per minute \(130 words in the notes\)/);
+  assert.match(result.out, /Warning: the talk runs about 4\.0 minutes short of the 5-minute length/);
+});
+
+test('check --minutes sets the length when there is no Brief', () => {
+  const words = Array.from({ length: 130 }, () => 'word').join(' ');
+  const directory = deck(`# One\n\n<!-- ${words} -->\n`);
+  const result = run(['check', '--deck', directory, '--minutes', '1']);
+  assert.equal(result.code, 0, result.out);
+  assert.match(result.out, /Fits the 1-minute length/);
+  assert.doesNotMatch(run(['check', '--deck', directory]).out, /length/);
+});
+
+test('check --minutes needs a positive number', () => {
+  const result = run(['check', '--deck', deck('# One\n'), '--minutes', '-2']);
+  assert.equal(result.code, 2, result.out);
+  assert.match(result.out, /--minutes needs a positive number of minutes/);
+});

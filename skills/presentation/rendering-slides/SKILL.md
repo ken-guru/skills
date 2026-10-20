@@ -28,7 +28,7 @@ Script paths below are relative to this skill's folder. Run each as one command 
 
 ## The Accessibility Bar
 
-Every `render` ends with the scripted checks listed in the [Accessibility Bar](references/accessibility-bar.md) ("Who checks what"). A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering.
+Every `render` ends with the scripted checks listed in the [Accessibility Bar](references/accessibility-bar.md) ("Who checks what"). A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering. It also prints the notes' speaking time as information, never a finding: it compares with the length in `brief.md`, or with `--minutes <n>` when there is no Brief, and says nothing about length when neither is given.
 
 The judgement checks in that table need a person or a review; say so when reporting a passing render.
 
