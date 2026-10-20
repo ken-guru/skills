@@ -2,7 +2,7 @@
 name: drafting-slides
 description: Drafts a slide deck as one editable Marp Markdown file, with a heading and speaker notes on every slide, citations for every factual claim, and a plan for each visual. Use when turning an approved storyline, an outline, or notes into slides, or when rewriting the slides of an existing Marp deck.
 metadata:
-  version: "3.0.1"
+  version: "3.0.2"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 

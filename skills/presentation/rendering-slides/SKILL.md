@@ -2,7 +2,7 @@
 name: rendering-slides
 description: Renders a Marp slide deck to HTML, a tagged PDF, and a speaker-notes script with a polished theme, installing the pinned tools it needs and checking the result. Use when a deck needs exporting, a look applied or changed, or a PDF, PowerPoint, or slide images made from Marp Markdown.
 metadata:
-  version: "3.0.1"
+  version: "3.0.2"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
