@@ -15,15 +15,5 @@
     "charts",
     "research",
     "accessibility"
-  ],
-  "skills": [
-    "./skills/researching-sources",
-    "./skills/creating-diagrams",
-    "./skills/creating-charts",
-    "./skills/generating-images",
-    "./skills/presentation/planning-presentation",
-    "./skills/presentation/drafting-slides",
-    "./skills/presentation/rendering-slides",
-    "./skills/presentation/reviewing-presentation"
   ]
 }

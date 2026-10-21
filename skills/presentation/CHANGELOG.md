@@ -10,6 +10,10 @@ Minor release of the presentation suite. Every suite member carries the same ver
 
 Known gaps: the speaking-time guidance was checked in real Sonnet sessions, not in the evaluation suite, because the suite's sandbox can't run the check. Anyone with the standalone copies of these skills in their global skills folder keeps the old guidance until they reinstall.
 
+## 3.0.2
+
+Patch release of the presentation suite. The plugin's skill list moved from `plugin.json` to the `presentation-skills` entry in `marketplace.json`, so installing the plugin no longer loads the Collection's other skills (`setup-*-devcontainer` and `unslop`). Users who installed only the eight presentation skills see no change. The suite members carry the same version to match the plugin, with no content change.
+
 ## 3.0.1
 
 Patch release of the presentation suite. The change is in `rendering-slides`; the other suite members carry the same version to match the plugin, with no content change. The Marp CLI tool tree now pins vulnerable transitive packages to fixed versions: `@xmldom/xmldom` 0.9.12, `katex` 0.19.0, and `basic-ftp` 6.2.3. Marp CLI stays at 4.5.1. Users need no changes to their decks. A machine whose tool cache was installed before this release keeps the old versions, because `setup` skips an install that is already present; clear the `marp-cli` folder in the cache to pick up the new tree.

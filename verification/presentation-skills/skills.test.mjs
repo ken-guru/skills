@@ -115,8 +115,12 @@ for (const shared of ['accessibility-bar.md', 'deck-folder.md']) {
 }
 
 test('the plugin lists every presentation skill that exists, and nothing else', () => {
+  // The marketplace entry's skills list scopes the plugin; plugin.json must not carry one.
   const plugin = JSON.parse(readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf8'));
-  const listed = plugin.skills.map((entry) => path.resolve(root, entry));
+  assert.equal(plugin.skills, undefined, 'plugin.json must not list skills: the marketplace entry scopes the plugin');
+  const marketplace = JSON.parse(readFileSync(path.join(root, '.claude-plugin', 'marketplace.json'), 'utf8'));
+  const entry = marketplace.plugins.find((candidate) => candidate.name === 'presentation-skills');
+  const listed = entry.skills.map((skill) => path.resolve(root, skill));
   const expected = present.map(skillDirectory);
   assert.deepEqual([...listed].sort(), [...expected].sort());
   for (const directory of listed) assert.ok(existsSync(path.join(directory, 'SKILL.md')), `${path.relative(root, directory)} has no SKILL.md`);
