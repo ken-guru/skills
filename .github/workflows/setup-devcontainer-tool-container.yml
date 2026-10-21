@@ -79,6 +79,9 @@ jobs:
       - name: Run network-manifest-domains.sh (Network Manifest) derivation tests
         run: skills/setup-devcontainer/scripts/test-network-manifest-domains.sh
 
+      - name: Install aggregate for the firewall-lib.sh range tests
+        run: sudo apt-get install -y aggregate
+
       - name: Run firewall-lib.sh domain-collection tests
         run: skills/setup-devcontainer/scripts/test-firewall-lib.sh
 
