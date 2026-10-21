@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0
+
+Minor release of the presentation suite. Every suite member carries the same version to match the plugin.
+
+- `rendering-slides check` prints the speaker notes' speaking time at 130 words a minute as information, never as a finding. With a length from `brief.md` or `--minutes <n>`, it also warns when the talk is more than 0.5 minutes over or more than 1 minute short. Without a length, it prints only the estimate.
+- `drafting-slides` runs that check with the length the person asked for, reports the speaking-time line, and lengthens or trims the notes until they fit.
+- `drafting-slides` marks any personal story it writes into the notes as a placeholder for the person to confirm or replace, instead of presenting it as theirs.
+
+Known gaps: the speaking-time guidance was checked in real Sonnet sessions, not in the evaluation suite, because the suite's sandbox can't run the check. Anyone with the standalone copies of these skills in their global skills folder keeps the old guidance until they reinstall.
+
 ## 3.0.1
 
 Patch release of the presentation suite. The change is in `rendering-slides`; the other suite members carry the same version to match the plugin, with no content change. The Marp CLI tool tree now pins vulnerable transitive packages to fixed versions: `@xmldom/xmldom` 0.9.12, `katex` 0.19.0, and `basic-ftp` 6.2.3. Marp CLI stays at 4.5.1. Users need no changes to their decks. A machine whose tool cache was installed before this release keeps the old versions, because `setup` skips an install that is already present; clear the `marp-cli` folder in the cache to pick up the new tree.
