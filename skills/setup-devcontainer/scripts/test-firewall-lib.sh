@@ -186,7 +186,7 @@ GITHUB_META_WITH_COPILOT='{
   "copilot": ["140.82.112.0/20", "4.225.11.192/32"]
 }'
 
-assert_eq "copilot-only single-host /32 is allowed" \
+assert_eq "a single-host /32 under the copilot key is allowed" \
   "4.225.11.192/32" \
   "$(collect_github_ranges "$GITHUB_META_WITH_COPILOT" | grep -x '4.225.11.192/32')"
 
