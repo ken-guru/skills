@@ -33,5 +33,20 @@
     "host": "default.exp-tas.com",
     "purpose": "experimentation",
     "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "api.business.githubcopilot.com",
+    "purpose": "inference API for Copilot Business seats",
+    "source": "https://api.github.com/meta"
+  },
+  {
+    "host": "api.individual.githubcopilot.com",
+    "purpose": "inference API for Copilot Individual accounts",
+    "source": "https://api.github.com/meta"
+  },
+  {
+    "host": "api.githubcopilot.com",
+    "purpose": "generic Copilot inference API",
+    "source": "https://api.github.com/meta"
   }
 ]
