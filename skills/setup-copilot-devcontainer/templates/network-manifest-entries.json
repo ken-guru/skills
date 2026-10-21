@@ -41,7 +41,7 @@
   },
   {
     "host": "api.individual.githubcopilot.com",
-    "purpose": "inference API for Copilot Individual accounts",
+    "purpose": "inference API for Copilot Individual accounts (endpoint not yet confirmed from copilot_internal/user; covered by the copilot ranges either way)",
     "source": "https://api.github.com/meta"
   },
   {
