@@ -30,7 +30,7 @@ FIREWALL_DEVCONTAINER_DIR="${FIREWALL_DEVCONTAINER_DIR:-/workspace/.devcontainer
 firewall_collect_github_ranges() {
   local gh_ranges
   gh_ranges=$(curl -s --connect-timeout 10 https://api.github.com/meta 2>/dev/null || true)
-  if [ -z "$gh_ranges" ] || ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null 2>&1; then
+  if [ -z "$gh_ranges" ] || ! echo "$gh_ranges" | jq -e '.web and .api and .git and (.copilot | length > 0)' >/dev/null 2>&1; then
     echo "firewall-lib: failed to fetch or parse GitHub IP ranges from api.github.com/meta" >&2
     return 1
   fi
@@ -39,7 +39,7 @@ firewall_collect_github_ranges() {
   local cidr
   while IFS= read -r cidr; do
     [ -n "$cidr" ] && FIREWALL_GITHUB_CIDRS+=("$cidr")
-  done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+  done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git + .copilot)[]' | aggregate -q)
 
   if [ "${#FIREWALL_GITHUB_CIDRS[@]}" -eq 0 ]; then
     echo "firewall-lib: no CIDR ranges derived from GitHub's meta response" >&2

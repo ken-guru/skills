@@ -162,5 +162,68 @@ assert_google_fronted "registry.npmjs.org" "no"
 assert_google_fronted "notgoogle.com" "no"
 assert_google_fronted "evilgoogleapis.com" "no"
 
+# Runs firewall_collect_github_ranges against a stubbed api.github.com/meta
+# response ($1) and prints the sorted CIDRs it derives, or "FAILED" when it
+# returns non-zero. curl is stubbed as a shell function so no network is used.
+collect_github_ranges() {
+  local meta_json="$1"
+  (
+    curl() { printf '%s' "$meta_json"; }
+    # shellcheck source=../templates/firewall-lib.sh
+    source "$TEMPLATES_DIR/firewall-lib.sh"
+    if firewall_collect_github_ranges 2>/dev/null; then
+      printf '%s\n' "${FIREWALL_GITHUB_CIDRS[@]}" | sort
+    else
+      echo "FAILED"
+    fi
+  )
+}
+
+GITHUB_META_WITH_COPILOT='{
+  "web": ["192.0.2.0/24"],
+  "api": ["198.51.100.0/24"],
+  "git": ["203.0.113.0/24"],
+  "copilot": ["140.82.112.0/20", "4.225.11.192/32"]
+}'
+
+assert_eq "a single-host /32 under the copilot key is allowed" \
+  "4.225.11.192/32" \
+  "$(collect_github_ranges "$GITHUB_META_WITH_COPILOT" | grep -x '4.225.11.192/32')"
+
+assert_eq "meta response without the copilot key fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"web": ["192.0.2.0/24"], "api": ["198.51.100.0/24"], "git": ["203.0.113.0/24"]}')"
+
+assert_eq "all four keys are aggregated into one sorted set" \
+  "$(printf '140.82.112.0/20\n192.0.2.0/24\n198.51.100.0/24\n203.0.113.0/24\n4.225.11.192/32')" \
+  "$(collect_github_ranges "$GITHUB_META_WITH_COPILOT")"
+
+assert_eq "meta response without the web key still fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"api": ["198.51.100.0/24"], "git": ["203.0.113.0/24"], "copilot": ["4.225.11.192/32"]}')"
+
+assert_eq "meta response without the api key still fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"web": ["192.0.2.0/24"], "git": ["203.0.113.0/24"], "copilot": ["4.225.11.192/32"]}')"
+
+assert_eq "meta response without the git key still fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"web": ["192.0.2.0/24"], "api": ["198.51.100.0/24"], "copilot": ["4.225.11.192/32"]}')"
+
+GITHUB_META_COPILOT_ONLY_SLASH32S='{
+  "web": ["192.0.2.0/24"],
+  "api": ["198.51.100.0/24"],
+  "git": ["203.0.113.0/24"],
+  "copilot": ["4.225.11.192/32", "4.228.31.153/32", "4.237.22.41/32", "4.249.131.160/32", "13.107.5.93/32", "20.85.130.105/32", "20.199.39.224/32", "20.250.119.64/32", "52.140.63.241/32", "52.175.140.176/32", "138.91.182.224/32"]
+}'
+
+assert_eq "all eleven copilot-only single-host /32s are allowed" \
+  "11" \
+  "$(collect_github_ranges "$GITHUB_META_COPILOT_ONLY_SLASH32S" | grep -c '/32$')"
+
+assert_eq "meta response with an empty copilot list fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"web": ["192.0.2.0/24"], "api": ["198.51.100.0/24"], "git": ["203.0.113.0/24"], "copilot": []}')"
+
 echo "$RUN_COUNT assertions, $FAIL_COUNT failed"
 [ "$FAIL_COUNT" -eq 0 ]

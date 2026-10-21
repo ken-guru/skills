@@ -33,5 +33,20 @@
     "host": "default.exp-tas.com",
     "purpose": "experimentation",
     "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "api.business.githubcopilot.com",
+    "purpose": "API service for Copilot suggestions, via a Copilot Business plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "api.individual.githubcopilot.com",
+    "purpose": "API service for Copilot suggestions, via a Copilot Individual plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+  },
+  {
+    "host": "api.githubcopilot.com",
+    "purpose": "API service for Copilot suggestions, regardless of Copilot plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
   }
 ]
