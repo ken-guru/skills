@@ -2,7 +2,7 @@
 name: rendering-slides
 description: Renders a Marp slide deck to HTML, a tagged PDF, and a speaker-notes script with a polished theme, installing the pinned tools it needs and checking the result. Use when a deck needs exporting, a look applied or changed, or a PDF, PowerPoint, or slide images made from Marp Markdown.
 metadata:
-  version: "3.0.2"
+  version: "3.1.0"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
@@ -28,7 +28,7 @@ Script paths below are relative to this skill's folder. Run each as one command 
 
 ## The Accessibility Bar
 
-Every `render` ends with the scripted checks listed in the [Accessibility Bar](references/accessibility-bar.md) ("Who checks what"). A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering.
+Every `render` ends with the scripted checks listed in the [Accessibility Bar](references/accessibility-bar.md) ("Who checks what"). A finding names the slide and the fix; correct the source and render again. Run `node scripts/rendering-slides.mjs check --deck <folder>` to check without rendering. It also prints the notes' speaking time as information, never a finding: it compares with the length in `brief.md`, or with `--minutes <n>` when there is no Brief, and says nothing about length when neither is given.
 
 The judgement checks in that table need a person or a review; say so when reporting a passing render.
 

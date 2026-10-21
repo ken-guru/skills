@@ -2,7 +2,7 @@
 name: drafting-slides
 description: Drafts a slide deck as one editable Marp Markdown file, with a heading and speaker notes on every slide, citations for every factual claim, and a plan for each visual. Use when turning an approved storyline, an outline, or notes into slides, or when rewriting the slides of an existing Marp deck.
 metadata:
-  version: "3.0.2"
+  version: "3.1.0"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
@@ -37,6 +37,6 @@ Script paths below are relative to this skill's folder. Run each as one command 
    - Illustrations: `generating-images`, if installed. Otherwise, leave the Visual Intent in place and say no image was made.
 
    Apply the theme before the first visual: theme values come from `rendering-slides theme-values`, which reads the `theme.css` that `rendering-slides theme` writes (see that skill). Then place each visual with ordinary image syntax and its alt text, followed by its caption. Put a chart's data table in the slide's speaker notes. Give every generated image a visible "AI-generated illustration" caption and alt text starting "AI-generated:".
-5. **Check the deck.** Every slide has one visible heading, speaker notes, and a citation for every factual claim; every image has alt text or a `<!-- decorative -->` marker; the front matter has `title` and `lang`. Add up the words in the notes and divide by 130 for the speaking time in minutes (`reviewing-presentation`'s `timing` command does this count, if installed); lengthen or trim the notes until it fits the length in the Brief, or the length the person gave. If `rendering-slides` is installed, its `check` command verifies the scripted rules.
+5. **Check the deck.** Every slide has one visible heading, speaker notes, and a citation for every factual claim; every image has alt text or a `<!-- decorative -->` marker; the front matter has `title` and `lang`. Count the speaking time with `rendering-slides`' `check` command, if installed, passing the length the person asked for: `node scripts/rendering-slides.mjs check --deck <folder> --minutes <n>`. It needs `theme.css` in the Deck Folder, so run `rendering-slides theme` first if it's missing. Put its speaking-time line in your reply, and lengthen or trim the notes until the speaking time fits the length; `check` warns when it doesn't. Where you write a personal story or first-person experience into the notes that the person didn't supply, mark it as a placeholder for them to confirm or replace (for example, `[your story here]`), and never present an invented story as theirs. Without `rendering-slides`, use `reviewing-presentation`'s `timing` command if installed, or add up the words in the notes and divide by 130 against the length asked for. `check` also verifies the scripted rules.
 
 When the deck is drafted, the natural next step is rendering it: `rendering-slides`, if installed, applies the theme, exports the formats, and checks the Accessibility Bar ([references/accessibility-bar.md](references/accessibility-bar.md)).

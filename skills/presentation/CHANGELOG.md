@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0
+
+Minor release of the presentation suite. Every suite member carries the same version to match the plugin.
+
+- `rendering-slides check` prints the speaker notes' speaking time at 130 words a minute as information, never as a finding. With a length from `brief.md` or `--minutes <n>`, it also warns when the talk is more than 0.5 minutes over or more than 1 minute short. Without a length, it prints only the estimate.
+- `drafting-slides` runs that check with the length the person asked for, reports the speaking-time line, and lengthens or trims the notes until they fit.
+- `drafting-slides` marks any personal story it writes into the notes as a placeholder for the person to confirm or replace, instead of presenting it as theirs.
+
+Known gaps: the speaking-time guidance was checked in real Sonnet sessions, not in the evaluation suite, because the suite's sandbox can't run the check. Anyone with the standalone copies of these skills in their global skills folder keeps the old guidance until they reinstall.
+
 ## 3.0.2
 
 Patch release of the presentation suite. The plugin's skill list moved from `plugin.json` to the `presentation-skills` entry in `marketplace.json`, so installing the plugin no longer loads the Collection's other skills (`setup-*-devcontainer` and `unslop`). Users who installed only the eight presentation skills see no change. The suite members carry the same version to match the plugin, with no content change.

@@ -2,7 +2,7 @@
 name: planning-presentation
 description: "Plans a presentation with the person: interviews them until the audience, goal, and premises are clear, records the Brief, and builds an approved storyline from vetted sources, the first step towards a Marp deck with a PDF and a speaker-notes script. Use when someone wants to make, plan, or structure a talk, presentation, or slide deck, or needs help working out what to say."
 metadata:
-  version: "3.0.2"
+  version: "3.1.0"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 

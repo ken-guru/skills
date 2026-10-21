@@ -2,7 +2,7 @@
 name: reviewing-presentation
 description: Reviews a slide deck for factual accuracy and sourcing, language, legibility, accessibility, timing, and how the rendered slides look, and reports what to fix where. Use when someone asks to check, review, proofread, or critique a presentation or slide deck, in Marp, HTML, PDF, or PowerPoint.
 metadata:
-  version: "3.0.2"
+  version: "3.1.0"
   changelog: "https://github.com/ken-guru/skills/blob/main/skills/presentation/CHANGELOG.md"
 ---
 
