@@ -36,17 +36,17 @@
   },
   {
     "host": "api.business.githubcopilot.com",
-    "purpose": "inference API for Copilot Business seats",
-    "source": "https://api.github.com/meta"
+    "purpose": "API service for Copilot suggestions, via a Copilot Business plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
   },
   {
     "host": "api.individual.githubcopilot.com",
-    "purpose": "inference API for Copilot Individual accounts (endpoint not yet confirmed from copilot_internal/user; covered by the copilot ranges either way)",
-    "source": "https://api.github.com/meta"
+    "purpose": "API service for Copilot suggestions, via a Copilot Individual plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
   },
   {
     "host": "api.githubcopilot.com",
-    "purpose": "generic Copilot inference API",
-    "source": "https://api.github.com/meta"
+    "purpose": "API service for Copilot suggestions, regardless of Copilot plan",
+    "source": "https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
   }
 ]
