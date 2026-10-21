@@ -221,5 +221,9 @@ assert_eq "all eleven copilot-only single-host /32s are allowed" \
   "11" \
   "$(collect_github_ranges "$GITHUB_META_COPILOT_ONLY_SLASH32S" | grep -c '/32$')"
 
+assert_eq "meta response with an empty copilot list fails" \
+  "FAILED" \
+  "$(collect_github_ranges '{"web": ["192.0.2.0/24"], "api": ["198.51.100.0/24"], "git": ["203.0.113.0/24"], "copilot": []}')"
+
 echo "$RUN_COUNT assertions, $FAIL_COUNT failed"
 [ "$FAIL_COUNT" -eq 0 ]
